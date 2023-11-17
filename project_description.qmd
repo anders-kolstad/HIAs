@@ -1,7 +1,9 @@
 ---
 title: "Norwegian ecosystem condition indicators from unsystematic field data"
 subtitle: "Project description"
-format: pdf
+format: 
+  pdf:
+    toc: false
 bibliography: mybibfile_projectDescription.bib
 author:
   - name: Anders Kolstad
@@ -15,13 +17,14 @@ Background
 \end{center}
 
 
+
 :::{.column-margin}
 ::: {.callout-note appearance="minimal"}
-## Area explicit?
-Ecosystem condition indicators designed for ecosystem accounting following the SEEA EA standard needs to be area explicit.
+## Spatially explicit?
+Ecosystem condition indicators designed for ecosystem accounting following the SEEA EA standard needs to be spatially explicit.
 That means they need to be assigned to a spatial position.
 This is perhaps not so hard -- if for one variable or indicator you have a single value for all of Norwegian forests, but you don't have actual coordinates for the measurement (for different reasons), then you can still assign that value to all forest areas in Norway.
-If Norwegian forests are delineated on a map, then this value is also delineated on a map, i.e. it's area explicit.
+If Norwegian forests are delineated on a map, then this value is also delineated on a map, i.e. it's spatially explicit.
 :::
 :::
 
