@@ -1,0 +1,148 @@
+---
+title: "Norwegian ecosystem condition indicators from unsystematic field data"
+subtitle: "Project description"
+format: pdf
+bibliography: mybibfile_projectDescription.bib
+author:
+  - name: Anders Kolstad
+date: "`r Sys.Date()`"
+---
+
+\begin{center}
+\begin{LARGE}
+Background 
+\end{LARGE}
+\end{center}
+
+
+:::{.column-margin}
+::: {.callout-note appearance="minimal"}
+## Area explicit?
+Ecosystem condition indicators designed for ecosystem accounting following the SEEA EA standard needs to be area explicit.
+That means they need to be assigned to a spatial position.
+This is perhaps not so hard -- if for one variable or indicator you have a single value for all of Norwegian forests, but you don't have actual coordinates for the measurement (for different reasons), then you can still assign that value to all forest areas in Norway.
+If Norwegian forests are delineated on a map, then this value is also delineated on a map, i.e. it's area explicit.
+:::
+:::
+
+Ecosystem condition accounts are designed around ecosystem assets (EA) which are the basal units that are assessed, i.e. the smallest spatial resolution of the final assessment. 
+The EAs can be small or large[^1], they are _areas_, not points.  
+
+[^1]: They can for example be the same as the ecosystem assessment area (EAA) if there is only one EA (e.g. a single assessments for all forests in Norwegian). They can also be fine scaled, for example a single forest patch.
+
+The data underlying the condition indicators can either have wall-to-wall coverage (withing the EAs), or they can have partial coverage.
+Wall-to-wall data typically means satellite or at least remotely sensed data.
+These are great, because we get to see the spatial variation in the variable, and we can be sure (with some caveats) that the data are area representative, because it is complete.
+
+However, many important ecological aspects are not detectable in remotely sensed data.
+This includes things such as species occurrences, or finer scale structural elements, such as dead wood.
+To include these aspect in ecosystem account we must rely on more traditional field data that exists typically as point data or patchy polygon sets (e.g. nature type mapping).
+To assign indicator values from these variables to the entire area of the EAs, we must **project** in some way over the areas where we have no data.
+This can be done through more complex modelling, such as (species) distribution models.
+It can also be a simpler process by saying that these data are area representative and therefore simply assign some central tendency from the data to the EA.
+
+::: {.callout-note appearance="minimal"}
+## Methods of assigning indicator values to ETs
+
+1. **Conceptual assignment** -- Assume a variable is relevant to an ecosystem based on theory or previous knowledge (e.g. from habitat requiremnts)
+1. **Field based assignment** -- Assign ET in the field when recording the variable
+1. **Map based assignment** -- Extract information from maps, such as remotely sensed or modelled wall-to-wall data sets
+1. **Landscape ecological indicator** -- Derive variable from spatial patterns in maps
+
+Source: @nybo2023
+:::
+
+<br>
+
+::: {.callout-note appearance="minimal"}
+## Methods of obtaining wall-to-wall indicator coverage
+
+a. Using wall-to-wall data (e.g. remotely sensed data)
+a. Modeled variable from other sets of wall-to-wall environmental variables
+a. Modeled (extra- or interpolated) variable from training data
+a. Simple projection of some central tendency from area representative data
+:::
+
+
+In Norway we have some nature monitoring programs that are area representative, such as the forest inventory monitoring, ANO, ASO, GRUK,  3Q and TOV-E.
+From these we can project indicator values to EAs using method c or d.
+However, area representative data have the typical disadvantage that they
+
+- do not adequately cover rare ETs
+- do not have the density to allow the calculation of indicator values at smaller scales
+
+Limited by these four methods (a-d) we necessarily discard data where we can not assume area representativity, for example due to non-random or biased sampling.
+
+::: {.callout-note appearance="simple"}
+There is one important exception to this, and that concerns indicators that are assumed representative, but only for a subset of the ET.
+For example, if the ET is _wetland_, then often indicators are included even if they only attain to one type of wetland, even if this subset is a minor componenet of the entire ET (e.g. helophyttic swamps).
+I refer to this as _thematic bias_.
+:::
+
+As condition accounts are often limited by data availability and resolution, being able to include data sources from less-than-ideal sampling designs would be very useful.
+
+In a recent project [@nybo2023] I used used a spatially and thematically biased data [@mdir2023] to develop area representative EC indicators for five regions in Norway.
+The data set [@mdir2023] contains >100 000 nature type localities sampled non-randomly throughout Norway, typically in pressure areas.
+For each polygon there are multiple variables recorded which can be relevant for designing EC indicators.
+I selected two relevant variables, [alien species](https://ninanor.github.io/ecosystemCondition/alien-species.html) and [anthropogenic disturbance to soil and vegetation](https://ninanor.github.io/ecosystemCondition/slitasje.html) and used (what I think is) a novel, but simple, stratified aggregatation method based on [homogenous impact areas](https://ninanor.github.io/ecosystemCondition/homogeneous-impact-areas.html) (HIAs) [^1] to project indicator values over a sub-set of ETs (a further development of _Method d_ in the info box above).
+These indicators provide information not readily replaced with other more suitable data sources. 
+
+[^1]: This approach is somewhat similar to the concept of _homogenous ecosystem areas_ introduced in @jrc2022.
+
+
+
+\begin{center}
+\begin{LARGE}
+Project Aims 
+\end{LARGE}
+\end{center}
+
+With this project I aim to **write a manuscript** documenting the work already done (see above).
+The manuscript will focus on introducing the term **HIAs** and the topic of indicator scalabillity.
+I will demonstrate these things using the two indicators _alien species_ and _anthropogenic disturbance to soil and vegetation_ calculated 
+
+- at two scales, national/regional and regional/local (comparing municipalities)
+- in two ecosystems (with and without ET maps)
+
+[**Time and budget**]{.underline}
+: I think I need two weeks (**70 hours**) to draft this manuscript, and another **15 hours** for co-author contributions.
+The budget is negotiable.
+
+<br>
+
+[**Potential collaborators**]{.underline}
+: Many have already contributed with discussions or even formal review or code review (Matt, Marianne, Zander, Vegar). 
+In addition I'm thinking about inviting  people that can provide a link to municipal accounting needs (Trond, Erik).
+Finally, the manuscript will be written in markdown and managed over GitHub. 
+This is reason enough to include others with an interest in these open science approaches (Jens).
+
+
+
+\begin{center}
+\begin{LARGE}
+Examples 
+\end{LARGE}
+\end{center}
+
+@fig-ex1 and @fig-ex2 show some example results from the previous work dome on this.
+
+```{r fig-ex1, fig.cap="Alien species indicator extrapolated over Nordre Follo (3020), Trondheim (5001) and Målselv (5418). Note that the maps are not masked by ecosystem type, so the three ecosystem specific indicators are overlaping. The bottom row shows the location of the four human impact sones.", echo=FALSE, out.width='80%'}
+knitr::include_graphics("images/ex1.PNG")
+```
+
+```{r fig-ex2, fig.cap="Effect of latitude on the alien species indicator values across Norway. The blue line is a loess smoother (span=0.75).", echo=FALSE, out.width='100%'}
+knitr::include_graphics("images/ex2.PNG")
+```
+
+\newpage
+
+
+
+# References {-}
+::: {#refs}
+:::
+
+
+
+
+
