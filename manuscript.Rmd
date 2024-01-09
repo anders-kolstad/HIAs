@@ -1,0 +1,139 @@
+---
+title: A GIS based workflow for Ecosystem Condition Accounting - an example using spatially biased indicators
+author:
+  - name: Anders Lorentzen Kolstad
+    email: anders.kolstad@nina.no
+    affiliation: Norwegian Institute for Nature Research
+    correspondingauthor: true
+    footnote: 1
+  - name: Bob Security
+    email: bob@example.com
+    affiliation: Another University
+  - name: Cat Memes
+    email: cat@example.com
+    affiliation: Another University
+    footnote: 2
+  - name: Derek Zoolander
+    email: derek@example.com
+    affiliation: Some Institute of Technology
+    footnote: 2
+address:
+  - code: Some Institute of Technology
+    organization: Big Wig University
+    addressline: 1 main street
+    city: Gotham
+    state: State
+    postcode: 123456
+    country: United States
+  - code: Another University
+    organization: Department
+    addressline: A street 29
+    postcode: 2054 NX
+    city: Manchester,
+    country: The Netherlands
+footnote:
+  - code: 1
+    text: "This is the first author footnote."
+  - code: 2
+    text: "Another author footnote."
+abstract: |
+  This is the abstract.
+
+  It consists of two paragraphs.
+keywords: 
+  - SEEA EA
+  - alien species
+  - ...
+journal: "Ecological Indicators"
+date: "`r Sys.Date()`"
+classoption: preprint, 3p, authoryear
+bibliography: mybibfile.bib
+linenumbers: false
+numbersections: true
+# Use a CSL with `citation_package = "default"`
+# csl: https://www.zotero.org/styles/elsevier-harvard
+output: 
+  rticles::elsevier_article:
+    keep_tex: true
+    citation_package: natbib
+---
+
+# Introduction
+SEEA EA principles
+
+The need for local field data
+
+Low data availability
+
+Fast turn around with automated workflows
+
+4 types of indicator
+
+# Material and Methods 
+
+In this study we focused on open mire ecosystems in Norway.
+For this ecosystem we have an ecosystem delineation map produced using a  
+a deep learning model which was trained on field verified ground truth data and and satellite imagery. 
+This model had a XX% precision when tested against independent field data.
+
+The reference state defining ecosystems in optimal or pristine condition is defined as one with little or no human influence, with a climate as in the period 1961-1990 and a native species similar as today (no mammoths allowed).
+
+We then identified two _concepts_ that define open mire ecosystems in optimal condition: 
+
+- Native species dominate
+- No physical damage caused by human activities
+
+To describe these two concepts we use five condition variables from the same data set (ref).
+The five variables are:
+
+
+1. Alien plant cover
+1. 7SE
+1. 7TK
+1. PR..
+1. PR..
+
+The data set from a standardised field survey of nature types.
+Each locality is scored on a range of variables relevant for describing the state and quality of nature.
+The surveys are comissioned with the goal of producing rel spatially  
+
+Variable 1 was planned to be developed into a single indicator (i.e. a normalised variable) with the same name.
+Variables 2-5 describe very related aspects as so they where planned to be combined into a composite indicator called antropogenic disturbance to soil and vegetation so ADSV or short. 
+
+Alien plant cover was assigned to ECT class B1a - Compositional state characteristics
+ADSV was assigned to ECT class A1 - physical ...
+
+
+
+National indicator and for about 4 municipalities as a case study
+
+Validation/sensitivity analyses (varying HIA resolution and minimum _n_?)
+
+Schematic GIS workflow
+
+Aggregation
+
+
+# Results
+Data availability/coverage
+
+Validation
+
+National/regional indicator - do we have enough data?
+
+Municipal case study
+
+# Discussion
+
+# Conclusion
+
+# Credit authorship contribution statement {-}
+
+# Declaration of Competing Interest {-}
+
+# Acknowledgements {-}
+
+# Data availability {-}
+
+# References {-}
+
