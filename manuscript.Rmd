@@ -72,30 +72,35 @@ Fast turn around with automated workflows
 # Material and Methods 
 
 In this study we focused on open mire ecosystems in Norway.
-For this ecosystem we have an ecosystem delineation map produced using a  
-a deep learning model which was trained on field verified ground truth data and and satellite imagery. 
+For this ecosystem we have an ecosystem delineation map produced using remotely sensed data and  
+a deep learning model.
 This model had a XX% precision when tested against independent field data.
 
-The reference state defining ecosystems in optimal or pristine condition is defined as one with little or no human influence, with a climate as in the period 1961-1990 and a native species similar as today (no mammoths allowed).
+The reference state defining ecosystems in optimal or pristine condition is defined as one with little or no human influence, with a climate as in the period 1961-1990 and a native species similar as today (i.ei no mammoths allowed).
 
-We then identified two _concepts_ that define open mire ecosystems in optimal condition: 
+We then identified two _ecosystem condition characteristics_ that, along with many other characteristics that we do not specify here, define the typical behavior of open mire ecosystems in the reference condition: 
 
-- Native species dominate
-- No physical damage caused by human activities
+- Species composition
+- Vegetation intactness
 
 To describe these two concepts we use five condition variables from the same data set (ref).
 The five variables are:
 
 
-1. Alien plant cover
-1. 7SE
-1. 7TK
-1. PR..
-1. PR..
+1. 7FK (prevalence of alien species)
+1. 7SE (tracks from large vehicles)
+1. 7TK (human caused abration or abration-caused erosion)
+1. PRTK (same as 7TK, but recorded at a higher resolution)
+1. PRSL (same as 7SE, but recorded at a higher resolution)
 
-The data set from a standardised field survey of nature types.
+Varaibles 1-3 are defined in Halvorsen and Bratli 2019.
+Variables 4 and 5 are defined in ...
+
+
+The data set from a standardised field survey of nature types in Norway (REF).
 Each locality is scored on a range of variables relevant for describing the state and quality of nature.
-The surveys are comissioned with the goal of producing rel spatially  
+The surveys are comissioned with the goal of producing data relevant for immediate land-use decisions, and is therefore
+spatially biased, typically towards areas with high human impact or expected impact.
 
 Variable 1 was planned to be developed into a single indicator (i.e. a normalised variable) with the same name.
 Variables 2-5 describe very related aspects as so they where planned to be combined into a composite indicator called antropogenic disturbance to soil and vegetation so ADSV or short. 
