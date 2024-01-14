@@ -1,0 +1,154 @@
+---
+title: "Bayesian inference"
+format: html
+editor: visual
+---
+
+## Bayesian inference
+
+I want to test how I can get best estimates of the population means with a distribution around it to describe the uncertainty. If I just use the sample variance, then with very low sample sizes, like *n =* 1 or 2, I can get very low variance just by chance, making the estimates seem very robust, when in fact it is not.
+
+If I use bayesian inference over a flat prior and using the s.dev. from the national data set (closer to the true sd.dev. than the sub-population sd.dev.), then perhaps I can get what I want?
+
+```{r, warning=F, message=F}
+library(Bolstad)
+library(tidyverse)
+```
+
+Our variable is discrete, 1 to 7.
+
+```{r}
+var <- seq(1,7, by=1) 
+```
+
+We want to estimate the mean of the population.
+
+The probability density function for the mean (mu) will be normally distributed and truncated at 1 and 7.
+
+Let's generate some example population samples.
+
+```{r}
+random1 <- 2
+random2 <- c(sample(var, 2, replace = T))
+random10 <- c(sample(var, 10, replace = T))
+
+full <- c(sample(var, 1000, replace = T))
+```
+
+`Bolstad::normdp` assumes the samples comes from a normal distribution with a known st.dev.
+
+I will take the st.dev from the entire national data set.
+
+```{r}
+national.sd <- sd(full)
+```
+
+We want to use a uniform prior.
+
+Here's the posterior distribution for mu when we have just *n* = 1
+
+```{r}
+pd1 <- normdp(x = random1,
+       sigma.x = national.sd,
+       n.mu = 50) # default 
+```
+
+The plot is truncated at 4. We can see this better if we extract the values manually and make our own plot
+
+```{r}
+x1 <- pd1[["param.x"]]
+y1 <- pd1[["posterior"]]
+df <- data.frame(x1, y1)
+df |> 
+  ggplot(aes(x = x1, y = y1))+
+  geom_area(fill="orange", alpha=.5)+
+  xlim(c(0,7))
+```
+
+The possible value of mu is restricted. We have to define it.
+
+Mu is actually not discrete. Just the data are.
+
+```{r}
+mu <- seq(1, 7, length.out=100)
+```
+
+```{r}
+pd2 <- normdp(x = random1,
+       sigma.x = national.sd,
+       n.mu = 50, # not having an effect
+       mu = mu,
+       mu.prior = rep(1/length(mu), times=length(mu)))  
+
+```
+
+OK, but there is practically zero change of mu being 7. We only have one sample. Shouldn't there be a wider spread of probabilities?
+
+Actually, the probability that mu is 7 is calculated to be
+
+```{r}
+min(pd2$posterior)
+```
+
+So not zero, but still very small. And if the st.dev is 2, then perhaps this is correct.
+
+```{r}
+dnorm(7, mean=random1, sd=national.sd)
+```
+
+This is also a small number, although not identical.
+
+```{r}
+pd10 <- normdp(x = random10,
+       sigma.x = national.sd,
+       n.mu = 50, # not having an effect
+       mu = mu,
+       mu.prior = rep(1/length(mu), times=length(mu)))
+```
+
+Lets try some more realistic samples.
+
+```{r}
+sampleHigh2 <- round(runif(2, 5,7))
+sampleHigh5 <- round(runif(5, 5,7))
+sampleHigh10 <- round(runif(10, 5,7))
+sampleHigh20 <- round(runif(20, 5,7))
+```
+
+```{r, output=F}
+pd_h2 <- normdp(x = sampleHigh2,
+       sigma.x = national.sd,
+       mu = mu,
+       mu.prior = rep(1/length(mu), times=length(mu)))
+
+pd_h5 <- normdp(x = sampleHigh5,
+       sigma.x = national.sd,
+       mu = mu,
+       mu.prior = rep(1/length(mu), times=length(mu)))
+
+pd_h10 <- normdp(x = sampleHigh10,
+       sigma.x = national.sd,
+       mu = mu,
+       mu.prior = rep(1/length(mu), times=length(mu)))
+
+pd_h20 <- normdp(x = sampleHigh20,
+       sigma.x = national.sd,
+       mu = mu,
+       mu.prior = rep(1/length(mu), times=length(mu)))
+```
+
+```{r}
+data.frame(x = mu,
+                 "n2" = pd_h2$posterior,
+                 "n5" = pd_h5$posterior,
+                 "n10" = pd_h10$posterior,
+                 "n20" = pd_h20$posterior) |>
+  pivot_longer(!x, 
+               names_to = "n") |>
+  ggplot(aes(x = x, y = value, fill = n))+
+  geom_area(alpha=.5)+
+  theme_bw()
+  
+```
+
+This figure is wrong. The data is correct to begin with, but plotting goes wrong.
