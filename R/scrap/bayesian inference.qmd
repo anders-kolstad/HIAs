@@ -4,21 +4,26 @@ format: html
 editor: visual
 ---
 
-## Bayesian inference
+## Mean of population
 
 I want to test how I can get best estimates of the population means with a distribution around it to describe the uncertainty. If I just use the sample variance, then with very low sample sizes, like *n =* 1 or 2, I can get very low variance just by chance, making the estimates seem very robust, when in fact it is not.
-
-If I use bayesian inference over a flat prior and using the s.dev. from the national data set (closer to the true sd.dev. than the sub-population sd.dev.), then perhaps I can get what I want?
-
-```{r, warning=F, message=F}
-library(Bolstad)
-library(tidyverse)
-```
 
 Our variable is discrete, 1 to 7.
 
 ```{r}
 var <- seq(1,7, by=1) 
+```
+
+We have a national data set with thousands of samples (*n* \> 1000). From this we want to get the mean for local regions (the data is georeferenced).
+
+If I use bayesian inference over a uniform prior and using the st.dev. from the national data set (closer to the true st.dev. than the sub-population st.dev.), then perhaps I can get what I want?
+
+I will use the Bolstad package for the inference.
+
+```{r, warning=F, message=F}
+library(Bolstad)
+library(tidyverse)
+library(ggridges)
 ```
 
 We want to estimate the mean of the population.
@@ -35,7 +40,7 @@ random10 <- c(sample(var, 10, replace = T))
 full <- c(sample(var, 1000, replace = T))
 ```
 
-`Bolstad::normdp` assumes the samples comes from a normal distribution with a known st.dev.
+`Bolstad::normgcp` assumes the samples comes from a normal distribution with a known st.dev.
 
 I will take the st.dev from the entire national data set.
 
@@ -48,12 +53,13 @@ We want to use a uniform prior.
 Here's the posterior distribution for mu when we have just *n* = 1
 
 ```{r}
-pd1 <- normdp(x = random1,
+pd1 <- normgcp(x = random1,
        sigma.x = national.sd,
+       density = "uniform",
        n.mu = 50) # default 
 ```
 
-The plot is truncated at 4. We can see this better if we extract the values manually and make our own plot
+The plot goes beyond the possible range of \[1-7\]. We can see this better if we extract the values manually and make our own plot.
 
 ```{r}
 x1 <- pd1[["param.x"]]
@@ -65,9 +71,9 @@ df |>
   xlim(c(0,7))
 ```
 
-The possible value of mu is restricted. We have to define it.
+We can perhaps trucate the posterior, like the figure above, or we could use a discrete prior
 
-Mu is actually not discrete. Just the data are.
+`mu` is actually not discrete, just the data are. But with this approach, mu is also discrete, but we can add many steps to make it core or less continous. I use 100 steps below.
 
 ```{r}
 mu <- seq(1, 7, length.out=100)
@@ -76,7 +82,6 @@ mu <- seq(1, 7, length.out=100)
 ```{r}
 pd2 <- normdp(x = random1,
        sigma.x = national.sd,
-       n.mu = 50, # not having an effect
        mu = mu,
        mu.prior = rep(1/length(mu), times=length(mu)))  
 
@@ -96,7 +101,9 @@ So not zero, but still very small. And if the st.dev is 2, then perhaps this is 
 dnorm(7, mean=random1, sd=national.sd)
 ```
 
-This is also a small number, although not identical.
+This is also a small number, although not identical. I'm not sure I understand the maths here.
+
+Let's try with *n* = 10.
 
 ```{r}
 pd10 <- normdp(x = random10,
@@ -145,10 +152,119 @@ data.frame(x = mu,
                  "n20" = pd_h20$posterior) |>
   pivot_longer(!x, 
                names_to = "n") |>
-  ggplot(aes(x = x, y = value, fill = n))+
-  geom_area(alpha=.5)+
-  theme_bw()
+  mutate(n2 = str_remove(n, "n"),
+         n3 = as.numeric(n2),
+         n = fct_reorder(n2, n3)) |>
+  ggplot(aes(x = x, 
+             y = n, 
+             height = value,
+             fill = n))+
+  geom_density_ridges(alpha=.5,
+                      stat = "identity")+
+  theme_ridges()
   
 ```
 
-This figure is wrong. The data is correct to begin with, but plotting goes wrong.
+This is looking good so far.
+
+## Weighted mean
+
+Now for the next bit. We actually need the weighted mean for the population.
+
+Let's use `pd10` to compare against. `pd10` used the `random10` as the population sample.
+
+```{r}
+plot(pd10)
+```
+
+We want to add weights to `random10`. Creating vectors of weights that down weigh the low numbers:
+
+```{r}
+random10_w <- random10
+random10_w2 <- random10^2
+```
+
+I have custumised `Bolstad::normdp` to handle weighted means with a function called `wgt_mean`.
+
+```{r}
+source("../bayes_weightedMean.R")
+```
+
+```{r, output = F}
+dw1 <- wgt_mean(x = random10,
+         weights = random10_w, #notice new argument
+       sigma.x = national.sd,
+       mu = mu,
+       mu.prior = rep(1/length(mu), times=length(mu)))
+
+dw2 <- wgt_mean(x = random10,
+         weights = random10_w2,
+       sigma.x = national.sd,
+       mu = mu,
+       mu.prior = rep(1/length(mu), times=length(mu)))
+```
+
+```{r}
+data.frame(x = mu,
+          "No_weights"    = pd10$posterior,
+          "Proportional" = dw1$posterior,
+          "Exponential"  = dw2$posterior) |>
+  pivot_longer(!x, 
+               names_to = "Weights") |>
+  mutate(Weights = fct_relevel(Weights, 
+                               "No_weights",
+                               "Proportional",
+                               "Exponential")) |>
+    ggplot(aes(x = x, 
+             y = Weights, 
+             height = value,
+             fill = Weights))+
+  geom_density_ridges(alpha=.5,
+                      stat = "identity")+
+  theme_ridges()
+```
+
+Our custom function has succesfully increased the weight on the high values in the sample.
+
+How about if the sample size varies.
+
+```{r, output=F}
+dw3 <- wgt_mean(x = sampleHigh2,
+         weights = sampleHigh2,
+       sigma.x = national.sd,
+       mu = mu,
+       mu.prior = rep(1/length(mu), times=length(mu)))
+
+dw4 <- wgt_mean(x = sampleHigh10,
+         weights = sampleHigh10,
+       sigma.x = national.sd,
+       mu = mu,
+       mu.prior = rep(1/length(mu), times=length(mu)))
+
+dw5 <- wgt_mean(x = sampleHigh20,
+         weights = sampleHigh20,
+       sigma.x = national.sd,
+       mu = mu,
+       mu.prior = rep(1/length(mu), times=length(mu)))
+```
+
+```{r}
+data.frame(x = mu,
+                 "n2" = dw3$posterior,
+                 "n10" = dw4$posterior,
+                 "n20" = dw5$posterior) |>
+  pivot_longer(!x, 
+               names_to = "n") |>
+  mutate(n2 = str_remove(n, "n"),
+         n3 = as.numeric(n2),
+         n = fct_reorder(n2, n3)) |>
+  ggplot(aes(x = x, 
+             y = n, 
+             height = value,
+             fill = n))+
+  geom_density_ridges(alpha=.5,
+                      stat = "identity")+
+  theme_ridges()
+```
+
+It works as predicted.
