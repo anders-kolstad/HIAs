@@ -51,6 +51,8 @@ format:
       formatting: preprint
       model: 3p
       cite-style: super
+    include-in-header:
+      text: '\usepackage{lineno}\linenumbers'
 ---
 # Introduction
 
