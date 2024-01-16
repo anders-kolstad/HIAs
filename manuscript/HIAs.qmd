@@ -50,13 +50,18 @@ format:
       name: Ecological Indicators
       formatting: preprint
       model: 3p
-      cite-style: super
     include-in-header:
       text: '\usepackage{lineno}\linenumbers'
+editor: 
+  markdown: 
+    wrap: sentence
 ---
+
 # Introduction
 
 Some general text about the decline in natural capital?
+
+cite-style: super
 
 Ecosystem condition accounting is the game of compiling relevant data on the status, trends and qualities of ecosystems (i.e. nature) and communicating this in a structured format.
 Its purpose is to make it easier to account for nature in policy by making the environmental costs of certain policies and practices visible to decision makers.
@@ -70,7 +75,7 @@ This normalisation ensures that indicators are more comparable because an indica
 Similarly, a value of 0 mean that the variable is the worst possible state.
 The reference condition needs to be defined for each Ecosystem Condition Assessment separately, but SEEA EA gives some suggestion, such as an an ecosystem with no or minimal anthorpogenic disturbance.
 
-A general requirement for indicators in the SEEA EA framework is that they should give an unbiased representation of the condition inside the ecosystem assets (Czucz et al 2021; Table 1 - validity; see also SEEA EA §2.87) Ecosystem assets are defined as "ecological entities [meaning areas] about which information is sought and about which statistics are ultimately compiled (REF). This requirement for indicator validity means that spatially biased data are ill suited, especially if sampling intensity varies along gradient of anthropogenic pressures and hence ecosystem condition. SEEA EA is spatially explicit, which in practice means that indicators that are in some way sampled (i.e. not complete wall-to-wall data like remotely sensed imagery), the values are projected on to areas on the map, so that all areas inside the ecosystem accounting area get assigned value for that indicator. There are at least 3 general ways to achieve this complete areal coverage of indicator values:
+A general requirement for indicators in the SEEA EA framework is that they should give an unbiased representation of the condition inside the ecosystem assets (Czucz et al 2021; Table 1 - validity; see also SEEA EA §2.87) Ecosystem assets are defined as "ecological entities \[meaning areas\] about which information is sought and about which statistics are ultimately compiled (REF). This requirement for indicator validity means that spatially biased data are ill suited, especially if sampling intensity varies along gradient of anthropogenic pressures and hence ecosystem condition. SEEA EA is spatially explicit, which in practice means that indicators that are in some way sampled (i.e. not complete wall-to-wall data like remotely sensed imagery), the values are projected on to areas on the map, so that all areas inside the ecosystem accounting area get assigned value for that indicator. There are at least 3 general ways to achieve this complete areal coverage of indicator values:
 
 a.  Using wall-to-wall data (e.g. remotely sensed data)
 b.  Predict values using a model (e.g. by accounting for environmental variation)
@@ -107,26 +112,19 @@ This study builds on the work in that report.
 We started by defining the reference state as one where ecosystems are subject to little or no human influence, with a climate as in the period 1961-1990 and a native species pool similar as today (i.e no mammoths allowed).
 We then identified two *ecosystem condition characteristics* that, along with many other characteristics that we do not specify here, define the typical behavior of open mire ecosystems in the reference condition: species composition, and; vegetation intactness.
 
-To describe these two concepts we use five condition variables from the same data set (see @tbl-variables.
+To describe these two concepts we use five condition variables from the same data set ( @tbl-variables).
 
-| Variable code        | Variable name                                    | Measurement unit                                                                        | Description                                                                                                    | Reference  |
+| Variable code        | Variable name                                    | Measurement unit                                                                        | Description                                                                                                    | Reference                          |
 |---------------|---------------|---------------|---------------|---------------|
-| 7FK                  | Prevalence of alien species                      | Unitless, ordinal, non-linear scale from 1 (no alien species) to 7 (only alien species) | The fraction of the species composition made up from alien species                                             | Halvorsen  |
-| 7SE                  | Human caused abration or abration-caused erosion | Unitless, ordinal, non-linear scale from 1 to 4.                                        | Measures the frequency of imagined 4 m^2^ quadrats layed over the area that has some sign of abration          | ref        |
-| PRSL                 | *as above*                                       | Unitless, ordinal, non-linear scale from 0 to 7.                                        | Same as 7SE, but recorded at a higher resolution                                                               | Mdir       |
-| 7TK                  | Tracks from large vehicles                       | Unitless, ordinal, non-linear scale from 1 to 4.                                        | Measures the frequency of imagined 100 m^2^ quadrats layed over the area that has some signs of vehicle tracks | Halvorsen  |
-| PRTK                 | *as above*                                       | Unitless, ordinal, non-linear scale from 0 to 7.                                        | Same as 7TK, but recorded at a higher resolution                                                               | Mdir       |
-| Infrastructure Index | Infrastructure Index                             | Unitelss linear scale from 0 to 13.2                                                    | Unitelss index ranging from from 0 to 13.2                                                                     | Erikstad   |
-| HIA                  | Human Impact area                                | Ordinal, non-linear scale from 1 to 4                                                   | A categorical representation of the infrastructure index                                                       | this paper |
+| 7FK                  | Prevalence of alien species                      | Unitless, ordinal, non-linear scale from 1 (no alien species) to 7 (only alien species) | The fraction of the species composition made up from alien species                                             | @rune_halvorsen_dokumentasjon_2019 |
+| 7SE                  | Human caused abration or abration-caused erosion | Unitless, ordinal, non-linear scale from 1 to 4.                                        | Measures the frequency of imagined 4 m^2^ quadrats layed over the area that has some sign of abration          | ref                                |
+| PRSL                 | *as above*                                       | Unitless, ordinal, non-linear scale from 0 to 7.                                        | Same as 7SE, but recorded at a higher resolution                                                               | Mdir                               |
+| 7TK                  | Tracks from large vehicles                       | Unitless, ordinal, non-linear scale from 1 to 4.                                        | Measures the frequency of imagined 100 m^2^ quadrats layed over the area that has some signs of vehicle tracks | Halvorsen                          |
+| PRTK                 | *as above*                                       | Unitless, ordinal, non-linear scale from 0 to 7.                                        | Same as 7TK, but recorded at a higher resolution                                                               | Mdir                               |
+| Infrastructure Index | Infrastructure Index                             | Unitelss linear scale from 0 to 13.2                                                    | Unitelss index ranging from from 0 to 13.2                                                                     | Erikstad                           |
+| HIA                  | Human Impact area                                | Ordinal, non-linear scale from 1 to 4                                                   | A categorical representation of the infrastructure index                                                       | this paper                         |
 
-Table: Variables used in this study {#tbl-variables}
-
-Reference to @fig-carsplot
-
-```{r fig-carsplot, fig.cap="Test caption"}
-plot(cars)
-```
-
+: Variables used in this study {#tbl-variables}
 
 The data set is from a standardised field survey of nature types in Norway that started in 2018 and which is still ongoing (REF).
 We included data fram 2018 to 2023.
@@ -190,6 +188,6 @@ Municipal case study
 
 # Acknowledgements {.unnumbered}
 
-# Data availability {-}
+# Data availability {.unnumbered}
 
 # References {.unnumbered}
