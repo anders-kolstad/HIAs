@@ -1,73 +1,57 @@
 ---
 title: Using spatially biased variables in ecosystem condition accounting with a GIS based workflow
+subtitle: A Short Subtitle
 author:
   - name: Anders Lorentzen Kolstad
     email: anders.kolstad@nina.no
-    affiliation: Norwegian Institute for Nature Research
-    correspondingauthor: true
-    footnote: 1
+    affiliations: 
+        - id: some-tech
+          name: Norwegian Institute for Nature Research
+          department: Department of Terrestrial Ecology
+          address: Street Address
+          city: City
+          state: State
+          postal-code: Postal Code
+    attributes:
+        corresponding: true
+    note: This is the first author footnote.
   - name: Bob Security
     email: bob@example.com
-    affiliation: Another University
+    affiliations:
+        - id: another-u
+          name: Another University
+          department: Department Name
+          address: Street Address
+          city: City
+          state: State
+          postal-code: Postal Code
+    note: |
+      Another author footnote, this is a very long footnote and it should be a really long footnote. But this footnote is not yet sufficiently long enough to make two lines of footnote text.
   - name: Cat Memes
     email: cat@example.com
-    affiliation: Another University
-    footnote: 2
+    affiliations:
+        - ref: another-u
+    note: Yet another author footnote.
   - name: Derek Zoolander
     email: derek@example.com
-    affiliation: Some Institute of Technology
-    footnote: 2
-address:
-  - code: Some Institute of Technology
-    organization: Big Wig University
-    addressline: 1 main street
-    city: Gotham
-    state: State
-    postcode: 123456
-    country: United States
-  - code: Another University
-    organization: Department
-    addressline: A street 29
-    postcode: 2054 NX
-    city: Manchester,
-    country: The Netherlands
-footnote:
-  - code: 1
-    text: "This is the first author footnote."
-  - code: 2
-    text: "Another author footnote."
+    affilations:
+        - ref: some-tech
 abstract: |
-  This is the abstract.
-  It consists of two paragraphs.
+  This is the abstract. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vestibulum augue turpis, dictum non malesuada a, volutpat eget velit. Nam placerat turpis purus, eu tristique ex tincidunt et. Mauris sed augue eget turpis ultrices tincidunt. Sed et mi in leo porta egestas. Aliquam non laoreet velit. Nunc quis ex vitae eros aliquet auctor nec ac libero. Duis laoreet sapien eu mi luctus, in bibendum leo molestie. Sed hendrerit diam diam, ac dapibus nisl volutpat vitae. Aliquam bibendum varius libero, eu efficitur justo rutrum at. Sed at tempus elit.
 keywords: 
   - SEEA EA
   - alien species
-  - ...
-journal: "Ecological Indicators"
-date: "`r Sys.Date()`"
-classoption: preprint, 3p, authoryear
-bibliography: mybibfile.bib
-linenumbers: false
-numbersections: true
-# csl: https://www.zotero.org/styles/elsevier-harvard
-output: 
-  rticles::elsevier_article:
-      keep_tex: true
-      citation_package: natbib
-editor_options: 
-  markdown: 
-    wrap: sentence
+date: last-modified
+bibliography: bibliography.bib
+format:
+  elsevier-pdf:
+    keep-tex: true
+    journal:
+      name: Ecological Indicators
+      formatting: preprint
+      model: 3p
+      cite-style: super
 ---
-
-```{r setup, include=F, warning=F, message=F}
-library(tidyverse)
-library(knitr)
-library(bookdown)
-library(readr)
-library(kableExtra)
-options(knitr.table.format = "latex") 
-```
-
 # Introduction
 
 Some general text about the decline in natural capital?
@@ -121,7 +105,7 @@ This study builds on the work in that report.
 We started by defining the reference state as one where ecosystems are subject to little or no human influence, with a climate as in the period 1961-1990 and a native species pool similar as today (i.e no mammoths allowed).
 We then identified two *ecosystem condition characteristics* that, along with many other characteristics that we do not specify here, define the typical behavior of open mire ecosystems in the reference condition: species composition, and; vegetation intactness.
 
-To describe these two concepts we use five condition variables from the same data set (see \@(tab:foo)).
+To describe these two concepts we use five condition variables from the same data set (see @tbl-variables.
 
 | Variable code        | Variable name                                    | Measurement unit                                                                        | Description                                                                                                    | Reference  |
 |---------------|---------------|---------------|---------------|---------------|
@@ -133,11 +117,11 @@ To describe these two concepts we use five condition variables from the same dat
 | Infrastructure Index | Infrastructure Index                             | Unitelss linear scale from 0 to 13.2                                                    | Unitelss index ranging from from 0 to 13.2                                                                     | Erikstad   |
 | HIA                  | Human Impact area                                | Ordinal, non-linear scale from 1 to 4                                                   | A categorical representation of the infrastructure index                                                       | this paper |
 
-Table: (\#tab:foo) Variables used in this study
+Table: Variables used in this study {#tbl-variables}
 
-Reference to Figure \@(fig:cars-plot)
+Reference to @fig-carsplot
 
-```{r cars-plot, fig.cap="Test caption"}
+```{r fig-carsplot, fig.cap="Test caption"}
 plot(cars)
 ```
 
@@ -171,7 +155,7 @@ For both indicators, the lower and upper reference values, i.e. the worst and be
 
 The Alien plant cover was assigned to ECT class B1 - Compositional state characteristics and ADSV was assigned to ECT class A1 - Physical state characteristics (REF).
 
-![Schematic workflow followed in this paper. Sub-index A is calculated using spatially explicit aggregation (i.e .a simple overlay takingthe mean value).](images/workflow.jpg)
+![Schematic workflow followed in this paper. Sub-index A is calculated using spatially explicit aggregation (i.e .a simple overlay takingthe mean value).](../images/workflow.jpg){#fig-workflow}
 
 We chose three municipalities in Norway to test out the indicator (FIG).
 These municipalities are spread over xxx km north to south, and also differ in the amount of mire area, the total area surveyed, and the prevalence of infrastructure (TABLE)
@@ -180,7 +164,7 @@ To
 
 Validation/sensitivity analyses (varying HIA resolution and minimum *n*?)
 
-Schematic GIS workflow
+Schematic GIS workflow, see @fig-workflow
 
 Aggregation
 
@@ -204,6 +188,6 @@ Municipal case study
 
 # Acknowledgements {.unnumbered}
 
-# Data availability {.unnumbered}
+# Data availability {-}
 
 # References {.unnumbered}
