@@ -52,12 +52,21 @@ numbersections: true
 # csl: https://www.zotero.org/styles/elsevier-harvard
 output: 
   rticles::elsevier_article:
-    keep_tex: true
-    citation_package: natbib
+      keep_tex: true
+      citation_package: natbib
 editor_options: 
   markdown: 
     wrap: sentence
 ---
+
+```{r setup, include=F, warning=F, message=F}
+library(tidyverse)
+library(knitr)
+library(bookdown)
+library(readr)
+library(kableExtra)
+options(knitr.table.format = "latex") 
+```
 
 # Introduction
 
@@ -103,44 +112,71 @@ We end by interviewing end-users from the relevant municipalities about the perc
 # Material and Methods
 
 In this study we focused on open mire ecosystems in Norway.
-For this ecosystem we have an ecosystem delineation map produced using remotely sensed data and\
-a deep learning model.
+For this ecosystem we have an ecosystem delineation map produced using remotely sensed data and a deep learning model (REF Bakkestuen).
 This model, which has a 90.9% precision when tested against independent field data, estimates 12.7% of the area in southern Norway is mire (Bakkestuen REF).
-Mires are ecologically and socially important in Norway simply do to its large extent, and especially due to its role in climate mitigation.
-Examples - how much carbon - (REFS) There has not been a national assessment of the ecosystem condition of mires in Norway, but we recent contributed on a report which presented several new indicators that can be used in future assessment (REF Nybø, and web site).
+Mires are ecologically and socially important in Norway simply do to its large extent, and due to its role in climate mitigation, as mires store a large amount of carbon (REF?).
+There has not been a national assessment of the ecosystem condition of mires in Norway, but we recent contributed on a report which presented several new indicators that can be used in future assessment (REF Nybø, and web site).
 This study builds on the work in that report.
 
 We started by defining the reference state as one where ecosystems are subject to little or no human influence, with a climate as in the period 1961-1990 and a native species pool similar as today (i.e no mammoths allowed).
-We then identified two *ecosystem condition characteristics* that, along with many other characteristics that we do not specify here, define the typical behavior of open mire ecosystems in the reference condition:
+We then identified two *ecosystem condition characteristics* that, along with many other characteristics that we do not specify here, define the typical behavior of open mire ecosystems in the reference condition: species composition, and; vegetation intactness.
 
--   Species composition
--   Vegetation intactness
-
-To describe these two concepts we use five condition variables from the same data set (REF).
-The five variables are:
+To describe these two concepts we use five condition variables from the same data set (see \@(tab:foo)).
 
 | Variable code        | Variable name                                    | Measurement unit                                                                        | Description                                                                                                    | Reference  |
-|------------|-------------|------------------|------------------|-------------|
-| 7FK                  | Prevalence of alien species                      | Unitless, ordinal, non-linear scale from 1 (no alien species) to 7 (only alien species) | What fraction of the species composition is made up from aline species                                         |            |
-| 7SE                  | Human caused abration or abration-caused erosion | Unitless, ordinal, non-linear scale from 1 to 4.                                        | Measures the frequency of imagined 4 m^2^ quadrats layed over the area that has some sign of abration          |            |
-| PRSL                 | *as above*                                       | Unitless, ordinal, non-linear scale from 1 to 8.                                        | Same as 7SE, but recorded at a higher resolution                                                               |            |
-| 7TK                  | Tracks from large vehicles                       | Unitless, ordinal, non-linear scale from 1 to 4.                                        | Measures the frequency of imagined 100 m^2^ quadrats layed over the area that has some signs of vehicle tracks |            |
-| PRTK                 | *as above*                                       | Unitless, ordinal, non-linear scale from 1 to 8.                                        | Same as 7TK, but recorded at a higher resolution                                                               |            |
-| Infrastructure Index | Infrastructure Index                             | Unitelss linear scale from 0 to xxx                                                     | ...                                                                                                            | Bakkestuen |
-| HIA                  | Human Impact area                                | Ordinal, non-linear scale from 1 to 4                                                   |                                                                                                                |            |
+|---------------|---------------|---------------|---------------|---------------|
+| 7FK                  | Prevalence of alien species                      | Unitless, ordinal, non-linear scale from 1 (no alien species) to 7 (only alien species) | The fraction of the species composition made up from alien species                                             | Halvorsen  |
+| 7SE                  | Human caused abration or abration-caused erosion | Unitless, ordinal, non-linear scale from 1 to 4.                                        | Measures the frequency of imagined 4 m^2^ quadrats layed over the area that has some sign of abration          | ref        |
+| PRSL                 | *as above*                                       | Unitless, ordinal, non-linear scale from 0 to 7.                                        | Same as 7SE, but recorded at a higher resolution                                                               | Mdir       |
+| 7TK                  | Tracks from large vehicles                       | Unitless, ordinal, non-linear scale from 1 to 4.                                        | Measures the frequency of imagined 100 m^2^ quadrats layed over the area that has some signs of vehicle tracks | Halvorsen  |
+| PRTK                 | *as above*                                       | Unitless, ordinal, non-linear scale from 0 to 7.                                        | Same as 7TK, but recorded at a higher resolution                                                               | Mdir       |
+| Infrastructure Index | Infrastructure Index                             | Unitelss linear scale from 0 to 13.2                                                    | Unitelss index ranging from from 0 to 13.2                                                                     | Erikstad   |
+| HIA                  | Human Impact area                                | Ordinal, non-linear scale from 1 to 4                                                   | A categorical representation of the infrastructure index                                                       | this paper |
 
-: Variables used in this study
+Table: (\#tab:foo) Variables used in this study
 
-The data set from a standardised field survey of nature types in Norway (REF).
-Each locality is scored on a range of variables relevant for describing the state and quality of nature.
-The surveys are comissioned with the goal of producing data relevant for immediate land-use decisions, and is therefore spatially biased, typically towards areas with high human impact or expected impact.
+Reference to Figure \@(fig:cars-plot)
 
-Variable 1 was planned to be developed into a single indicator (i.e. a normalised variable) with the same name.
-Variables 2-5 describe very related aspects as so they where planned to be combined into a composite indicator called antropogenic disturbance to soil and vegetation so ADSV or short.
+```{r cars-plot, fig.cap="Test caption"}
+plot(cars)
+```
 
-Alien plant cover was assigned to ECT class B1a - Compositional state characteristics ADSV was assigned to ECT class A1 - physical ...
 
-National indicator and for about 4 municipalities as a case study
+The data set is from a standardised field survey of nature types in Norway that started in 2018 and which is still ongoing (REF).
+We included data fram 2018 to 2023.
+In this survey, selected nature types are delineatied on a map, and each locality is scored on a range of variables relevant for describing the state and quality of nature.
+The surveys are commissioned with the goal of producing data relevant for immediate land-use decisions, and is therefore spatially biased, typically towards areas with high human impact or expected impact.
+In addition there is a thematic and size bias in the sampling protocol.
+Of all possible mire types, the survey only maps the following:
+
+-   Southern ombrotrophic mires \> 2500 m^2^
+
+-   Northern omgrotrophic \> 10.000 m^2^
+
+-   All semi-natural mires (minerotrophic)
+
+-   Calcareous southern fens \>500 m^2^
+
+-   Calcareous northen fens \>1000 m^2^
+
+In the above, *southern* refers to boreonemoral and southboreal zones, and *northern* refers to mid-boreal, north boreal, and alpine zones.
+In addition, the northern fens need to be even more calcareous than the southern fens in order to be surveyed.
+In this paper we assume the survey is representative for the entire mire ecosystem in Norway.
+Although it is possible that smaller or less calcareous mires will score systematically different than the ones that are surveyed we do not think this is the case for our variables at least.
+
+7FK was developed into a single indicator (i.e. a normalised variable) named *Alien plant cover*.
+Variables 2-5 describe very related aspects as so they where planned to be combined into one indicator called antropogenic disturbance to soil and vegetation, or ADSV for short.
+This was done by taking the value from the variable with the lowest value, i.e. worst condition.
+For both indicators, the lower and upper reference values, i.e. the worst and best possible condition that the variables can be in, is given by the range of the data where 0 or 1 is the lower limit and 4, 7 or 8 is the upper limit, depending on the variable (see @tbl-variables).
+
+The Alien plant cover was assigned to ECT class B1 - Compositional state characteristics and ADSV was assigned to ECT class A1 - Physical state characteristics (REF).
+
+![Schematic workflow followed in this paper. Sub-index A is calculated using spatially explicit aggregation (i.e .a simple overlay takingthe mean value).](images/workflow.jpg)
+
+We chose three municipalities in Norway to test out the indicator (FIG).
+These municipalities are spread over xxx km north to south, and also differ in the amount of mire area, the total area surveyed, and the prevalence of infrastructure (TABLE)
+
+To
 
 Validation/sensitivity analyses (varying HIA resolution and minimum *n*?)
 
