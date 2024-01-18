@@ -56,7 +56,18 @@ format:
 editor: 
   markdown: 
     wrap: sentence
+execute:
+  echo: false
+  include: false
+  eval: false
 ---
+
+```{r setup, warning=F, message=F, include=F}
+library(tidyverse)
+library(knitr)
+library(sf)
+
+```
 
 # Introduction
 
@@ -104,37 +115,41 @@ In this study we focused on open mire ecosystems in Norway.
 For this ecosystem we have an ecosystem delineation map produced using remotely sensed data and a deep learning model [@bakkestuen_delineation_2023].
 This model, which has a 90.9% precision when tested against independent field data, estimates 12.7% of the area in southern Norway is mire [@bakkestuen_delineation_2023].
 Mires are ecologically and socially important in Norway simply doe to its large extent, and due to its role in climate mitigation, as mires store a large amount of carbon (REF?).
-There has not been a national assessment of the ecosystem condition of mires in Norway, but we recent contributed on a report which presented several new indicators that can be used in future assessment [@nybo_indikatorer_2023; see also @kolstad2023], and web site).
+There has not been a national assessment of the ecosystem condition of mires in Norway, but we recent contributed on a report which presented several new indicators that can be used in future assessment [@nybo_indikatorer_2023; see also @kolstad2023]).
 This study builds on the work in that report.
 
 We started by defining the reference state as one where ecosystems are subject to little or no human influence, with a climate as in the period 1961-1990 and a native species pool similar as today (i.e no mammoths allowed).
 We then identified two *ecosystem condition characteristics* that, along with many other characteristics that we do not specify here, define the typical behavior of open mire ecosystems in the reference condition: species composition, and; vegetation intactness.
 
 To describe these two concepts we use five condition variables from the same data set ( @tbl-variables).
-The data set is from a standardised field survey of nature types in Norway that started in 2018 and which is still ongoing (REF).
-We included data fram 2018 to 2023.
-In this survey, selected nature types are delineatied on a map, and each locality is scored on a range of variables relevant for describing the state and quality of nature.
+The data set is from a standardised field survey of nature types in Norway that started in 2018 and which is still ongoing.
+The data is freely available [@norwegian_environmental_agency_naturtyper_2024].
+See @miljødirektoratet for the sampling protocol (in Norwegian).
+We included data from 2018 to 2023.
+In this survey, selected nature types are delineated on a map, and each locality is scored on a range of variables relevant for describing the state and quality of nature.
 The surveys are commissioned with the goal of producing data relevant for immediate land-use decisions, and is therefore spatially biased, typically towards areas with high human impact or expected impact.
 In addition there is a thematic and size bias in the sampling protocol.
 Of all possible mire types, the survey only maps the following:
 
 -   Southern ombrotrophic mires \> 2500 m^2^
 
--   Northern omgrotrophic \> 10.000 m^2^
+-   Northern ombrotrophic mires \> 10.000 m^2^
 
--   All semi-natural mires (minerotrophic)
+-   All semi-natural mires (minerotrophic fens)
 
 -   Calcareous southern fens \>500 m^2^
 
--   Calcareous northen fens \>1000 m^2^
+-   Calcareous northern fens \>1000 m^2^
 
-In the above, *southern* refers to boreonemoral and southboreal zones, and *northern* refers to mid-boreal, north boreal, and alpine zones.
-In addition, the northern fens need to be even more calcareous than the southern fens in order to be surveyed.
+In the above, *southern* refers to boreonemoral and southboreal zones, and *northern* refers to mid-boreal, north boreal, and alpine zones @asbjørnmoen1998 .
+In addition, the northern fens need to be even more calcareous than the southern fens in order to be surveyed, and the variable 7FK is not recorded in ombrotrophic mires.
 In this paper we assume the survey is representative for the entire mire ecosystem in Norway.
 Although it is possible that smaller or less calcareous mires will score systematically different than the ones that are surveyed we do not think this is the case for our variables at least.
+It may also be that alien plants are more or less common on bogs relative to fens.
+For this we have no assumption.
 
 | Variable code        | Variable name                                    | Measurement unit                                                                        | Description                                                                                                    | Reference                          |
-|---------------|---------------|---------------|---------------|---------------|
+|--------------|--------------|--------------|----------------|--------------|
 | 7FK                  | Prevalence of alien species                      | Unitless, ordinal, non-linear scale from 1 (no alien species) to 7 (only alien species) | The fraction of the species composition made up from alien species                                             | @runehalvorsen2019                 |
 | 7SE                  | Human caused abration or abration-caused erosion | Unitless, ordinal, non-linear scale from 1 to 4.                                        | Measures the frequency of imagined 4 m^2^ quadrats layed over the area that has some sign of abration          | @runehalvorsen2019                 |
 | PRSL                 | *as above*                                       | Unitless, ordinal, non-linear scale from 0 to 7.                                        | Same as 7SE, but recorded at a higher resolution                                                               | @miljødirektoratet                 |
@@ -153,12 +168,111 @@ See @fig-workflow for a schematic workflow for the indicator development.
 
 The Alien plant cover was assigned to ECT class B1 - Compositional state characteristics, and ADSV was assigned to ECT class A1 - Physical state characteristics [@czucz_common_2021].
 
-![Schematic workflow followed in this paper. Sub-index A is calculated using spatially explicit aggregation (i.e .a simple overlay takingthe mean value).](../images/workflow.jpg){#fig-workflow}
+![Schematic workflow followed in this paper. Sub-index A is calculated using spatially explicit aggregation (i.e .a simple overlay taking the mean value).](../images/workflow.jpg){#fig-workflow}
 
 We chose three municipalities in Norway to test out the indicator (FIG).
 These municipalities are spread over xxx km north to south, and also differ in the amount of mire area, the total area surveyed, and the prevalence of infrastructure (TABLE)
 
-To
+```{r filepath}
+# Set up conditional file paths
+# The data is too big to be stored on GitHub
+dir <- substr(getwd(), 1,2)
+
+path <- ifelse(dir == "C:", 
+               "R:/GeoSpatialData/Habitats_biotopes/Norway_Miljodirektoratet_Naturtyper_nin/Original/Naturtyper_nin_0000_norge_25833_FILEGDB/Naturtyper_nin_0000_norge_25833_FILEGDB.gdb",
+               "/data/R/GeoSpatialData/Habitats_biotopes/Norway_Miljodirektoratet_Naturtyper_nin/Original/Naturtyper_nin_0000_norge_25833_FILEGDB/Naturtyper_nin_0000_norge_25833_FILEGDB.gdb")
+
+#pData <- ifelse(dir == "C:", 
+#               "P:/41201785_okologisk_tilstand_2022_2023/data/",
+#               "/data/P-Prosjekter2/41201785_okologisk_tilstand_2022_2023/data/")
+```
+
+```{r}
+# I already did some work to identify the relevant nature types
+
+# summary file (https://github.com/NINAnor/ecosystemCondition/blob/main/data/naturetypes/natureType_summary.rds)
+naturetypes_summary <- readRDS("../data/natureType_summary.rds")
+
+# Getting the nature types that have 7FA
+myVars <- "7FA"
+naturetypes_summary2 <- naturetypes_summary %>%
+  rowwise() %>%
+  mutate(keepers = sum(c_across(
+    all_of(myVars))>0, na.rm=T)) %>%
+  filter(keepers >0,
+         Ecosystem == "våtmark") %>%
+  select(Nature_type, NiN_mainType, Year)
+
+naturetypes_summary2$Nature_type
+
+# Getting the nature types that have the ADSV variables
+myVars <- c('7TK', '7SE', 'PRTK', 'PRSL')
+naturetypes_summary3 <- naturetypes_summary %>%
+  rowwise() %>%
+  mutate(keepers = sum(c_across(
+    all_of(myVars))>0, na.rm=T)) %>%
+  filter(keepers >0,
+         Ecosystem == "våtmark") %>%
+  select(Nature_type, NiN_mainType, Year)
+
+naturetypes_summary3$Nature_type
+```
+
+```{r relevantNTs}
+# These are the nature types I'm keeping for 7FA.
+# Note the absence of ombrotriphic types
+alienNTS <- c("Slåttemyr",
+              "Semi-naturlig våteng",
+              "Rik åpen jordvannsmyr i mellomboreal sone",
+              "Rik åpen sørlig jordvannsmyr",
+              "Rik åpen jordvannsmyr i nordboreal og lavalpin sone")
+
+# And these are the nature types that we use for the ADSV indicator
+ advsNTs <- c(# fens
+              "Slåttemyr",
+              "Sørlig slåttemyr",
+              "Rik åpen jordvannsmyr i mellomboreal sone",
+              "Rik åpen sørlig jordvannsmyr",
+              "Semi-naturlig myr",
+              "Rik åpen jordvannsmyr i nordboreal og lavalpin sone",
+              #"Sørlig kaldkilde", # excluded springs
+              
+              # bogs (mainly)
+              "Høgereligende og nordlig nedbørsmyr",
+              "Øyblandingsmyr",
+              "Konsentrisk høymyr",
+              "Sørlig nedbørsmyr",
+              "Atlantisk høymyr",
+              "Terrengdekkende myr",
+              "Eksentrisk høymyr",
+              "Kanthøymyr",
+              "Platåhøymyr",
+              "Palsmyr")
+
+```
+
+```{r muniMaps, include=F, eval=F}
+naturetypes <- sf::st_read(dsn = path) %>%
+  # keep only wetlands
+  filter(hoved.kosystem == "våtmark") %>%
+  
+  filter(naturtype %in% naturetypes_summary$Nature_type) %>%
+  mutate(hovedøkosystem = case_match(hovedøkosystem,
+                                  "naturligÅpneOmråderILavlandet" ~ "naturligÅpneOmråderUnderSkoggrensa",
+                                  .default = hovedøkosystem),
+         area = st_area(.)) %>%
+  separate_rows(ninBeskrivelsesvariable, sep=",") %>%
+  separate(col = ninBeskrivelsesvariable,
+           into = c("NiN_variable_code", "NiN_variable_value"),
+           sep = "_",
+           remove=F) %>%
+  mutate(NiN_variable_value = as.numeric(NiN_variable_value)) %>%
+  filter(NiN_variable_code %in% myVars)
+  
+temp <- naturetypes %>%
+    filter(hoved.kosystem == "våtmark")
+
+```
 
 Validation/sensitivity analyses (varying HIA resolution and minimum *n*?)
 
