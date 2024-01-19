@@ -72,6 +72,300 @@ library(stars)
 library(terra)
 ```
 
+```{r getRelevantNTs}
+# I already did some work to identify the relevant nature types
+
+# summary file (https://github.com/NINAnor/ecosystemCondition/blob/main/data/naturetypes/natureType_summary.rds)
+naturetypes_summary <- readRDS("../data/natureType_summary.rds")
+
+# Getting the nature types that have 7FA
+myVars <- "7FA"
+
+#naturetypes_summary2 <- naturetypes_summary %>%
+#  rowwise() %>%
+#  mutate(keepers = sum(c_across(
+#    all_of(myVars))>0, na.rm=T)) %>%
+#  filter(keepers >0,
+#         Ecosystem == "våtmark") %>%
+#  select(Nature_type, NiN_mainType, Year)
+#
+#naturetypes_summary2$Nature_type
+
+# Getting the nature types that have the ADSV variables
+myVars2 <- c('7TK', '7SE', 'PRTK', 'PRSL')
+#naturetypes_summary3 <- naturetypes_summary %>%
+#  rowwise() %>%
+#  mutate(keepers = sum(c_across(
+#    all_of(myVars2))>0, na.rm=T)) %>%
+#  filter(keepers >0,
+#         Ecosystem == "våtmark") %>%
+#  select(Nature_type, NiN_mainType, Year)
+#
+#naturetypes_summary3$Nature_type
+```
+
+```{r relevantNTs}
+# These are the nature types I'm keeping for 7FA.
+# Note the absence of ombrotriphic types
+alienNTS <- c("Slåttemyr",
+              "Semi-naturlig våteng",
+              "Rik åpen jordvannsmyr i mellomboreal sone",
+              "Rik åpen sørlig jordvannsmyr",
+              "Rik åpen jordvannsmyr i nordboreal og lavalpin sone")
+
+# And these are the nature types that we use for the ADSV indicator
+ advsNTs <- c(# fens
+              "Slåttemyr",
+              "Sørlig slåttemyr",
+              "Rik åpen jordvannsmyr i mellomboreal sone",
+              "Rik åpen sørlig jordvannsmyr",
+              "Semi-naturlig myr",
+              "Rik åpen jordvannsmyr i nordboreal og lavalpin sone",
+              #"Sørlig kaldkilde", # excluded springs
+              
+              # bogs (mainly)
+              "Høgereligende og nordlig nedbørsmyr",
+              "Øyblandingsmyr",
+              "Konsentrisk høymyr",
+              "Sørlig nedbørsmyr",
+              "Atlantisk høymyr",
+              "Terrengdekkende myr",
+              "Eksentrisk høymyr",
+              "Kanthøymyr",
+              "Platåhøymyr",
+              "Palsmyr")
+
+```
+
+```{r prepData, eval=F}
+# Set up conditional file paths
+# The data is too big to be stored on GitHub
+dir <- substr(getwd(), 1,2)
+
+path <- ifelse(dir == "C:", 
+               "R:/GeoSpatialData/Habitats_biotopes/Norway_Miljodirektoratet_Naturtyper_nin/Original/Naturtyper_nin_0000_norge_25833_FILEGDB/Naturtyper_nin_0000_norge_25833_FILEGDB.gdb",
+               "/data/R/GeoSpatialData/Habitats_biotopes/Norway_Miljodirektoratet_Naturtyper_nin/Original/Naturtyper_nin_0000_norge_25833_FILEGDB/Naturtyper_nin_0000_norge_25833_FILEGDB.gdb")
+
+#pData <- ifelse(dir == "C:", 
+#               "P:/41201785_okologisk_tilstand_2022_2023/data/",
+#               "/data/P-Prosjekter2/41201785_okologisk_tilstand_2022_2023/data/")
+
+
+
+# Impart polygon data set
+naturetypes <- sf::st_read(dsn = path)
+# 117k polygons (2023)
+# sometimes this functin struggles with Norwegian letters. Restart R and try again.
+
+naturetypes <- naturetypes |>
+  # keep only wetlands and our selected nature types
+  filter(hovedøkosystem == "våtmark",
+         naturtype %in% c(advsNTs, alienNTS)) |>
+  # calculate the areas (m2) of the polygons
+  mutate(area = SHAPE |> st_area()) |>
+  # the variable codes and values are all in the same column
+  separate_rows(ninBeskrivelsesvariable, sep=",") |>
+  separate(col = ninBeskrivelsesvariable,
+           into = c("NiN_variable_code", "NiN_variable_value"),
+           sep = "_",
+           remove=F) |>
+  mutate(NiN_variable_value = as.numeric(NiN_variable_value)) |>
+  filter(NiN_variable_code %in% c(myVars, myVars2)) |>
+  select(id = identifikasjon_lokalId,
+         municipality = kommunenummer,
+         year = kartleggingsår,
+         mosaic = mosaikk,
+         quality = lokalitetskvalitet,
+         biodiversity = naturmangfold,
+         condition = tilstand,
+         natureType = naturtype,
+         variable = NiN_variable_code,
+         value = NiN_variable_value,
+         area) |>
+  st_transform(25832)
+  
+# 13k obs.
+#naturetypes |>
+#  saveRDS("../data/surveyData.RDS")
+#head(naturetypes)
+```
+
+```{r}
+naturetypes <- readRDS("../data/surveyData.RDS")
+```
+
+```{r getNorwayOutline}
+outline <- sf::read_sf("../data/outlineOfNorway_EPSG25833.shp") |>
+  st_transform(25832)
+```
+
+```{r getMunicipalityOutine}
+path <- paste0("../data/Basisdata_0000_Norge_25833_Kommuner_FGDB.gdb")
+
+# find the correct layer
+#st_layers(path)
+muni <- sf::read_sf(path, layer = "kommune") |>
+  st_transform(25832)
+
+# This returns some multisurfaces as well
+#table(st_geometry_type(muni))
+
+
+# function to make sure that mutipolygons are returned 
+ensure_multipolygons <- function(X) {
+    tmp1 <- tempfile(fileext = ".gpkg")
+    tmp2 <- tempfile(fileext = ".gpkg")
+    st_write(X, tmp1)
+    gdalUtilities::ogr2ogr(tmp1, tmp2, f = "GPKG", nlt = "MULTIPOLYGON")
+    Y <- st_read(tmp2)
+    st_sf(st_drop_geometry(X), geom = st_geometry(Y))
+}
+
+muni <- ensure_multipolygons(muni)
+#table(st_geometry_type(muni)) #OK
+
+
+# subset of the three target municipalities
+muni3 <- muni |>
+  filter(kommunenummer %in% c("3020", #Nordre Follo
+                              "5001", # Trondheim
+                              "5418"  # Målselv
+                              )) |>
+  mutate(Municipality = case_when(
+    kommunenummer == "3020" ~ "Nordre Follo",
+    kommunenummer == "5001" ~ "Trondheim",
+    kommunenummer == "5418" ~ "Målselv"
+  ))
+# To crop EDM, I need the three municipalities seprately. 
+nf <- muni3 |>
+  filter(kommunenummer == "3020")
+tr <- muni3 |>
+  filter(kommunenummer == "5001")
+me <- muni3 |>
+  filter(kommunenummer == "5418")
+
+# Make map to show where the three municipalities are
+#
+#
+
+
+# I need to intersect nature types with municipality
+nature3 <- naturetypes |>
+  st_intersection(muni3)  
+
+
+# and also to get the data coverage polygon
+dk <-   read_sf("../data/dekningskartNF/Naturtyper NiN - Dekningskart.shp") |>
+  rbind(read_sf("../data/dekningskartTR/Naturtyper NiN - Dekningskart.shp")) |>
+  rbind(read_sf("../data/dekningskartME/Naturtyper NiN - Dekningskart.shp")) |>
+  st_transform(st_crs(muni3)) |>
+  st_intersection(muni3) |>
+  st_union()
+  
+
+outline2 <- outline |>
+  st_intersection(muni3)
+
+ocean <- muni3 |>
+  st_difference(outline)
+
+tm_shape(muni3)+
+    tm_borders()+
+  tm_facets(by = "Municipality")+
+  tm_shape(outline2)+
+    tm_fill(col = "lightgreen",
+             alpha=.4)+
+  tm_shape(ocean)+
+    tm_polygons(col = "lightblue",
+                border.col = "black",
+            alpha=1)+
+  #tm_shape(muni3)+
+  #  tm_borders()+
+  tm_shape(dk)+
+    tm_polygons(col = "grey",
+                alpha=.8)+
+  tm_shape(nature3)+
+  tm_polygons(col = "red",
+              border.col = "red",
+              lwd=3)
+    
+```
+
+```{r getMireData}
+file <- "P:/41201785_okologisk_tilstand_2022_2023/data/Myrmodell/myrmodell90pros.tif"
+# This is a big TIF, so I some lazy evalyation on the starts proxy 
+nf_mire  <- stars::read_stars(file, proxy=T) |>
+  st_crop(nf) |>
+  st_as_stars()
+
+# Same result, different syntax:
+#nf_mire  <- stars::read_stars(file, proxy=T)
+#nf_mire <- nf_mire[nf]
+#nf_mire <- st_as_stars(nf_mire)
+
+# This is not working as it puts the cropped raster into the sea
+#tmap_mode("view")
+#tm_shape(st_downsample(nf_mire , 10))+
+#  tm_raster(alpha=.8
+#            )+
+#  tm_shape(outline)+
+#  tm_borders()
+
+  
+# trying terra
+# convert municipal outline to vect via st
+nf2 <- as(nf, "Spatial") |>
+  terra::vect() 
+  
+# crop and mask (very fast!)
+nf_mire2 <- terra::rast(file) |>
+  crop(nf2) |>
+  terra::mask(nf2)
+  
+# Plot to check overlap
+ggplot()+
+  geom_spatraster(data = nf_mire2)+
+  geom_spatvector(data = nf2,
+                  fill = NA)
+# The cropping and masking worked. 
+
+# I ilke the stars, sf and tmap combo better, so I return to stars
+nf_mire3 <- nf_mire2 |>
+  st_as_stars()
+
+tmap_mode("plot")
+tm_shape(st_downsample(nf_mire3 , 10))+
+  tm_raster(alpha=.8
+            )+
+  tm_shape(outline)+
+  tm_borders()
+
+
+# Then I cut out the relevant part of the ecosystem map
+nft <- nf |>
+  terra::vect()
+
+
+ras_crop <- terra::crop(ras_raw, shp)
+ras_mask <- terra::mask(ras_crop, shp, touches = T) 
+
+nf_mire <- st_crop(EDM, st_bbox(nf))
+tr_mire <- st_crop(EDM, tr)
+me_mire <- st_crop(EDM, me)
+
+  tm_shape(nf)+
+  tm_borders(col="red", 
+             lwd=3)+
+tm_shape(st_downsample(nf_mire, 10))+
+  tm_raster(col="myrmodell90pros.tif")
+
+
+#tm_shape(st_downsample(EDM, 100))+
+  #tm_raster(alpha=.3)+
+
+
+```
+
 # Introduction
 
 Ecosystem condition accounting is the game of compiling relevant data on the status, trends and qualities of ecosystems (i.e. nature) and communicating this in a structured format.
@@ -152,7 +446,7 @@ It may also be that alien plants are more or less common on bogs relative to fen
 For this we have no assumption.
 
 | Variable code        | Variable name                                    | Measurement unit                                                                        | Description                                                                                                    | Reference                          |
-|--------------|--------------|--------------|----------------|--------------|
+|---------------|---------------|---------------|---------------|---------------|
 | 7FK                  | Prevalence of alien species                      | Unitless, ordinal, non-linear scale from 1 (no alien species) to 7 (only alien species) | The fraction of the species composition made up from alien species                                             | @runehalvorsen2019                 |
 | 7SE                  | Human caused abration or abration-caused erosion | Unitless, ordinal, non-linear scale from 1 to 4.                                        | Measures the frequency of imagined 4 m^2^ quadrats layed over the area that has some sign of abration          | @runehalvorsen2019                 |
 | PRSL                 | *as above*                                       | Unitless, ordinal, non-linear scale from 0 to 7.                                        | Same as 7SE, but recorded at a higher resolution                                                               | @miljødirektoratet                 |
@@ -171,279 +465,10 @@ See @fig-workflow for a schematic workflow for the indicator development.
 
 The Alien plant cover was assigned to ECT class B1 - Compositional state characteristics, and ADSV was assigned to ECT class A1 - Physical state characteristics [@czucz_common_2021].
 
-![Schematic workflow followed in this paper. Sub-index A is calculated using spatially explicit aggregation (i.e .a simple overlay taking the mean value).](../images/workflow.jpg){#fig-workflow}
+![Schematic workflow followed in this paper. Sub-index A is calculated using spatially explicit aggregation (i.e .a simple overlay taking the mean value).](../images/workflow.jpg){#fig-workflow alt="Schematic workflow followed in this paper. Sub-index A is calculated using spatially explicit aggregation (i.e .a simple overlay taking the mean value)."}
 
 We chose three municipalities in Norway to test out the indicator (FIG).
 These municipalities are spread over xxx km north to south, and also differ in the amount of mire area, the total area surveyed, and the prevalence of infrastructure (TABLE)
-
-```{r getRelevantNTs}
-# I already did some work to identify the relevant nature types
-
-# summary file (https://github.com/NINAnor/ecosystemCondition/blob/main/data/naturetypes/natureType_summary.rds)
-naturetypes_summary <- readRDS("../data/natureType_summary.rds")
-
-# Getting the nature types that have 7FA
-myVars <- "7FA"
-
-#naturetypes_summary2 <- naturetypes_summary %>%
-#  rowwise() %>%
-#  mutate(keepers = sum(c_across(
-#    all_of(myVars))>0, na.rm=T)) %>%
-#  filter(keepers >0,
-#         Ecosystem == "våtmark") %>%
-#  select(Nature_type, NiN_mainType, Year)
-#
-#naturetypes_summary2$Nature_type
-
-# Getting the nature types that have the ADSV variables
-myVars2 <- c('7TK', '7SE', 'PRTK', 'PRSL')
-#naturetypes_summary3 <- naturetypes_summary %>%
-#  rowwise() %>%
-#  mutate(keepers = sum(c_across(
-#    all_of(myVars2))>0, na.rm=T)) %>%
-#  filter(keepers >0,
-#         Ecosystem == "våtmark") %>%
-#  select(Nature_type, NiN_mainType, Year)
-#
-#naturetypes_summary3$Nature_type
-```
-
-```{r relevantNTs}
-# These are the nature types I'm keeping for 7FA.
-# Note the absence of ombrotriphic types
-alienNTS <- c("Slåttemyr",
-              "Semi-naturlig våteng",
-              "Rik åpen jordvannsmyr i mellomboreal sone",
-              "Rik åpen sørlig jordvannsmyr",
-              "Rik åpen jordvannsmyr i nordboreal og lavalpin sone")
-
-# And these are the nature types that we use for the ADSV indicator
- advsNTs <- c(# fens
-              "Slåttemyr",
-              "Sørlig slåttemyr",
-              "Rik åpen jordvannsmyr i mellomboreal sone",
-              "Rik åpen sørlig jordvannsmyr",
-              "Semi-naturlig myr",
-              "Rik åpen jordvannsmyr i nordboreal og lavalpin sone",
-              #"Sørlig kaldkilde", # excluded springs
-              
-              # bogs (mainly)
-              "Høgereligende og nordlig nedbørsmyr",
-              "Øyblandingsmyr",
-              "Konsentrisk høymyr",
-              "Sørlig nedbørsmyr",
-              "Atlantisk høymyr",
-              "Terrengdekkende myr",
-              "Eksentrisk høymyr",
-              "Kanthøymyr",
-              "Platåhøymyr",
-              "Palsmyr")
-
-```
-
-```{r prepData}
-# Set up conditional file paths
-# The data is too big to be stored on GitHub
-dir <- substr(getwd(), 1,2)
-
-path <- ifelse(dir == "C:", 
-               "R:/GeoSpatialData/Habitats_biotopes/Norway_Miljodirektoratet_Naturtyper_nin/Original/Naturtyper_nin_0000_norge_25833_FILEGDB/Naturtyper_nin_0000_norge_25833_FILEGDB.gdb",
-               "/data/R/GeoSpatialData/Habitats_biotopes/Norway_Miljodirektoratet_Naturtyper_nin/Original/Naturtyper_nin_0000_norge_25833_FILEGDB/Naturtyper_nin_0000_norge_25833_FILEGDB.gdb")
-
-#pData <- ifelse(dir == "C:", 
-#               "P:/41201785_okologisk_tilstand_2022_2023/data/",
-#               "/data/P-Prosjekter2/41201785_okologisk_tilstand_2022_2023/data/")
-
-
-
-# Impart polygon data set
-naturetypes <- sf::st_read(dsn = path)
-# 117k polygons (2023)
-# sometimes this functin struggles with Norwegian letters. Restart R and try again.
-
-naturetypes <- naturetypes |>
-  # keep only wetlands and our selected nature types
-  filter(hovedøkosystem == "våtmark",
-         naturtype %in% c(advsNTs, alienNTS)) |>
-  # calculate the areas (m2) of the polygons
-  mutate(area = SHAPE |> st_area()) |>
-  # the variable codes and values are all in the same column
-  separate_rows(ninBeskrivelsesvariable, sep=",") |>
-  separate(col = ninBeskrivelsesvariable,
-           into = c("NiN_variable_code", "NiN_variable_value"),
-           sep = "_",
-           remove=F) |>
-  mutate(NiN_variable_value = as.numeric(NiN_variable_value)) |>
-  filter(NiN_variable_code %in% c(myVars, myVars2)) |>
-  select(id = identifikasjon_lokalId,
-         municipality = kommunenummer,
-         year = kartleggingsår,
-         mosaic = mosaikk,
-         quality = lokalitetskvalitet,
-         biodiversity = naturmangfold,
-         condition = tilstand,
-         natureType = naturtype,
-         variable = NiN_variable_code,
-         value = NiN_variable_value,
-         area)
-  
-# 13k obs.
-#naturetypes |>
-#  saveRDS("../data/surveyData.RDS")
-#head(naturetypes)
-```
-
-```{r getNorwayOutline}
-outline <- sf::read_sf("../data/outlineOfNorway_EPSG25833.shp")
-```
-
-```{r getMunicipalityOutine}
-path <- paste0("../data/Basisdata_0000_Norge_25833_Kommuner_FGDB.gdb")
-
-# find the correct layer
-#st_layers(path)
-muni <- sf::read_sf(path, options = "ENCODING=UTF8", layer = "kommune")
-#st_crs(muni) #25833
-
-# This returns some multisurfaces as well
-table(st_geometry_type(muni))
-
-
-# function to make sure that mutipolygons are returned 
-ensure_multipolygons <- function(X) {
-    tmp1 <- tempfile(fileext = ".gpkg")
-    tmp2 <- tempfile(fileext = ".gpkg")
-    st_write(X, tmp1)
-    gdalUtilities::ogr2ogr(tmp1, tmp2, f = "GPKG", nlt = "MULTIPOLYGON")
-    Y <- st_read(tmp2)
-    st_sf(st_drop_geometry(X), geom = st_geometry(Y))
-}
-
-muni <- ensure_multipolygons(muni)
-#> Writing layer `file34a3261c663332' to data source 
-#>   `/tmp/RtmpkT1dSD/file34a3261c663332.gpkg' using driver `GPKG'
-#> Writing 363 features with 13 fields and geometry type Unknown (any).
-#> Reading layer `file34a3261c663332' from data source 
-#>   `/tmp/RtmpkT1dSD/file34a32673f6fef.gpkg' 
-#>   using driver `GPKG'
-#> Simple feature collection with 363 features and 13 fields
-#> Geometry type: MULTIPOLYGON
-#> Dimension:     XY
-#> Bounding box:  xmin: -99551.21 ymin: 6426048 xmax: 1121941 ymax: 7962744
-#> Projected CRS: ETRS89 / UTM zone 33N
-table(st_geometry_type(muni)) #OK
-
-# code to show all municipalities
-#tm_shape(muni)+
-#  tm_polygons(col="kommunenummer")+
-#  tm_layout(legend.outside = T)
-
-# Transform to match the EDM (see below)
-muni <- muni |>
-  st_transform(25832)
-
-# subset of the three taregt municipalities
-muni3 <- muni |>
-  filter(kommunenummer %in% c("3020", #Nordre Follo
-                              "5001", # Trondheim
-                              "5418"  # Målselv
-                              ))
-# To crop EDM, I need the three municipalities seprately. 
-nf <- muni3 |>
-  filter(kommunenummer == "3020")
-tr <- muni3 |>
-  filter(kommunenummer == "5001")
-me <- muni3 |>
-  filter(kommunenummer == "5418")
-
-# Make map to show where the three municipalities are
-#
-#
-
-
-# I need to intersect nature types with municipality
-# and also to get the dat coverage polygon
-tm_shape(muni3)+
-  tm_polygons()+
-  tm_facets(by = "kommunenummer")+
-  tm_shape(naturetypes)+
-  tm_polygons()
-```
-
-```{r getMireData}
-file <- "P:/41201785_okologisk_tilstand_2022_2023/data/Myrmodell/myrmodell90pros.tif"
-# This is a big TIF, so I some lazy evalyation on the starts proxy 
-nf_mire  <- stars::read_stars(file, proxy=T) |>
-  st_crop(nf) |>
-  st_as_stars()
-
-# Same result, different syntax:
-#nf_mire  <- stars::read_stars(file, proxy=T)
-#nf_mire <- nf_mire[nf]
-#nf_mire <- st_as_stars(nf_mire)
-
-# This is not working as it puts the cropped raster into the sea
-#tmap_mode("view")
-#tm_shape(st_downsample(nf_mire , 10))+
-#  tm_raster(alpha=.8
-#            )+
-#  tm_shape(outline)+
-#  tm_borders()
-
-  
-# trying terra
-# convert municipal outline to vect via st
-nf2 <- as(nf, "Spatial") |>
-  terra::vect() 
-  
-# crop and mask (very fast!)
-nf_mire2 <- terra::rast(file) |>
-  crop(nf2) |>
-  terra::mask(nf2)
-  
-# Plot to check overlap
-ggplot()+
-  geom_spatraster(data = nf_mire2)+
-  geom_spatvector(data = nf2,
-                  fill = NA)
-# The cropping and masking worked. 
-
-# I ilke the stars, sf and tmap combo better, so I return to stars
-nf_mire3 <- nf_mire2 |>
-  st_as_stars()
-
-tmap_mode("plot")
-tm_shape(st_downsample(nf_mire3 , 10))+
-  tm_raster(alpha=.8
-            )+
-  tm_shape(outline)+
-  tm_borders()
-
-
-# Then I cut out the relevant part of the ecosystem map
-nft <- nf |>
-  terra::vect()
-
-
-ras_crop <- terra::crop(ras_raw, shp)
-ras_mask <- terra::mask(ras_crop, shp, touches = T) 
-
-nf_mire <- st_crop(EDM, st_bbox(nf))
-tr_mire <- st_crop(EDM, tr)
-me_mire <- st_crop(EDM, me)
-
-  tm_shape(nf)+
-  tm_borders(col="red", 
-             lwd=3)+
-tm_shape(st_downsample(nf_mire, 10))+
-  tm_raster(col="myrmodell90pros.tif")
-
-
-#tm_shape(st_downsample(EDM, 100))+
-  #tm_raster(alpha=.3)+
-
-
-```
 
 Validation/sensitivity analyses (varying HIA resolution and minimum *n*?)
 
