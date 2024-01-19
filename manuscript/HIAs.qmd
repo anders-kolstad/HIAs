@@ -245,8 +245,22 @@ me <- muni3 |>
   filter(kommunenummer == "5418")
 
 # Make map to show where the three municipalities are
-#
-#
+# First, get centroids
+centroids <- muni3 |>
+  st_centroid()
+
+positionMap <- tm_shape(outline)+
+  tm_polygons() +
+  tm_shape(centroids)+
+    tm_text(text = "Municipality",
+      size = 1,
+      xmod = 2,
+      ymod=-1)+
+  tm_symbols(size = 2,
+             shape = 17,
+             col="black")+
+  tm_grid(projection = 4326)+
+  tm_layout(bg.color = "skyblue")
 
 
 # I need to intersect nature types with municipality
@@ -262,25 +276,25 @@ dk <-   read_sf("../data/dekningskartNF/Naturtyper NiN - Dekningskart.shp") |>
   st_intersection(muni3) |>
   st_union()
   
-
+# Simplified coastline
 outline2 <- outline |>
   st_intersection(muni3)
 
+# Polygons for the oceans in each municipality
 ocean <- muni3 |>
   st_difference(outline)
 
-tm_shape(muni3)+
+# Plot (could perhaps add the EDM here as well)
+muniPlot <- tm_shape(muni3)+
     tm_borders()+
-  tm_facets(by = "Municipality")+
+  tm_facets(by = "Municipality",
+            ncol=2)+
   tm_shape(outline2)+
     tm_fill(col = "lightgreen",
              alpha=.4)+
   tm_shape(ocean)+
-    tm_polygons(col = "lightblue",
-                border.col = "black",
-            alpha=1)+
-  #tm_shape(muni3)+
-  #  tm_borders()+
+    tm_polygons(col = "skyblue",
+                border.col = "black")+
   tm_shape(dk)+
     tm_polygons(col = "grey",
                 alpha=.8)+
@@ -288,7 +302,10 @@ tm_shape(muni3)+
   tm_polygons(col = "red",
               border.col = "red",
               lwd=3)
+
     
+tmap_arrange(positionMap, muniPlot,
+             widths = c(.4, .6))
 ```
 
 ```{r getMireData}
