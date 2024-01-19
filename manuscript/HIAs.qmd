@@ -64,6 +64,11 @@ execute:
 ---
 
 ```{r setup, warning=F, message=F, include=F}
+#| warning: false
+#| message: false
+#| include: false
+#| eval: true
+
 library(tidyverse)
 library(knitr)
 library(sf)
@@ -191,6 +196,7 @@ naturetypes <- naturetypes |>
 ```
 
 ```{r}
+# read cached rds file
 naturetypes <- readRDS("../data/surveyData.RDS")
 ```
 
@@ -304,8 +310,16 @@ muniPlot <- tm_shape(muni3)+
               lwd=3)
 
     
-tmap_arrange(positionMap, muniPlot,
+methodsMap <- tmap_arrange(positionMap, muniPlot,
              widths = c(.4, .6))
+
+tmap_save(methodsMap, "../figures/studyLocations.tiff",
+          dpi= 1000,
+          units = "cm",
+          width = 18,
+          height = 10)
+
+saveRDS(methodsMap, "../figures/studyLocation.RDS")
 ```
 
 ```{r getMireData}
@@ -482,10 +496,24 @@ See @fig-workflow for a schematic workflow for the indicator development.
 
 The Alien plant cover was assigned to ECT class B1 - Compositional state characteristics, and ADSV was assigned to ECT class A1 - Physical state characteristics [@czucz_common_2021].
 
-![Schematic workflow followed in this paper. Sub-index A is calculated using spatially explicit aggregation (i.e .a simple overlay taking the mean value).](../images/workflow.jpg){#fig-workflow alt="Schematic workflow followed in this paper. Sub-index A is calculated using spatially explicit aggregation (i.e .a simple overlay taking the mean value)."}
+![Schematic workflow followed in this paper. Sub-index A is calculated using spatially explicit aggregation (i.e .a simple overlay taking the mean value).](../images/workflow.jpg){#fig-workflow}
 
-We chose three municipalities in Norway to test out the indicator (FIG).
+We chose three municipalities in Norway to test out the indicator @fig-studyLocation.
 These municipalities are spread over xxx km north to south, and also differ in the amount of mire area, the total area surveyed, and the prevalence of infrastructure (TABLE)
+
+```{r fig-studyLocation}
+#| eval: true
+#| include: true 
+#| out.width: '100%'
+#| fig.cap: 
+#| - "Postion of the three example municipalities in
+#| Norway. For each municipality the map shows ocean in blue and non-ocean 
+#| in green. The survey coverage maps are in grey, and the mapped mires are 
+#| in red, with polygon borderes made extra thich to make them visible, 
+#| but then also exagerating their size."
+
+(temp <- readRDS("../figures/studyLocation.RDS"))
+```
 
 Validation/sensitivity analyses (varying HIA resolution and minimum *n*?)
 
