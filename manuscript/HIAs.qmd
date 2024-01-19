@@ -144,7 +144,7 @@ alienNTS <- c("Slåttemyr",
 
 ```
 
-```{r prepData}
+```{r natureTypeData}
 #| eval: false
 
 
@@ -268,6 +268,8 @@ me <- muni3 |>
 nature3 <- naturetypes |>
   st_intersection(muni3)  
 
+
+table(nature3$municipality)
 
 # and also to get the data coverage polygon
 dk <-   read_sf("../data/dekningskartNF/Naturtyper NiN - Dekningskart.shp") |>
@@ -560,6 +562,11 @@ dk2 <-   read_sf("../data/dekningskartNF/Naturtyper NiN - Dekningskart.shp") |>
   mutate(dk_area_km = geometry |> st_area(),
          dk_area_km = round(units::drop_units(dk_area_km * 1e-6)))
 
+# number and area of mire polygons
+nature3_tbl <- nature3 |>
+  group_by(Municipality) |>
+  summarise(n = n()) |>
+  as_tibble()
 
 muni_tbl <- muni3 |>
   # calculate total area
@@ -574,7 +581,9 @@ muni_tbl <- muni3 |>
             keep=F) |>
   # area of survey
   left_join(dk2 |> select(Municipality, dk_area_km)) |>
-  mutate(dk_percent = round((dk_area_km/t_area_km) * 100))
+  mutate(dk_percent = round((dk_area_km/t_area_km) * 100)) |>
+  # number of polygons
+  left_join(nature3_tbl |> select(Municipality, n))
 
 
 ```
@@ -593,11 +602,11 @@ muni_tbl <- muni3 |>
 (temp <- readRDS("../figures/studyLocation.RDS"))
 ```
 
-| Municipality | Total terrestrial area (km2)                                                 | \% of terrestrial area surveyed                                            | \% open mires in relation to total terrestrial area | Total mire area | Fraction mire area included in survey | Number of mire polygons in survey |
+| Municipality | Total terrestrial area (km2)                                                 | \% of terrestrial area surveyed                                             | \% open mires in relation to total terrestrial area | Total mire area | Fraction mire area included in survey | Number of mire polygons in survey                                 |
 |-----------|-----------|-----------|-----------|-----------|-----------|-----------|
-| Nordre Follo | `r terrestrial |> filter(Municipality == "Nordre Follo") |> pull(t_area_km)` | `r muni_tbl |> filter(Municipality == "Nordre Follo") |> pull(dk_percent)` |                                                     |                 |                                       |                                   |
-| Trondheim    | `r terrestrial |> filter(Municipality == "Trondheim") |> pull(t_area_km)`    | `r muni_tbl |> filter(Municipality == "Trondheim") |> pull(dk_percent)`    |                                                     |                 |                                       |                                   |
-| Målselv      | `r terrestrial |> filter(Municipality == "Målselv") |> pull(t_area_km)`      | `r muni_tbl |> filter(Municipality == "Målselv") |> pull(dk_percent)`      |                                                     |                 |                                       |                                   |
+| Nordre Follo | `r terrestrial |> filter(Municipality == "Nordre Follo") |> pull(t_area_km)` | `r muni_tbl |> filter(Municipality == "Nordre Follo") |> pull(dk_percent)`  |                                                     |                 |                                       | `r muni_tbl |> filter(Municipality == "Nordre Follo") |> pull(n)` |
+| Trondheim    | `r terrestrial |> filter(Municipality == "Trondheim") |> pull(t_area_km)`    | `r muni_tbl |> filter(Municipality == "Trondheim") |> pull(dk_percent)`     |                                                     |                 |                                       | `r muni_tbl |> filter(Municipality == "Trondheim") |> pull(n)`    |
+| Målselv      | `r terrestrial |> filter(Municipality == "Målselv") |> pull(t_area_km)`      | `r muni_tbl |> filter(Municipality == "Målselv") |> pull(dk_percent)`       |                                                     |                 |                                       | `r muni_tbl |> filter(Municipality == "Målselv") |> pull(n)`      |
 
 : Information for the three target municipalities in Norway
 
