@@ -77,6 +77,9 @@ library(sf)
 library(tmap)
 library(stars)
 library(terra)
+library(tidyterra)
+
+myCRS <- 25832
 ```
 
 ```{r getRelevantNTs}
@@ -192,7 +195,7 @@ naturetypes <- naturetypes |>
          variable = NiN_variable_code,
          value = NiN_variable_value,
          area) |>
-  st_transform(25832)
+  st_transform(myCRS) # Chosing this to match the EDM (se further down)
   
 # 13k obs.
 #naturetypes |>
@@ -209,8 +212,9 @@ naturetypes <- readRDS("../data/surveyData.RDS")
 
 ```{r getNorwayOutline}
 #| eval: true
+
 outline <- sf::read_sf("../data/outlineOfNorway_EPSG25833.shp") |>
-  st_transform(25832)
+  st_transform(myCRS)
 ```
 
 ```{r prepPolygons}
@@ -221,7 +225,7 @@ path <- paste0("../data/Basisdata_0000_Norge_25833_Kommuner_FGDB.gdb")
 # find the correct layer
 #st_layers(path)
 muni <- sf::read_sf(path, layer = "kommune") |>
-  st_transform(25832)
+  st_transform(myCRS)
 
 # This returns some multisurfaces as well
 #table(st_geometry_type(muni))
@@ -287,8 +291,7 @@ terrestrial <- outline |>
 ocean <- muni3 |>
   st_difference(outline)
 
-# claculate stats
-
+# calculate stats
 # terrestrial area
 terrestrial <- terrestrial |>
   mutate(area_t = geometry |> st_area())
@@ -296,6 +299,9 @@ terrestrial <- terrestrial |>
 ```
 
 ```{r makeMap}
+#| eval: false
+
+tmap_mode("plot")
 # Make map to show where the three municipalities are
 # First, get centroids
 centroids <- muni3 |>
@@ -337,103 +343,120 @@ muniPlot <- tm_shape(muni3)+
 methodsMap <- tmap_arrange(positionMap, muniPlot,
              widths = c(.4, .6))
 
-tmap_save(methodsMap, "../figures/studyLocations.tiff",
-          dpi= 1000,
-          units = "cm",
-          width = 18,
-          height = 10)
-
-saveRDS(methodsMap, "../figures/studyLocation.RDS")
+# tmap_save(methodsMap, "../figures/studyLocations.tiff",
+#           dpi= 1000,
+#           units = "cm",
+#           width = 18,
+#           height = 10)
+# 
+# saveRDS(methodsMap, "../figures/studyLocation.RDS")
 ```
 
-```{r getMireData}
+```{r mireDataTestCrop}
 file <- "P:/41201785_okologisk_tilstand_2022_2023/data/Myrmodell/myrmodell90pros.tif"
-# This is a big TIF, so I some lazy evalyation on the starts proxy 
-tr2 <- tr |>
-  st_transform(25833) 
+# This is a big TIF!
 
-mire <- read_stars(file) |>
+mire_test <- read_stars(file, proxy = T) |>
+  setNames("mire") |>
   st_downsample(100) |>
-  st_as_stars()
-plot(mire, col="yellow")
-
-
-tr_mire  <- stars::read_stars(file, proxy=T) |>
-  st_crop(tr) |>
-  st_as_stars()
-#Not working
-
-# What is the EDM is actually utm 33
-tr_mire  <- stars::read_stars(file, proxy=T)
-st_crs(tr_mire) <- 25833
-tr_mire  <- tr_mire |>
-  st_crop(tr2) |>
+  mutate(mire = na_if(mire, 0)) |>
   st_as_stars()
 
-# Same result, different syntax:
-#nf_mire  <- stars::read_stars(file, proxy=T)
-#nf_mire <- nf_mire[nf]
-#nf_mire <- st_as_stars(nf_mire)
+mire_test_nf <-  mire_test |>
+  st_crop(nf)
 
-# This is not working as it puts the cropped raster into the sea
-tmap_mode("view")
-tm_shape(st_downsample(tr_mire , 10))+
-  tm_raster(alpha=.8)+
+# The cropping is correct
+tmap_mode("plot")
+tm_shape(mire_test)+
+  tm_raster(palette = "red")+
   tm_shape(outline)+
-  tm_borders()
+  tm_borders()+
+  tm_shape(mire_test_nf)+
+  tm_raster(col="red")
+```
 
-  
+```{r mireNF-error}
+#| eval: false
+# Then we do the same, but without downsampling
+
+mire_nf <- read_stars(file, proxy = T) |>
+  setNames("mire") |>
+  #mutate(mire = na_if(mire, 0)) |>
+  st_crop(nf) |>
+  st_as_stars()
+
+
+# The cropped raster is for some reason far into the ocean. 
+# The cells have values, so it seems like there is something 
+# that happens after the cropping
+tmap_mode("plot")
+tm_shape(mire_test)+
+  tm_raster(palette = "red")+
+  tm_shape(outline)+
+  tm_borders()+
+  tm_shape(mire_nf)+
+  tm_raster(col="red")
+
+st_crs(mire_nf) <- 25832
+```
+
+```{r mireTerra}
 # trying terra
 # convert municipal outline to vect via st
-nf2 <- as(nf, "Spatial") |>
+nf_vect <- as(nf, "Spatial") |>
   terra::vect() 
   
 # crop and mask (very fast!)
-nf_mire2 <- terra::rast(file) |>
-  crop(nf2) |>
-  terra::mask(nf2)
-  
+mire_nf_terra <- terra::rast(file) |>
+  crop(nf_vect) |>
+  terra::mask(nf_vect)
+
 # Plot to check overlap
 ggplot()+
-  geom_spatraster(data = nf_mire2)+
-  geom_spatvector(data = nf2,
+  geom_spatraster(data = mire_nf_terra)+
+  geom_spatvector(data = nf_vect,
                   fill = NA)
 # The cropping and masking worked. 
+#tmap_mode("plot")
+#tm_shape(mire_test)+
+#  tm_raster(palette = "red")+
+#  tm_shape(outline)+
+#  tm_borders()+
+#  tm_shape(mire_nf_terra)+
+#  tm_raster(col="red")
 
 # I ilke the stars, sf and tmap combo better, so I return to stars
-nf_mire3 <- nf_mire2 |>
+mire_nf_stars <- mire_nf_terra |>
   st_as_stars()
 
-tmap_mode("plot")
-tm_shape(st_downsample(nf_mire3 , 10))+
-  tm_raster(alpha=.8
-            )+
+tm_shape(mire_test)+
+  tm_raster(palette = "red")+
   tm_shape(outline)+
-  tm_borders()
+  tm_borders()+
+  tm_shape(mire_nf_stars)+
+  tm_raster(col="red")
+# OK
 
+ggplot()+
+  geom_stars(data = mire_nf_stars)+
+  coord_equal()+
+  theme_void()+
+  scale_fill_viridis_c()
+```
 
-# Then I cut out the relevant part of the ecosystem map
-nft <- nf |>
-  terra::vect()
+```{r mireArea}
+mireArea <- mire_nf_terra |>
+  global(c("mean", "sum"), na.rm=T) |>
+  add_column("Municipality" = "Nordre Follo") |>
+  mutate(mirePercent = round(mean*100, 1),
+         sum = sum/1e+4) |>
+  dplyr::rename(mire_km2 = sum)
 
-
-ras_crop <- terra::crop(ras_raw, shp)
-ras_mask <- terra::mask(ras_crop, shp, touches = T) 
-
-nf_mire <- st_crop(EDM, st_bbox(nf))
-tr_mire <- st_crop(EDM, tr)
-me_mire <- st_crop(EDM, me)
-
-  tm_shape(nf)+
-  tm_borders(col="red", 
-             lwd=3)+
-tm_shape(st_downsample(nf_mire, 10))+
-  tm_raster(col="myrmodell90pros.tif")
-
-
-#tm_shape(st_downsample(EDM, 100))+
-  #tm_raster(alpha=.3)+
-
+mire_nf_terra_dk <- mire_nf_terra |>
+  terra::mask(dk2 |> filter(Municipality == "Nordre Follo")) |>
+  global("sum", na.rm=T) |>
+  mutate(mireInSurvey_km2 = sum/1e+4) |>
+  add_column(Municipality = "Nordre Follo")
 
 ```
 
@@ -539,11 +562,9 @@ The Alien plant cover was assigned to ECT class B1 - Compositional state charact
 ![Schematic workflow followed in this paper. Sub-index A is calculated using spatially explicit aggregation (i.e .a simple overlay taking the mean value).](../images/workflow.jpg){#fig-workflow}
 
 We chose three municipalities in Norway to test out the indicator @fig-studyLocation.
-These municipalities are spread over xxx km north to south, and also differ in the amount of mire area, the total area surveyed, and the prevalence of infrastructure (TABLE)
+These municipalities are spread over xxx km north to south, and also differ in the amount of mire area, the total area surveyed, and the prevalence of infrastructure (@tbl-variables).
 
 ```{r}
-#| eval: true
-
 # calculate terrestrial area
 terrestrial <- terrestrial |> 
   mutate(t_area_km = 
@@ -583,8 +604,21 @@ muni_tbl <- muni3 |>
   left_join(dk2 |> select(Municipality, dk_area_km)) |>
   mutate(dk_percent = round((dk_area_km/t_area_km) * 100)) |>
   # number of polygons
-  left_join(nature3_tbl |> select(Municipality, n))
+  left_join(nature3_tbl |> select(Municipality, n)) |>
+  # total mire area and %
+  left_join(mireArea |> select(Municipality, mirePercent, mire_km2)) |>
+  # % mire inside survey coverage map
+  left_join(mire_nf_terra_dk |> select(Municipality, mireInSurvey_km2)) |>
+  mutate(mireInSurvery_percent = round(mireInSurvey_km2/mire_km2*100, 2))
 
+saveRDS(muni_tbl, "../data/municipality_stats.RDS")
+
+```
+
+```{r}
+#| eval: true
+
+muni_tbl <- readRDS("../data/municipality_stats.RDS")
 
 ```
 
@@ -602,11 +636,11 @@ muni_tbl <- muni3 |>
 (temp <- readRDS("../figures/studyLocation.RDS"))
 ```
 
-| Municipality | Total terrestrial area (km2)                                                 | \% of terrestrial area surveyed                                             | \% open mires in relation to total terrestrial area | Total mire area | Fraction mire area included in survey | Number of mire polygons in survey                                 |
+| Municipality | Total terrestrial area (km^2^)                                            | \% of terrestrial area surveyed                                            | \% open mires in relation to total terrestrial area                         | Total mire area (km^2^)                                                  | %of mire area inside survey area                                                      | Number of mire polygons in survey                                 |
 |-----------|-----------|-----------|-----------|-----------|-----------|-----------|
-| Nordre Follo | `r terrestrial |> filter(Municipality == "Nordre Follo") |> pull(t_area_km)` | `r muni_tbl |> filter(Municipality == "Nordre Follo") |> pull(dk_percent)`  |                                                     |                 |                                       | `r muni_tbl |> filter(Municipality == "Nordre Follo") |> pull(n)` |
-| Trondheim    | `r terrestrial |> filter(Municipality == "Trondheim") |> pull(t_area_km)`    | `r muni_tbl |> filter(Municipality == "Trondheim") |> pull(dk_percent)`     |                                                     |                 |                                       | `r muni_tbl |> filter(Municipality == "Trondheim") |> pull(n)`    |
-| Målselv      | `r terrestrial |> filter(Municipality == "Målselv") |> pull(t_area_km)`      | `r muni_tbl |> filter(Municipality == "Målselv") |> pull(dk_percent)`       |                                                     |                 |                                       | `r muni_tbl |> filter(Municipality == "Målselv") |> pull(n)`      |
+| Nordre Follo | `r muni_tbl |> filter(Municipality == "Nordre Follo") |> pull(t_area_km)` | `r muni_tbl |> filter(Municipality == "Nordre Follo") |> pull(dk_percent)` | `r muni_tbl |> filter(Municipality == "Nordre Follo") |> pull(mirePercent)` | `r muni_tbl |> filter(Municipality == "Nordre Follo") |> pull(mire_km2)` | `r muni_tbl |> filter(Municipality == "Nordre Follo") |> pull(mireInSurvery_percent)` | `r muni_tbl |> filter(Municipality == "Nordre Follo") |> pull(n)` |
+| Trondheim    | `r muni_tbl |> filter(Municipality == "Trondheim") |> pull(t_area_km)`    | `r muni_tbl |> filter(Municipality == "Trondheim") |> pull(dk_percent)`    |                                                                             |                                                                          |                                                                                       | `r muni_tbl |> filter(Municipality == "Trondheim") |> pull(n)`    |
+| Målselv      | `r muni_tbl |> filter(Municipality == "Målselv") |> pull(t_area_km)`      | `r muni_tbl |> filter(Municipality == "Målselv") |> pull(dk_percent)`      |                                                                             |                                                                          |                                                                                       | `r muni_tbl |> filter(Municipality == "Målselv") |> pull(n)`      |
 
 : Information for the three target municipalities in Norway
 
