@@ -56,7 +56,7 @@ format:
 editor: 
   markdown: 
     wrap: sentence
-# remove this execute part to actually run the analysis
+# set eval to true to actually run the analysis
 execute:
   echo: false
   include: false
@@ -65,7 +65,9 @@ execute:
   message: false
 ---
 
-```{r setup, warning=F, message=F, include=F}
+<!--# The document is set to eval=F in the yaml, and some code chunks are set manually to eval=T. When working on the manuscript, you can run all (Ctr+Alt+R). This will read inn data cashed locally. To also evaluate the more time consuming chunks, change the YAML to eval: true and run all (or render to html):  -->
+
+```{r setup}
 #| warning: false
 #| message: false
 #| include: false
@@ -78,21 +80,31 @@ library(tmap)
 library(stars)
 library(terra)
 library(tidyterra)
+library(ggtext)
 
 myCRS <- 25832
-
-
 ```
 
 ```{r paths}
+#| eval: true
+
+
 # Conditional file directory
 dir <- substr(getwd(), 1,2)
 
+# Soem directories
 mireFile <- "P:/41201785_okologisk_tilstand_2022_2023/data/Myrmodell/myrmodell90pros.tif"
 
 path_infrastructure <- ifelse(dir == "C:", 
         "R:/GeoSpatialData/Utility_governmentalServices/Norway_Infrastructure_Index/Original/Infrastrukturindeks_UTM33/infra_tiff.tif",
         "/data/R/GeoSpatialData/Utility_governmentalServices/Norway_Infrastructure_Index/Original/Infrastrukturindeks_UTM33/infra_tiff.tif")
+
+path_naturetypes <- ifelse(dir == "C:", 
+               "R:/GeoSpatialData/Habitats_biotopes/Norway_Miljodirektoratet_Naturtyper_nin/Original/Naturtyper_nin_0000_norge_25833_FILEGDB/Naturtyper_nin_0000_norge_25833_FILEGDB.gdb",
+               "/data/R/GeoSpatialData/Habitats_biotopes/Norway_Miljodirektoratet_Naturtyper_nin/Original/Naturtyper_nin_0000_norge_25833_FILEGDB/Naturtyper_nin_0000_norge_25833_FILEGDB.gdb")
+
+path_muni <- paste0("../data/Basisdata_0000_Norge_25833_Kommuner_FGDB.gdb")
+
 ```
 
 ```{r getRelevantNTs}
@@ -163,25 +175,13 @@ alienNTS <- c("Slåttemyr",
 ```{r natureTypeData}
 #| eval: false
 
-
-# Set up conditional file paths
 # The data is too big to be stored on GitHub
-dir <- substr(getwd(), 1,2)
-
-path <- ifelse(dir == "C:", 
-               "R:/GeoSpatialData/Habitats_biotopes/Norway_Miljodirektoratet_Naturtyper_nin/Original/Naturtyper_nin_0000_norge_25833_FILEGDB/Naturtyper_nin_0000_norge_25833_FILEGDB.gdb",
-               "/data/R/GeoSpatialData/Habitats_biotopes/Norway_Miljodirektoratet_Naturtyper_nin/Original/Naturtyper_nin_0000_norge_25833_FILEGDB/Naturtyper_nin_0000_norge_25833_FILEGDB.gdb")
-
-#pData <- ifelse(dir == "C:", 
-#               "P:/41201785_okologisk_tilstand_2022_2023/data/",
-#               "/data/P-Prosjekter2/41201785_okologisk_tilstand_2022_2023/data/")
-
-
 
 # Impart polygon data set
-naturetypes <- sf::st_read(dsn = path)
+naturetypes <- sf::st_read(dsn = path_naturetypes)
 # 117k polygons (2023)
-# sometimes this functin struggles with Norwegian letters. Restart R and try again.
+# sometimes this functin struggles with Norwegian letters. 
+# Restart R and try again.
 
 naturetypes <- naturetypes |>
   # keep only wetlands and our selected nature types
@@ -211,8 +211,9 @@ naturetypes <- naturetypes |>
   st_transform(myCRS) # Chosing this to match the EDM (se further down)
   
 # 13k obs.
-#naturetypes |>
-#  saveRDS("../data/surveyData.RDS")
+
+naturetypes |>
+  saveRDS("../data/surveyData.RDS")
 #head(naturetypes)
 ```
 
@@ -230,20 +231,20 @@ outline <- sf::read_sf("../data/outlineOfNorway_EPSG25833.shp") |>
   st_transform(myCRS)
 ```
 
-```{r prepPolygons}
+```{r getMunicipalities}
 #| eval: true
 
-path <- paste0("../data/Basisdata_0000_Norge_25833_Kommuner_FGDB.gdb")
+# Preparing the outlines for the three municipalieties
 
 # find the correct layer
-#st_layers(path)
-muni <- sf::read_sf(path, layer = "kommune") |>
+#st_layers(path_muni)
+
+# read inn data and transform
+muni <- sf::read_sf(path_muni, layer = "kommune") |>
   st_transform(myCRS)
 
 # This returns some multisurfaces as well
 #table(st_geometry_type(muni))
-
-
 # function to make sure that multipolygons are returned 
 ensure_multipolygons <- function(X) {
     tmp1 <- tempfile(fileext = ".gpkg")
@@ -256,7 +257,6 @@ ensure_multipolygons <- function(X) {
 
 muni <- ensure_multipolygons(muni)
 #table(st_geometry_type(muni)) #OK
-
 
 # subset of the three target municipalities
 muni3 <- muni |>
@@ -277,18 +277,19 @@ tr <- muni3 |>
   filter(kommunenummer == "5001")
 me <- muni3 |>
   filter(kommunenummer == "5418")
+```
 
+```{r prepPolygons}
+#| eval: true
 
-
-
-# I need to intersect nature types with municipality
+# I need to intersect the naturetypes data with the municipalities
 nature3 <- naturetypes |>
   st_intersection(muni3)  
 
-
 table(nature3$municipality)
 
-# and also to get the data coverage polygon
+# and also to get the data coverage polygon. 
+# These I had to manually download from naturbase.no 
 dk <-   read_sf("../data/dekningskartNF/Naturtyper NiN - Dekningskart.shp") |>
   rbind(read_sf("../data/dekningskartTR/Naturtyper NiN - Dekningskart.shp")) |>
   rbind(read_sf("../data/dekningskartME/Naturtyper NiN - Dekningskart.shp")) |> 
@@ -296,6 +297,13 @@ dk <-   read_sf("../data/dekningskartNF/Naturtyper NiN - Dekningskart.shp") |>
   st_intersection(muni3) |>
   st_union()
   
+
+
+```
+
+```{r prepSomeMoreMunicipalityShapes}
+#| eval: true
+
 # Simplified coastline / terrestrial area
 terrestrial <- outline |>
   st_intersection(muni3)
@@ -304,22 +312,22 @@ terrestrial <- outline |>
 ocean <- muni3 |>
   st_difference(outline)
 
-# calculate stats
-# terrestrial area
+# calculate stats - terrestrial area
 terrestrial <- terrestrial |>
-  mutate(area_t = geometry |> st_area())
-
+  mutate(area_t = geometry |> st_area(),
+         t_area_km = 
+           round(units::drop_units(area_t * 1e-6)))|>
+  as_tibble()
 ```
 
-```{r makeMap}
-#| eval: false
+```{r positionMap}
 
-tmap_mode("plot")
 # Make map to show where the three municipalities are
 # First, get centroids
 centroids <- muni3 |>
   st_centroid()
 
+tmap_mode("plot")
 positionMap <- tm_shape(outline)+
   tm_polygons() +
   tm_shape(centroids)+
@@ -332,42 +340,11 @@ positionMap <- tm_shape(outline)+
              col="black")+
   tm_grid(projection = 4326)+
   tm_layout(bg.color = "skyblue")
-
-# Plot (could perhaps add the EDM here as well)
-muniPlot <- tm_shape(muni3)+
-    tm_borders()+
-  tm_facets(by = "Municipality",
-            ncol=2)+
-  tm_shape(terrestrial)+
-    tm_fill(col = "lightgreen",
-             alpha=.4)+
-  tm_shape(ocean)+
-    tm_polygons(col = "skyblue",
-                border.col = "black")+
-  tm_shape(dk)+
-    tm_polygons(col = "grey",
-                alpha=.8)+
-  tm_shape(nature3)+
-  tm_polygons(col = "red",
-              border.col = "red",
-              lwd=3)
-
-    
-methodsMap <- tmap_arrange(positionMap, muniPlot,
-             widths = c(.4, .6))
-
-# tmap_save(methodsMap, "../figures/studyLocations.tiff",
-#           dpi= 1000,
-#           units = "cm",
-#           width = 18,
-#           height = 10)
-# 
-# saveRDS(methodsMap, "../figures/studyLocation.RDS")
 ```
 
 ```{r mireDataTestCrop}
 
-# TEsting the cropping proceedure using a downsampled starts object 
+# Testing the cropping proceedure using a downsampled starts object 
 mire_test <- read_stars(mireFile, proxy = T) |>
   setNames("mire") |>
   st_downsample(100) |>
@@ -385,10 +362,7 @@ mire_test_nf <-  mire_test |>
 #  tm_borders()+
 #  tm_shape(mire_test_nf)+
 #  tm_raster(col="red")
-```
 
-```{r mireNF-error}
-#| eval: false
 # Then we do the same, but without downsampling
 
 mire_nf <- read_stars(mireFile, proxy = T) |>
@@ -396,9 +370,8 @@ mire_nf <- read_stars(mireFile, proxy = T) |>
   #mutate(mire = na_if(mire, 0)) |>
   st_crop(nf) |>
   st_as_stars()
+# The cropped raster is for some reason far into the ocean!
 
-
-# The cropped raster is for some reason far into the ocean. 
 # The cells have values, so it seems like there is something 
 # that happens after the cropping
 tmap_mode("plot")
@@ -408,12 +381,12 @@ tm_shape(mire_test)+
   tm_borders()+
   tm_shape(mire_nf)+
   tm_raster(col="red")
-
-st_crs(mire_nf) <- 25832
 ```
 
 ```{r mireTerra}
-# trying terra
+
+# trying { terra } instead
+
 # convert municipal outline to vect via st
 nf_vect <- as(nf, "Spatial") |>
   terra::vect() 
@@ -429,7 +402,6 @@ mire_nf_terra <- terra::rast(mireFile) |>
 #  geom_spatvector(data = nf_vect,
 #                  fill = NA)
 # The cropping and masking worked. 
-
 
 # I like the stars, sf and tmap combo better, so I return to stars
 mire_nf_stars <- mire_nf_terra |>
@@ -450,14 +422,9 @@ ggplot()+
   scale_fill_viridis_c()
 ```
 
-```{r dk2}
-# calculate terrestrial area
-terrestrial <- terrestrial |> 
-  mutate(t_area_km = 
-           round(units::drop_units(area_t * 1e-6))) |>
-  as_tibble()
-
+```{r dk2-CoverageMaps}
 # calculate area of survey coverage maps
+# values goes into summary table in the ms
 dk2 <-   read_sf("../data/dekningskartNF/Naturtyper NiN - Dekningskart.shp") |>
   rbind(read_sf("../data/dekningskartTR/Naturtyper NiN - Dekningskart.shp")) |>
   rbind(read_sf("../data/dekningskartME/Naturtyper NiN - Dekningskart.shp")) |>
@@ -471,13 +438,16 @@ dk2 <-   read_sf("../data/dekningskartNF/Naturtyper NiN - Dekningskart.shp") |>
 ```
 
 ```{r mireArea}
+# calculate area of the mires in each municipality
+# -- Nordre Follo
 mireArea <- mire_nf_terra |>
   global(c("mean", "sum"), na.rm=T) |>
   add_column("Municipality" = "Nordre Follo") |>
   mutate(mirePercent = round(mean*100, 1),
-         sum = sum/1e+4) |>
-  dplyr::rename(mire_km2 = sum)
+         mire_km2 = sum/1e+4)
 
+# Caululate the area of mire inside the coverage maps
+# -- Nordre Follo
 mire_nf_terra_dk <- mire_nf_terra |>
   terra::mask(dk2 |> filter(Municipality == "Nordre Follo")) |>
   global("sum", na.rm=T) |>
@@ -501,6 +471,7 @@ infra <- stars::read_stars(path_infrastructure) |>
     infrastructureIndex < 6 ~ 1,
     infrastructureIndex < 12 ~ 2,
     infrastructureIndex >= 12 ~ 3)) |>
+  # takeing away point in the sea
   st_crop(outline)
 
 # This step might seem rather stupid. We want to vectorize a rather large raster. This makes it a quite big data object. The reason is that there is no really good way to burn polygon data on to raster grid cells after the disuse of the raster package. It was not straight forward then either. But calculating intersections between polygons is very fast and easy.
@@ -508,21 +479,152 @@ infra <- stars::read_stars(path_infrastructure) |>
 infra <-  eaTools::ea_homogeneous_area(infra, 
                                 groups = infrastructureIndex)
 
-
-path <- ifelse(dir == "C:", 
+# path to local cahing folder
+path_temp <- ifelse(dir == "C:", 
         "P:/41201785_okologisk_tilstand_2022_2023/data/cache/",
         "/data/P-Prosjekter2/41201785_okologisk_tilstand_2022_2023/data/cache/")
 
-saveRDS(infra, paste0(path, "infrastructureIndex_discrete_vectorized.rds"))
+saveRDS(infra, paste0(path_temp, "infrastructureIndex_discrete_vectorized.rds"))
+```
+
+```{r readInfraStructureIndex}
+
+# read cached vetorized infrastructure data
+infra <- readRDS(paste0(path, "infrastructureIndex_discrete_vectorized.rds"))
+
+# intersect with the three municipalities
+# and calculate area
+infraMuni3 <- infra |>
+  st_intersection(muni3) |>
+  mutate(area = geometry |> st_area())
+
+# Turn m2 into km2
+# and sum the total area per HIA
+(infraMuni3_tbl <- infraMuni3 |>
+  as.data.frame() |>
+  mutate(area_HIA_km2 = units::drop_units(area)*1e-6) |>
+  group_by(Municipality, infrastructureIndex) |>
+  summarise(total_area_HIAs_km2 = round(sum(area_HIA_km2))))
+
+# Calculate the area weighted mean HIA value per municipality
+infraMuni3_summary <- infraMuni3_tbl |>
+  group_by(Municipality) |>
+  summarise(meanHIA = 
+              round(
+                weighted.mean(
+                  infrastructureIndex, total_area_HIAs_km2), 2))
+
+# Make a plot to check that it has worked 
+infraMuni3_tbl |>
+  ggplot()+
+  geom_bar(aes(x = infrastructureIndex, 
+               y = total_area_HIAs_km2,
+               fill = factor(infrastructureIndex),
+               colour = factor(infrastructureIndex)),
+           stat = "identity",
+           lwd=1.2
+           )+
+  scale_fill_manual(values = RColorBrewer::brewer.pal(4, "YlOrBr"))+
+  scale_color_manual(values = RColorBrewer::brewer.pal(5, "YlOrBr")[-1])+
+  facet_grid(cols = vars(Municipality))+
+  theme_minimal_hgrid()+
+  labs(x = "Human Impact Area (HIA) class",
+       y = "Area (km<sup>2</sup>)")+
+  theme(axis.title.x = element_textbox_simple(
+      width = NULL,
+      padding = margin(4, 4, 4, 4),
+      margin = margin(4, 0, 0, 0),
+      linetype = 1,
+      r = grid::unit(8, "pt"),
+      fill = "azure1"
+    ),
+    axis.title.y = element_textbox_simple(
+      width = NULL,
+      padding = margin(4, 4, 4, 4),
+      margin = margin(4, 0, 0, 0),
+      linetype = 1,
+      orientation = "left-rotated",
+      r = grid::unit(8, "pt"),
+      fill = "azure1"),
+    strip.background = element_blank(),
+    strip.text = element_textbox(
+      size = 12,
+      color = "white", fill = "#5D729D", box.color = "#4A618C",
+      halign = 0.5, linetype = 1, r = unit(5, "pt"), width = unit(1, "npc"),
+      padding = margin(2, 0, 1, 0), margin = margin(3, 3, 3, 3)
+    )
+    )+
+guides(fill= "none", colour = "none")
+```
+
+<!--# Need to update this figure -->
+
+```{r infraMuniMaps}
+infraMuniMap <- tm_shape(muni3)+
+  tm_borders()+
+tm_shape(infraMuni3)+
+  tm_polygons(col= "infrastructureIndex",
+              style="cat",
+              title = "Human Impact\nArea Class")+
+  tm_shape(muni3)+
+  tm_borders(lwd=3, col="black")+
+  tm_facets(by = "Municipality")+
+  tm_layout(legend.show=TRUE)
+
+
+# Plot
+muniPlot <- tm_shape(muni3)+
+    tm_borders()+
+  tm_facets(by = "Municipality",
+            ncol=3)+
+  tm_shape(terrestrial)+
+    tm_fill(col = "lightgreen",
+             alpha=.4)+
+  tm_shape(ocean)+
+    tm_polygons(col = "skyblue",
+                border.col = "black")+
+  tm_shape(dk)+
+    tm_polygons(col = "grey",
+                alpha=.8)+
+  tm_shape(nature3)+
+  tm_polygons(col = "red",
+              border.col = "red",
+              lwd=3)
+
+    
+(methodsMap <- tmap_arrange(
+                          #positionMap, 
+                           muniPlot,
+                          infraMuniMap,
+             widths = c(.4, .6)))
+
+#cowplot::plot_grid(tmap_grob(muniPlot),
+#                   tmap_grob(infraMuniMap),
+#                   ncol=1,)
+
+# tmap_save(methodsMap, "../figures/studyLocations.tiff",
+#           dpi= 1000,
+#           units = "cm",
+#           width = 18,
+#           height = 10)
+# 
+# saveRDS(methodsMap, "../figures/studyLocation.RDS")
 ```
 
 ```{r muni-tbl}
-# number and area of mire polygons
+
+# Calulate some more stats for the table with municipality stats
+
+# Number of mire polygons per municipality
+# -- Try count() here instead
 nature3_tbl <- nature3 |>
   group_by(Municipality) |>
   summarise(n = n()) |>
   as_tibble()
 
+# Take muni3 and add all sorts of other data to it
+# using left_join.
+# Save local cached file
 muni_tbl <- muni3 |>
   # calculate total area
   mutate(area_km = 
@@ -543,9 +645,15 @@ muni_tbl <- muni3 |>
   left_join(mireArea |> select(Municipality, mirePercent, mire_km2)) |>
   # % mire inside survey coverage map
   left_join(mire_nf_terra_dk |> select(Municipality, mireInSurvey_km2)) |>
-  mutate(mireInSurvery_percent = round(mireInSurvey_km2/mire_km2*100, 2))
+  mutate(mireInSurvery_percent = round(mireInSurvey_km2/mire_km2*100, 2)) |>
+  left_join(infraMuni3_summary)
 
 saveRDS(muni_tbl, "../data/municipality_stats.RDS")
+```
+
+```{r read-munitbl}
+#| eval: true
+muni_tbl <- readRDS("../data/municipality_stats.RDS")
 ```
 
 # Introduction
@@ -600,7 +708,7 @@ This study builds on the work in that report.
 We started by defining the reference state as one where ecosystems are subject to little or no human influence, with a climate as in the period 1961-1990 and a native species pool similar as today (i.e no mammoths allowed).
 We then identified two *ecosystem condition characteristics* that, along with many other characteristics that we do not specify here, define the typical behavior of open mire ecosystems in the reference condition: species composition, and; vegetation intactness.
 
-To describe these two concepts we use five condition variables from the same data set ( @tbl-variables).
+To describe these two characteristics we use five condition variables from the same data set ( @tbl-variables).
 The data set is from a standardised field survey of nature types in Norway that started in 2018 and which is still ongoing.
 The data is freely available [@norwegian_environmental_agency_naturtyper_2024].
 See @miljødirektoratet for the sampling protocol (in Norwegian).
@@ -652,13 +760,6 @@ The Alien plant cover was assigned to ECT class B1 - Compositional state charact
 We chose three municipalities in Norway to test out the indicators (@fig-studyLocation).
 These municipalities are spread over xxx km north to south, and also differ in the amount of mire area, the total area surveyed, and the prevalence of infrastructure (@tbl-variables).
 
-```{r}
-#| eval: true
-
-muni_tbl <- readRDS("../data/municipality_stats.RDS")
-
-```
-
 ```{r fig-studyLocation}
 #| eval: true
 #| include: true 
@@ -673,11 +774,11 @@ muni_tbl <- readRDS("../data/municipality_stats.RDS")
 (temp <- readRDS("../figures/studyLocation.RDS"))
 ```
 
-| Municipality | Total terrestrial area (km^2^)                                            | \% of terrestrial area surveyed                                            | \% open mires in relation to total terrestrial area                         | Total mire area (km^2^)                                                  | %of mire area inside survey area                                                      | Number of mire polygons in survey                                 | Mean Infrastructure Index value  |
-|-------|----------|----------|----------|----------|----------|----------|----------|
-| Nordre Follo | `r muni_tbl |> filter(Municipality == "Nordre Follo") |> pull(t_area_km)` | `r muni_tbl |> filter(Municipality == "Nordre Follo") |> pull(dk_percent)` | `r muni_tbl |> filter(Municipality == "Nordre Follo") |> pull(mirePercent)` | `r muni_tbl |> filter(Municipality == "Nordre Follo") |> pull(mire_km2)` | `r muni_tbl |> filter(Municipality == "Nordre Follo") |> pull(mireInSurvery_percent)` | `r muni_tbl |> filter(Municipality == "Nordre Follo") |> pull(n)` |                                  |
-| Trondheim    | `r muni_tbl |> filter(Municipality == "Trondheim") |> pull(t_area_km)`    | `r muni_tbl |> filter(Municipality == "Trondheim") |> pull(dk_percent)`    |                                                                             |                                                                          |                                                                                       | `r muni_tbl |> filter(Municipality == "Trondheim") |> pull(n)`    |                                  |
-| Målselv      | `r muni_tbl |> filter(Municipality == "Målselv") |> pull(t_area_km)`      | `r muni_tbl |> filter(Municipality == "Målselv") |> pull(dk_percent)`      |                                                                             |                                                                          |                                                                                       | `r muni_tbl |> filter(Municipality == "Målselv") |> pull(n)`      |                                  |
+| Municipality | Total terrestrial area (km^2^)                                            | \% of terrestrial area surveyed                                            | \% open mires in relation to total terrestrial area                         | Total mire area (km^2^)                                                  | %of mire area inside survey area                                                      | Number of mire polygons in survey                                 | Mean Infrastructure Index value                                         |
+|---------|---------|---------|---------|---------|---------|---------|---------|
+| Nordre Follo | `r muni_tbl |> filter(Municipality == "Nordre Follo") |> pull(t_area_km)` | `r muni_tbl |> filter(Municipality == "Nordre Follo") |> pull(dk_percent)` | `r muni_tbl |> filter(Municipality == "Nordre Follo") |> pull(mirePercent)` | `r muni_tbl |> filter(Municipality == "Nordre Follo") |> pull(mire_km2)` | `r muni_tbl |> filter(Municipality == "Nordre Follo") |> pull(mireInSurvery_percent)` | `r muni_tbl |> filter(Municipality == "Nordre Follo") |> pull(n)` | `r muni_tbl |> filter(Municipality == "Nordre Follo") |> pull(meanHIA)` |
+| Trondheim    | `r muni_tbl |> filter(Municipality == "Trondheim") |> pull(t_area_km)`    | `r muni_tbl |> filter(Municipality == "Trondheim") |> pull(dk_percent)`    |                                                                             |                                                                          |                                                                                       | `r muni_tbl |> filter(Municipality == "Trondheim") |> pull(n)`    | `r muni_tbl |> filter(Municipality == "Trondheim") |> pull(meanHIA)`    |
+| Målselv      | `r muni_tbl |> filter(Municipality == "Målselv") |> pull(t_area_km)`      | `r muni_tbl |> filter(Municipality == "Målselv") |> pull(dk_percent)`      |                                                                             |                                                                          |                                                                                       | `r muni_tbl |> filter(Municipality == "Målselv") |> pull(n)`      | `r muni_tbl |> filter(Municipality == "Målselv") |> pull(meanHIA)`      |
 
 : Information for the three target municipalities in Norway
 
