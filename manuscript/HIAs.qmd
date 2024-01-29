@@ -66,8 +66,6 @@ execute:
 
 <!--# The document is set to eval=F in the yaml. This only affect the rendering, and not the interactive session. Eval is also set explicitly for each chunk. When eval is set to false it means the job is quite time consuming and I instead run it once and cache it locally.  -->
 
-
-
 ```{r setup}
 #| warning: false
 #| message: false
@@ -83,6 +81,7 @@ library(terra)
 library(tidyterra)
 library(ggtext)
 library(cowplot)
+library(units)
 
 myCRS <- 25832
 ```
@@ -246,6 +245,169 @@ naturetypes |>
 naturetypes <- readRDS("../data/surveyData.RDS")
 ```
 
+```{r convertToPercent}
+#| eval: true
+
+# I now want to take the variable and normalise it before I can then combine them
+# despite them being on different scales
+# I will first normalise by converting into %.
+# Remeber the ordinal categories represnts frequency ranges
+
+# The data is strongly right skewed, so simply taking the center value of each
+# bin will not work.
+naturetypes %>% 
+  ggplot()+
+  theme_bw() +
+  geom_histogram(aes(x = value),
+                 binwidth = 1) +
+  facet_wrap(.~variable,
+             scales = "free")
+
+# I will use th lower bound for each bin.
+# The exception in when the variable is 1, because then the lower bound
+# is 0, same as when the variable is 0.
+# For these I will set manually a slightly higher value.
+
+naturetypes <- naturetypes %>%
+  mutate(value = case_when(
+    # selecting the variable that follow the same 4 step scale
+    variable %in% c("7TK", "7SE", "7FA") ~ 
+      case_match(value,
+             0 ~ 0,
+             1 ~ mean(c(0, 1/16))*100,
+             2 ~ 1/16*100,
+             3 ~ 50), # note that it is not possible to get a value of 1
+    # selecting the eight step variables
+    variable %in% c('PRTK', 'PRSL') ~ 
+      case_match(value,
+             0 ~ 0,
+             1 ~ 1.5,
+             2 ~ 3,
+             3 ~ 6.25,
+             4 ~ 12.5,
+             5 ~ 25,
+             6 ~ 50,
+             7 ~ 75)
+    )
+  )
+
+naturetypes %>% 
+  ggplot()+
+  theme_bw() +
+  geom_histogram(aes(x = value),
+                 binwidth = 1,
+                 color = "orange",
+                 fill = "orange") +
+  facet_wrap(.~variable,
+             scales = "free")
+
+```
+
+```{r}
+#| eval: true
+# Now I make the data wide, and remove 7TK and 7SE if PRTK or PRSL are present,
+# respectively
+
+naturetypes_wide <- naturetypes |>
+  # Column names starting with a number is problematic, so adding a prefix
+  mutate(variable = paste0("var_", variable)) |>
+  pivot_wider(
+    names_from = "variable",
+    values_from = "value",
+    id_cols = "id") |>
+    as_tibble()
+
+head(naturetypes_wide, 10)
+```
+
+```{r}
+#| eval: true
+# First I will combine 7TK and PRTK, and also 7SE and PRSL.
+
+naturetypes_wide <- naturetypes_wide %>%
+  mutate(TK = if_else(
+    is.na(var_PRTK), var_7TK, var_PRTK),
+    SE = if_else(
+      is.na(var_PRSL), var_7SE, var_PRSL)
+    )
+
+plot_grid(
+naturetypes_wide %>%
+  as_tibble() |>
+  count(SE,
+        name = "sum") |>
+  ggplot(
+    aes(
+      x = factor(SE),
+      y = sum))+
+  geom_bar(stat="identity",
+           fill="grey",
+           colour = "black")+
+  theme_bw(base_size = 12)+
+  labs(x = "7SE or PRSL score",
+       y = "Number of localities"),
+
+naturetypes_wide %>%
+  as_tibble() |>
+  count(TK,
+        name = "sum") |>
+  ggplot(
+    aes(
+      x = factor(TK),
+      y = sum))+
+  geom_bar(stat="identity",
+           fill="grey",
+           colour = "black")+
+  theme_bw(base_size = 12)+
+  labs(x = "7TK or PRTK score",
+       y = "Number of localities")
+)
+
+# The NA's represnets localities where just one of the two variables 
+# (then thinking 7SE and PRSL as the same variable)
+# is recorded. To combine these into one metric ADSV, I could take the 
+# one with the highest value (worst-rule) og the sum.
+# Sum is problematic is not all locations ahve two values to sum together.
+# But the other option is problematic since I think field workers often
+# tend to split the effects over two variables is they have that option.
+# And if we have 50% vehicle damaeg and 50% hiking damage, that is no doubt
+# worst than just having 50% of either. So I will use the sum, despite its issues.
+```
+
+```{r}
+#| eval: true
+
+# Taking he sum of 7SE and 7TK (incl the PR.. variabels)
+naturetypes_wide <- naturetypes_wide |>
+  rowwise() |>
+  mutate(ADSV = sum(c(SE, TK), na.rm=TRUE))
+  
+naturetypes_wide %>%
+  as_tibble() |>
+  count(ADSV,
+        name = "sum") |>
+  ggplot(
+    aes(
+      x = (ADSV),
+      y = sum))+
+  geom_bar(stat="identity",
+           fill="grey",
+           colour = "black")+
+  theme_bw(base_size = 12)+
+  labs(x = "Summed ADVS score",
+       y = "Number of localities") +
+    scale_x_continuous(
+    labels = scales::label_number(accuracy = 1))
+
+```
+
+```{r}
+#| eval: true
+# Now I will copy these ADVS-values into the sf object again
+naturetypes <- naturetypes |>
+  left_join(naturetypes_wide |> select(id, var_7FA, ADSV), by = "id")
+```
+
 ```{r getNorwayOutline}
 #| eval: true
 
@@ -395,7 +557,6 @@ round(max(latlong$Y)-min(latlong$Y), 1)
 
 
 ```
-
 
 ```{r mireDataTestCrop}
 #| eval: false
@@ -629,8 +790,6 @@ infraMuni3_tbl |>
   facet_grid(cols = vars(Municipality)) 
 ```
 
-<!--# Need to update this figure -->
-
 ```{r infraMuniMaps}
 #| eval: false
 
@@ -714,7 +873,6 @@ muniPlot <- tm_shape(muni3) +
 #
 # saveRDS(methodsMap, "../figures/studyLocation.RDS")
 ```
-
 
 ```{r muni-tbl}
 #| eval: false
@@ -849,7 +1007,7 @@ It may also be that alien plants are more or less common on bogs relative to fen
 For this we have no assumption.
 
 | Variable code        | Variable name                                    | Measurement unit                                                                        | Description                                                                                                    | Reference                          |
-|-------------|-------------|---------------|--------------------|-------------|
+|--------------|--------------|--------------|----------------|--------------|
 | 7FK                  | Prevalence of alien species                      | Unitless, ordinal, non-linear scale from 1 (no alien species) to 7 (only alien species) | The fraction of the species composition made up from alien species                                             | @runehalvorsen2019                 |
 | 7SE                  | Human caused abration or abration-caused erosion | Unitless, ordinal, non-linear scale from 1 to 4.                                        | Measures the frequency of imagined 4 m^2^ quadrats layed over the area that has some sign of abration          | @runehalvorsen2019                 |
 | PRSL                 | *as above*                                       | Unitless, ordinal, non-linear scale from 0 to 7.                                        | Same as 7SE, but recorded at a higher resolution                                                               | @miljødirektoratet                 |
