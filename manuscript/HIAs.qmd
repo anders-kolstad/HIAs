@@ -56,7 +56,6 @@ format:
 editor: 
   markdown: 
     wrap: sentence
-# set eval to true to actually run the analysis
 execute:
   echo: false
   include: false
@@ -65,7 +64,9 @@ execute:
   message: false
 ---
 
-<!--# The document is set to eval=F in the yaml, and some code chunks are set manually to eval=T. When working on the manuscript, you cannot run all with  Ctr+Alt+R as this ignores the YAML. This will read inn data cashed locally. To also evaluate the more time consuming chunks, change the YAML to eval: true and run all (or render to html):  -->
+<!--# The document is set to eval=F in the yaml. This only affect the rendering, and not the interactive session. Eval is also set explicitly for each chunk. When eval is set to false it means the job is quite time consuming and I instead run it once and cache it locally.  -->
+
+
 
 ```{r setup}
 #| warning: false
@@ -81,6 +82,7 @@ library(stars)
 library(terra)
 library(tidyterra)
 library(ggtext)
+library(cowplot)
 
 myCRS <- 25832
 ```
@@ -92,7 +94,7 @@ myCRS <- 25832
 # Conditional file directory
 dir <- substr(getwd(), 1, 2)
 
-# Soem directories
+# Some directories
 mireFile <- "P:/41201785_okologisk_tilstand_2022_2023/data/Myrmodell/myrmodell90pros.tif"
 
 path_infrastructure <- ifelse(dir == "C:",
@@ -106,6 +108,12 @@ path_naturetypes <- ifelse(dir == "C:",
 )
 
 path_muni <- paste0("../data/Basisdata_0000_Norge_25833_Kommuner_FGDB.gdb")
+
+# path to local caching folder
+path_temp <- ifelse(dir == "C:",
+  "P:/41201785_okologisk_tilstand_2022_2023/data/cache/",
+  "/data/P-Prosjekter2/41201785_okologisk_tilstand_2022_2023/data/cache/"
+)
 ```
 
 ```{r getRelevantNTs}
@@ -145,7 +153,6 @@ myVars2 <- c("7TK", "7SE", "PRTK", "PRSL")
 
 ```{r relevantNTs}
 #| eval: false
-
 
 # These are the nature types I'm keeping for 7FA.
 # Note the absence of ombrotriphic types
@@ -235,7 +242,7 @@ naturetypes |>
 ```{r readSurvey}
 #| eval: true
 
-# read cached rds file
+# read cached rds file. This is not so big.
 naturetypes <- readRDS("../data/surveyData.RDS")
 ```
 
@@ -302,7 +309,11 @@ me <- muni3 |>
 nature3 <- naturetypes |>
   st_intersection(muni3)
 
-table(nature3$municipality)
+nature3 |>
+  as_tibble() |>
+  count(municipality,
+    sort = TRUE,
+    name = "Number of polygons")
 
 # and also to get the data coverage polygon.
 # These I had to manually download from naturbase.no
@@ -331,21 +342,18 @@ terrestrial <- terrestrial |>
     area_t = geometry |> st_area(),
     t_area_km =
       round(units::drop_units(area_t * 1e-6))
-  ) |>
-  as_tibble()
+  ) 
 ```
 
 ```{r positionMap}
 #| eval: false
-
 
 # Make map to show where the three municipalities are
 # First, get centroids
 centroids <- muni3 |>
   st_centroid()
 
-tmap_mode("plot")
-positionMap <- tm_shape(outline) +
+(positionMap <- tm_shape(outline) +
   tm_polygons() +
   tm_shape(centroids) +
   tm_text(
@@ -360,7 +368,9 @@ positionMap <- tm_shape(outline) +
     col = "black"
   ) +
   tm_grid(projection = 4326) +
-  tm_layout(bg.color = "skyblue")
+  tm_layout(
+    bg.color = "skyblue",
+    outer.margins = c(0.01, .02, .02, .02)))
 ```
 
 ```{r mireDataTestCrop}
@@ -408,7 +418,6 @@ tm_shape(mire_test) +
 ```{r mireTerra}
 #| eval: false
 
-
 # trying { terra } instead
 
 # convert municipal outline to vect via st
@@ -430,14 +439,6 @@ mire_nf_terra <- terra::rast(mireFile) |>
 # I like the stars, sf and tmap combo better, so I return to stars
 mire_nf_stars <- mire_nf_terra |>
   st_as_stars()
-
-# tm_shape(mire_test)+
-#  tm_raster(palette = "red")+
-#  tm_shape(outline)+
-#  tm_borders()+
-#  tm_shape(mire_nf_stars)+
-#  tm_raster(col="red")
-# OK
 
 ggplot() +
   geom_stars(data = mire_nf_stars) +
@@ -478,7 +479,7 @@ mireArea <- mire_nf_terra |>
     mire_km2 = sum / 1e+4
   )
 
-# Caululate the area of mire inside the coverage maps
+# Calculate the area of mire inside the coverage maps
 # -- Nordre Follo
 mire_nf_terra_dk <- mire_nf_terra |>
   terra::mask(dk2 |> filter(Municipality == "Nordre Follo")) |>
@@ -516,11 +517,7 @@ infra <- eaTools::ea_homogeneous_area(infra,
   groups = infrastructureIndex
 )
 
-# path to local cahing folder
-path_temp <- ifelse(dir == "C:",
-  "P:/41201785_okologisk_tilstand_2022_2023/data/cache/",
-  "/data/P-Prosjekter2/41201785_okologisk_tilstand_2022_2023/data/cache/"
-)
+
 
 saveRDS(infra, paste0(path_temp, "infrastructureIndex_discrete_vectorized.rds"))
 ```
@@ -529,7 +526,7 @@ saveRDS(infra, paste0(path_temp, "infrastructureIndex_discrete_vectorized.rds"))
 #| eval: false
 
 # read cached vetorized infrastructure data
-infra <- readRDS(paste0(path, "infrastructureIndex_discrete_vectorized.rds"))
+infra <- readRDS(paste0(path_temp, "infrastructureIndex_discrete_vectorized.rds"))
 
 # intersect with the three municipalities
 # and calculate area
@@ -572,7 +569,6 @@ infraMuni3_tbl |>
   ) +
   scale_fill_manual(values = RColorBrewer::brewer.pal(4, "YlOrBr")) +
   scale_color_manual(values = RColorBrewer::brewer.pal(5, "YlOrBr")[-1]) +
-  facet_grid(cols = vars(Municipality)) +
   theme_minimal_hgrid() +
   labs(
     x = "Human Impact Area (HIA) class",
@@ -604,7 +600,9 @@ infraMuni3_tbl |>
       padding = margin(2, 0, 1, 0), margin = margin(3, 3, 3, 3)
     )
   ) +
-  guides(fill = "none", colour = "none")
+  guides(fill = "none", colour = "none") +
+  scale_y_log10() +
+  facet_grid(cols = vars(Municipality)) 
 ```
 
 <!--# Need to update this figure -->
@@ -612,6 +610,7 @@ infraMuni3_tbl |>
 ```{r infraMuniMaps}
 #| eval: false
 
+# Infratructure in each municipality
 infraMuniMap <- tm_shape(muni3) +
   tm_borders() +
   tm_shape(infraMuni3) +
@@ -623,10 +622,26 @@ infraMuniMap <- tm_shape(muni3) +
   tm_shape(muni3) +
   tm_borders(lwd = 3, col = "black") +
   tm_facets(by = "Municipality") +
-  tm_layout(legend.show = TRUE)
+  tm_layout(
+    legend.show = FALSE,
+    panel.label.height = 0)
+
+# A figure with just the legend
+infraMuniMap_l <- tm_shape(muni3) +
+  tm_borders() +
+  tm_shape(infraMuni3) +
+  tm_polygons(
+    col = "infrastructureIndex",
+    style = "cat",
+    title = "Human Impact\nArea Class"
+  ) +
+  tm_layout(legend.only = TRUE,
+            legend.position = c("left", "bottom"),
+            legend.outside = TRUE)
 
 
-# Plot
+
+# Syrvey coverage and other colour overlayed the municipalities
 muniPlot <- tm_shape(muni3) +
   tm_borders() +
   tm_facets(
@@ -657,15 +672,15 @@ muniPlot <- tm_shape(muni3) +
 
 
 (methodsMap <- tmap_arrange(
-  # positionMap,
+  positionMap,
   muniPlot,
+  infraMuniMap_l,
   infraMuniMap,
-  widths = c(.4, .6)
+  widths = c(.35, .65),
+  heights = c(.6, .4),
+  outer.margins = NULL
 ))
 
-# cowplot::plot_grid(tmap_grob(muniPlot),
-#                   tmap_grob(infraMuniMap),
-#                   ncol=1,)
 
 # tmap_save(methodsMap, "../figures/studyLocations.tiff",
 #           dpi= 1000,
