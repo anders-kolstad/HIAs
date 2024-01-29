@@ -65,7 +65,7 @@ execute:
   message: false
 ---
 
-<!--# The document is set to eval=F in the yaml, and some code chunks are set manually to eval=T. When working on the manuscript, you can run all (Ctr+Alt+R). This will read inn data cashed locally. To also evaluate the more time consuming chunks, change the YAML to eval: true and run all (or render to html):  -->
+<!--# The document is set to eval=F in the yaml, and some code chunks are set manually to eval=T. When working on the manuscript, you cannot run all with  Ctr+Alt+R as this ignores the YAML. This will read inn data cashed locally. To also evaluate the more time consuming chunks, change the YAML to eval: true and run all (or render to html):  -->
 
 ```{r setup}
 #| warning: false
@@ -108,6 +108,9 @@ path_muni <- paste0("../data/Basisdata_0000_Norge_25833_Kommuner_FGDB.gdb")
 ```
 
 ```{r getRelevantNTs}
+#| eval: false
+
+
 # I already did some work to identify the relevant nature types
 
 # summary file (https://github.com/NINAnor/ecosystemCondition/blob/main/data/naturetypes/natureType_summary.rds)
@@ -140,6 +143,9 @@ myVars2 <- c('7TK', '7SE', 'PRTK', 'PRSL')
 ```
 
 ```{r relevantNTs}
+#| eval: false
+
+
 # These are the nature types I'm keeping for 7FA.
 # Note the absence of ombrotriphic types
 alienNTS <- c("Slåttemyr",
@@ -296,9 +302,6 @@ dk <-   read_sf("../data/dekningskartNF/Naturtyper NiN - Dekningskart.shp") |>
   st_transform(st_crs(muni3)) |>
   st_intersection(muni3) |>
   st_union()
-  
-
-
 ```
 
 ```{r prepSomeMoreMunicipalityShapes}
@@ -321,6 +324,8 @@ terrestrial <- terrestrial |>
 ```
 
 ```{r positionMap}
+#| eval: false
+
 
 # Make map to show where the three municipalities are
 # First, get centroids
@@ -343,6 +348,7 @@ positionMap <- tm_shape(outline)+
 ```
 
 ```{r mireDataTestCrop}
+#| eval: false
 
 # Testing the cropping proceedure using a downsampled starts object 
 mire_test <- read_stars(mireFile, proxy = T) |>
@@ -384,6 +390,8 @@ tm_shape(mire_test)+
 ```
 
 ```{r mireTerra}
+#| eval: false
+
 
 # trying { terra } instead
 
@@ -423,6 +431,8 @@ ggplot()+
 ```
 
 ```{r dk2-CoverageMaps}
+#| eval: false
+
 # calculate area of survey coverage maps
 # values goes into summary table in the ms
 dk2 <-   read_sf("../data/dekningskartNF/Naturtyper NiN - Dekningskart.shp") |>
@@ -438,6 +448,8 @@ dk2 <-   read_sf("../data/dekningskartNF/Naturtyper NiN - Dekningskart.shp") |>
 ```
 
 ```{r mireArea}
+#| eval: false
+
 # calculate area of the mires in each municipality
 # -- Nordre Follo
 mireArea <- mire_nf_terra |>
@@ -457,6 +469,8 @@ mire_nf_terra_dk <- mire_nf_terra |>
 ```
 
 ```{r infrastructureIndex}
+#| eval: false
+
 # this data is on a 100x100m grid
 infra <- stars::read_stars(path_infrastructure) |>
   # , which is mor then we need - warp it to 1x1km
@@ -488,6 +502,7 @@ saveRDS(infra, paste0(path_temp, "infrastructureIndex_discrete_vectorized.rds"))
 ```
 
 ```{r readInfraStructureIndex}
+#| eval: false
 
 # read cached vetorized infrastructure data
 infra <- readRDS(paste0(path, "infrastructureIndex_discrete_vectorized.rds"))
@@ -560,6 +575,8 @@ guides(fill= "none", colour = "none")
 <!--# Need to update this figure -->
 
 ```{r infraMuniMaps}
+#| eval: false
+
 infraMuniMap <- tm_shape(muni3)+
   tm_borders()+
 tm_shape(infraMuni3)+
@@ -611,7 +628,10 @@ muniPlot <- tm_shape(muni3)+
 # saveRDS(methodsMap, "../figures/studyLocation.RDS")
 ```
 
+<!--# add mean_HIA to the mix -->
+
 ```{r muni-tbl}
+#| eval: false
 
 # Calulate some more stats for the table with municipality stats
 
