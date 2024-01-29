@@ -358,12 +358,12 @@ centroids <- muni3 |>
   tm_shape(centroids) +
   tm_text(
     text = "Municipality",
-    size = 1,
+    size = .8,
     xmod = 2,
     ymod = -1
   ) +
   tm_symbols(
-    size = 2,
+    size = 1.5,
     shape = 17,
     col = "black"
   ) +
@@ -372,6 +372,22 @@ centroids <- muni3 |>
     bg.color = "skyblue",
     outer.margins = c(0.01, .02, .02, .02)))
 ```
+
+```{r distanceBetweenMunis}
+#| eval: true
+
+# what is the distance between Nordre Follo and Målselv
+(latlong <- centroids |>
+  st_transform(4326) |>
+st_coordinates() |>
+  as_tibble())
+
+
+round(max(latlong$Y)-min(latlong$Y), 1)
+
+
+```
+
 
 ```{r mireDataTestCrop}
 #| eval: false
@@ -691,7 +707,6 @@ muniPlot <- tm_shape(muni3) +
 # saveRDS(methodsMap, "../figures/studyLocation.RDS")
 ```
 
-<!--# add mean_HIA to the mix -->
 
 ```{r muni-tbl}
 #| eval: false
@@ -721,7 +736,9 @@ muni_tbl <- muni3 |>
   # make tibble for the coming join
   as_tibble() |>
   # paste inn terrestrial area
-  left_join(terrestrial |> select(kommunenummer, t_area_km),
+  left_join(terrestrial |>
+              as_tibble() |> 
+              select(kommunenummer, t_area_km),
     keep = F
   ) |>
   # area of survey
@@ -846,7 +863,7 @@ The Alien plant cover was assigned to ECT class B1 - Compositional state charact
 ![Schematic workflow followed in this paper. Sub-index A is calculated using spatially explicit aggregation (i.e .a simple overlay taking the mean value).](../images/workflow.jpg){#fig-workflow}
 
 We chose three municipalities in Norway to test out the indicators (@fig-studyLocation).
-These municipalities are spread over xxx km north to south, and also differ in the amount of mire area, the total area surveyed, and the prevalence of infrastructure (@tbl-variables).
+These municipalities are spread over `r round(max(latlong$Y)-min(latlong$Y), 1)` degrees latitude, and also differ in the amount of mire area, the total area surveyed, and the prevalence of infrastructure (@tbl-variables).
 
 ```{r fig-studyLocation}
 #| eval: true
