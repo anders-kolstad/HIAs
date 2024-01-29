@@ -383,6 +383,14 @@ st_coordinates() |>
   as_tibble())
 
 
+km_distance <- centroids |>
+  st_distance() |>
+  max() |>
+  set_units("km") |>
+  drop_units() |>
+  round()
+
+
 round(max(latlong$Y)-min(latlong$Y), 1)
 
 
@@ -863,7 +871,7 @@ The Alien plant cover was assigned to ECT class B1 - Compositional state charact
 ![Schematic workflow followed in this paper. Sub-index A is calculated using spatially explicit aggregation (i.e .a simple overlay taking the mean value).](../images/workflow.jpg){#fig-workflow}
 
 We chose three municipalities in Norway to test out the indicators (@fig-studyLocation).
-These municipalities are spread over `r round(max(latlong$Y)-min(latlong$Y), 1)` degrees latitude, and also differ in the amount of mire area, the total area surveyed, and the prevalence of infrastructure (@tbl-variables).
+These municipalities are spread over `r round(max(latlong$Y)-min(latlong$Y), 1)` degrees latitude, or `r km_distance` km, and also differ in the amount of mire area, the total area surveyed, and the prevalence of infrastructure (@tbl-variables).
 
 ```{r fig-studyLocation}
 #| eval: true
