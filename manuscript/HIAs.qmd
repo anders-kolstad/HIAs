@@ -408,6 +408,61 @@ naturetypes <- naturetypes |>
   left_join(naturetypes_wide |> select(id, var_7FA, ADSV), by = "id")
 ```
 
+```{r rescale}
+#| eval: true
+
+# Now I rescale the now continous variables using reference and threshold values
+# I will use the same reference levels/values for all of Norway:
+
+upper <- 0
+lower <- 100
+threshold <- 10
+
+eaTools::ea_normalise(data = naturetypes,
+                      vector = "ADSV",
+                      upper_reference_level = lower,
+                      lower_reference_level = upper,
+                      break_point = threshold,
+                      plot=T,
+                      reverse = T
+                      )
+
+# There is no point yet making this a time series
+# I will assign all the indicator value to the same time (2018-2022)
+
+# same for 7FK
+eaTools::ea_normalise(data = naturetypes,
+                      vector = "var_7FA",
+                      upper_reference_level = lower,
+                      lower_reference_level = upper,
+                      break_point = threshold,
+                      plot=T,
+                      reverse = T
+                      )
+# The variables are really coarse
+```
+
+```{r}
+#| eval: true
+
+# Adding scaled indicator values to the dataset
+naturetypes$i_ADSV <- eaTools::ea_normalise(data = naturetypes,
+                      vector = "ADSV",
+                      upper_reference_level = lower,
+                      lower_reference_level = upper,
+                      break_point = threshold,
+                      reverse = T
+                      )
+
+naturetypes$i_alien <- eaTools::ea_normalise(data = naturetypes,
+                      vector = "var_7FA",
+                      upper_reference_level = lower,
+                      lower_reference_level = upper,
+                      break_point = threshold,
+                      reverse = T
+                      )
+```
+
 ```{r getNorwayOutline}
 #| eval: true
 
@@ -790,6 +845,165 @@ infraMuni3_tbl |>
   facet_grid(cols = vars(Municipality)) 
 ```
 
+```{r HIA-validate}
+#| eval: false
+
+# Now I want to see if the indicator values depend on the HIA is a predictable
+# way to justify the stratification
+infra |>
+  as_tibble() |>
+  count(infrastructureIndex)
+
+
+corrCheck <- st_intersection(naturetypes, infra)
+corrCheck |>
+  as_tibble() |>
+  mutate(i_ADSV_fct = floor(round(i_ADSV*10,2))/10,
+         i_alien_fct = floor(round(i_alien*10,2))/10) |>
+  count(i_ADSV_fct, infrastructureIndex) |>
+  View()
+
+
+
+corrCheck |>
+  mutate(i_ADSV_fct = floor(round(i_ADSV*10,2))/10,
+         i_alien_fct = floor(round(i_alien*10,2))/10) |>
+  pivot_longer(cols = c(i_ADSV_fct, i_alien_fct),
+               values_to = "indicatorValue",
+               names_to = "indicator") |>
+  filter(!is.na(indicatorValue)) |>
+  ggplot(aes(
+    x = factor(infrastructureIndex), 
+    fill = factor(round(indicatorValue,2))))+
+  geom_bar(
+    #position="fill"
+    )+
+  theme_bw(base_size = 12)+
+  guides(fill = guide_legend("Scaled indicator values"))+
+  ylab("Fraction of data points")+
+  xlab("HIA")+
+  scale_fill_brewer(palette = "RdYlGn")+
+  facet_grid(~indicator)
+```
+
+```{r}
+#| eval: false
+
+# There is very little data from HIA 3, so I combine it with HIA 2
+corrCheck |>
+  mutate(i_ADSV_fct = floor(round(i_ADSV*10,2))/10,
+         i_alien_fct = floor(round(i_alien*10,2))/10,
+         infrastructureIndex = case_when(
+           infrastructureIndex == 3 ~ 2,
+           .default = infrastructureIndex
+         )) |>
+  pivot_longer(cols = c(i_ADSV_fct, i_alien_fct),
+               values_to = "indicatorValue",
+               names_to = "indicator") |>
+  filter(!is.na(indicatorValue)) |>
+  ggplot(aes(
+    x = factor(infrastructureIndex), 
+    fill = factor(round(indicatorValue,2))))+
+  geom_bar(
+    position="fill"
+    )+
+  theme_bw(base_size = 12)+
+  guides(fill = guide_legend("Scaled indicator values"))+
+  ylab("Fraction of data points")+
+  xlab("HIA")+
+  scale_fill_brewer(palette = "RdYlGn")+
+  facet_grid(~indicator)
+```
+
+```{r}
+# That did not made it better
+# Is there a year effect?
+
+corrCheck |>
+  mutate(i_ADSV_fct = floor(round(i_ADSV*10,2))/10,
+         i_alien_fct = floor(round(i_alien*10,2))/10,
+         infrastructureIndex = case_when(
+           infrastructureIndex == 3 ~ 2,
+           .default = infrastructureIndex
+         )) |>
+  pivot_longer(cols = c(i_ADSV_fct, i_alien_fct),
+               values_to = "indicatorValue",
+               names_to = "indicator") |>
+  filter(!is.na(indicatorValue)) |>
+  ggplot(aes(
+    x = factor(infrastructureIndex), 
+    fill = factor(round(indicatorValue,2))))+
+  geom_bar(
+    position="fill"
+    )+
+  theme_bw(base_size = 12)+
+  guides(fill = guide_legend("Scaled indicator values"))+
+  ylab("Fraction of data points")+
+  xlab("HIA")+
+  scale_fill_brewer(palette = "RdYlGn")+
+  facet_grid(indicator~year)
+```
+
+```{r}
+# Next, make a violing/box plot
+
+corrCheck |>
+  mutate(i_ADSV_fct = floor(round(i_ADSV*10,2))/10,
+         i_alien_fct = floor(round(i_alien*10,2))/10,
+         infrastructureIndex = case_when(
+           infrastructureIndex == 3 ~ 2,
+           .default = infrastructureIndex
+         )) |>
+  pivot_longer(cols = c(i_ADSV_fct, i_alien_fct),
+               values_to = "indicatorValue",
+               names_to = "indicator") |>
+  filter(!is.na(indicatorValue)) |>
+  ggplot(aes(
+    x = factor(infrastructureIndex), 
+    y = indicatorValue))+
+  geom_boxplot(
+    )+
+  theme_bw(base_size = 12)+
+  guides(fill = guide_legend("Scaled indicator values"))+
+  ylab("Fraction of data points")+
+  xlab("HIA")+
+  scale_fill_brewer(palette = "RdYlGn")+
+  facet_grid(indicator~year)
+```
+
+```{r}
+#| eval: false
+
+# All the 1's might make it hard to see the pattern.
+# Try removing the 1's (the areas in best condition)
+
+corrCheck |>
+  mutate(i_ADSV_fct = floor(round(i_ADSV*10,2))/10,
+         i_alien_fct = floor(round(i_alien*10,2))/10,
+         infrastructureIndex = case_when(
+           infrastructureIndex == 3 ~ 2,
+           .default = infrastructureIndex
+           )) |>
+  pivot_longer(cols = c(i_ADSV_fct, i_alien_fct),
+               values_to = "indicatorValue",
+               names_to = "indicator") |>
+  mutate(indicatorValue = na_if(indicatorValue, 1)) |>
+  filter(!is.na(indicatorValue)) |>
+  ggplot(aes(
+    x = factor(infrastructureIndex), 
+    fill = factor(round(indicatorValue,2))))+
+  geom_bar(
+    position="fill"
+    )+
+  theme_bw(base_size = 12)+
+  guides(fill = guide_legend("Scaled indicator values"))+
+  ylab("Fraction of data points")+
+  xlab("HIA")+
+  scale_fill_brewer(palette = "RdYlGn")+
+  facet_grid(~indicator)
+
+```
+
 ```{r infraMuniMaps}
 #| eval: false
 
@@ -1007,7 +1221,7 @@ It may also be that alien plants are more or less common on bogs relative to fen
 For this we have no assumption.
 
 | Variable code        | Variable name                                    | Measurement unit                                                                        | Description                                                                                                    | Reference                          |
-|--------------|--------------|--------------|----------------|--------------|
+|---------------|---------------|---------------|---------------|---------------|
 | 7FK                  | Prevalence of alien species                      | Unitless, ordinal, non-linear scale from 1 (no alien species) to 7 (only alien species) | The fraction of the species composition made up from alien species                                             | @runehalvorsen2019                 |
 | 7SE                  | Human caused abration or abration-caused erosion | Unitless, ordinal, non-linear scale from 1 to 4.                                        | Measures the frequency of imagined 4 m^2^ quadrats layed over the area that has some sign of abration          | @runehalvorsen2019                 |
 | PRSL                 | *as above*                                       | Unitless, ordinal, non-linear scale from 0 to 7.                                        | Same as 7SE, but recorded at a higher resolution                                                               | @miljødirektoratet                 |
