@@ -768,6 +768,22 @@ saveRDS(infra, paste0(path_temp, "infrastructureIndex_discrete_vectorized.rds"))
 # read cached vetorized infrastructure data
 infra <- readRDS(paste0(path_temp, "infrastructureIndex_discrete_vectorized.rds"))
 
+
+# Calulculate area
+infra <- infra |>
+  mutate(area = geometry |> st_area(),
+         area_km = area |> set_units("km2"))
+
+# show the summered area per HIA
+infra |>
+  as_tibble() |>
+  group_by(infrastructureIndex) |>
+  summarise(area_km = sum(area_km)) |>
+  ggplot(aes(x = infrastructureIndex,
+             y = area_km)) +
+  geom_col()
+
+
 # intersect with the three municipalities
 # and calculate area
 infraMuni3 <- infra |>
@@ -850,12 +866,9 @@ infraMuni3_tbl |>
 
 # Now I want to see if the indicator values depend on the HIA is a predictable
 # way to justify the stratification
-infra |>
-  as_tibble() |>
-  count(infrastructureIndex)
-
-
 corrCheck <- st_intersection(naturetypes, infra)
+
+
 corrCheck |>
   as_tibble() |>
   mutate(i_ADSV_fct = floor(round(i_ADSV*10,2))/10,
@@ -864,7 +877,7 @@ corrCheck |>
   View()
 
 
-
+# A first look
 corrCheck |>
   mutate(i_ADSV_fct = floor(round(i_ADSV*10,2))/10,
          i_alien_fct = floor(round(i_alien*10,2))/10) |>
@@ -876,92 +889,7 @@ corrCheck |>
     x = factor(infrastructureIndex), 
     fill = factor(round(indicatorValue,2))))+
   geom_bar(
-    #position="fill"
-    )+
-  theme_bw(base_size = 12)+
-  guides(fill = guide_legend("Scaled indicator values"))+
-  ylab("Fraction of data points")+
-  xlab("HIA")+
-  scale_fill_brewer(palette = "RdYlGn")+
-  facet_grid(~indicator)
-```
-
-```{r}
-#| eval: false
-
-# There is very little data from HIA 3, so I combine it with HIA 2
-corrCheck |>
-  mutate(i_ADSV_fct = floor(round(i_ADSV*10,2))/10,
-         i_alien_fct = floor(round(i_alien*10,2))/10,
-         infrastructureIndex = case_when(
-           infrastructureIndex == 3 ~ 2,
-           .default = infrastructureIndex
-         )) |>
-  pivot_longer(cols = c(i_ADSV_fct, i_alien_fct),
-               values_to = "indicatorValue",
-               names_to = "indicator") |>
-  filter(!is.na(indicatorValue)) |>
-  ggplot(aes(
-    x = factor(infrastructureIndex), 
-    fill = factor(round(indicatorValue,2))))+
-  geom_bar(
     position="fill"
-    )+
-  theme_bw(base_size = 12)+
-  guides(fill = guide_legend("Scaled indicator values"))+
-  ylab("Fraction of data points")+
-  xlab("HIA")+
-  scale_fill_brewer(palette = "RdYlGn")+
-  facet_grid(~indicator)
-```
-
-```{r}
-# That did not made it better
-# Is there a year effect?
-
-corrCheck |>
-  mutate(i_ADSV_fct = floor(round(i_ADSV*10,2))/10,
-         i_alien_fct = floor(round(i_alien*10,2))/10,
-         infrastructureIndex = case_when(
-           infrastructureIndex == 3 ~ 2,
-           .default = infrastructureIndex
-         )) |>
-  pivot_longer(cols = c(i_ADSV_fct, i_alien_fct),
-               values_to = "indicatorValue",
-               names_to = "indicator") |>
-  filter(!is.na(indicatorValue)) |>
-  ggplot(aes(
-    x = factor(infrastructureIndex), 
-    fill = factor(round(indicatorValue,2))))+
-  geom_bar(
-    position="fill"
-    )+
-  theme_bw(base_size = 12)+
-  guides(fill = guide_legend("Scaled indicator values"))+
-  ylab("Fraction of data points")+
-  xlab("HIA")+
-  scale_fill_brewer(palette = "RdYlGn")+
-  facet_grid(indicator~year)
-```
-
-```{r}
-# Next, make a violing/box plot
-
-corrCheck |>
-  mutate(i_ADSV_fct = floor(round(i_ADSV*10,2))/10,
-         i_alien_fct = floor(round(i_alien*10,2))/10,
-         infrastructureIndex = case_when(
-           infrastructureIndex == 3 ~ 2,
-           .default = infrastructureIndex
-         )) |>
-  pivot_longer(cols = c(i_ADSV_fct, i_alien_fct),
-               values_to = "indicatorValue",
-               names_to = "indicator") |>
-  filter(!is.na(indicatorValue)) |>
-  ggplot(aes(
-    x = factor(infrastructureIndex), 
-    y = indicatorValue))+
-  geom_boxplot(
     )+
   theme_bw(base_size = 12)+
   guides(fill = guide_legend("Scaled indicator values"))+
@@ -974,24 +902,21 @@ corrCheck |>
 ```{r}
 #| eval: false
 
-# All the 1's might make it hard to see the pattern.
-# Try removing the 1's (the areas in best condition)
-
+# Using a colour gradient emphasises the first colour (dark green).
+# Lets try discrete colours, and merge som classes to simplify
 corrCheck |>
-  mutate(i_ADSV_fct = floor(round(i_ADSV*10,2))/10,
-         i_alien_fct = floor(round(i_alien*10,2))/10,
-         infrastructureIndex = case_when(
-           infrastructureIndex == 3 ~ 2,
-           .default = infrastructureIndex
-           )) |>
-  pivot_longer(cols = c(i_ADSV_fct, i_alien_fct),
+  pivot_longer(cols = c(i_ADSV, i_alien),
                values_to = "indicatorValue",
                names_to = "indicator") |>
-  mutate(indicatorValue = na_if(indicatorValue, 1)) |>
   filter(!is.na(indicatorValue)) |>
+  mutate(condition = case_when(
+    indicatorValue <0.6 ~"Poor",
+    indicatorValue <0.8 ~"Intermediate",
+    .default = "Good"
+  )) |>
   ggplot(aes(
     x = factor(infrastructureIndex), 
-    fill = factor(round(indicatorValue,2))))+
+    fill = condition))+
   geom_bar(
     position="fill"
     )+
@@ -999,10 +924,12 @@ corrCheck |>
   guides(fill = guide_legend("Scaled indicator values"))+
   ylab("Fraction of data points")+
   xlab("HIA")+
-  scale_fill_brewer(palette = "RdYlGn")+
+  scale_y_log10() +
+  scale_fill_viridis_d(alpha = .8) +
   facet_grid(~indicator)
 
 ```
+
 
 ```{r infraMuniMaps}
 #| eval: false
