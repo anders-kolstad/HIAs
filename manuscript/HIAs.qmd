@@ -562,13 +562,17 @@ terrestrial <- terrestrial |>
   ) 
 ```
 
-```{r positionMap}
-#| eval: false
-
+```{r centroids}
+#| eval: true
 # Make map to show where the three municipalities are
 # First, get centroids
 centroids <- muni3 |>
   st_centroid()
+```
+
+
+```{r positionMap}
+#| eval: false
 
 (positionMap <- tm_shape(outline) +
   tm_polygons() +
@@ -606,11 +610,7 @@ km_distance <- centroids |>
   set_units("km") |>
   drop_units() |>
   round()
-
-
-round(max(latlong$Y)-min(latlong$Y), 1)
-
-
+#round(max(latlong$Y)-min(latlong$Y), 1)
 ```
 
 ```{r mireDataTestCrop}
@@ -763,11 +763,15 @@ saveRDS(infra, paste0(path_temp, "infrastructureIndex_discrete_vectorized.rds"))
 ```
 
 ```{r readInfraStructureIndex}
-#| eval: false
+#| eval: true
 
 # read cached vetorized infrastructure data
 infra <- readRDS(paste0(path_temp, "infrastructureIndex_discrete_vectorized.rds"))
 
+```
+
+```{r}
+#| eval: false
 
 # Calulculate area
 infra <- infra |>
@@ -869,12 +873,12 @@ infraMuni3_tbl |>
 corrCheck <- st_intersection(naturetypes, infra)
 
 
-corrCheck |>
-  as_tibble() |>
-  mutate(i_ADSV_fct = floor(round(i_ADSV*10,2))/10,
-         i_alien_fct = floor(round(i_alien*10,2))/10) |>
-  count(i_ADSV_fct, infrastructureIndex) |>
-  View()
+#corrCheck |>
+#  as_tibble() |>
+#  mutate(i_ADSV_fct = floor(round(i_ADSV*10,2))/10,
+#         i_alien_fct = floor(round(i_alien*10,2))/10) |>
+#  count(i_ADSV_fct, infrastructureIndex) |>
+#  View()
 
 
 # A first look
@@ -898,6 +902,32 @@ corrCheck |>
   scale_fill_brewer(palette = "RdYlGn")+
   facet_grid(indicator~year)
 ```
+```{r}
+#| eval: false
+
+# Try looking across all years
+# A first look
+corrCheck |>
+  mutate(i_ADSV_fct = floor(round(i_ADSV*10,2))/10,
+         i_alien_fct = floor(round(i_alien*10,2))/10) |>
+  pivot_longer(cols = c(i_ADSV_fct, i_alien_fct),
+               values_to = "indicatorValue",
+               names_to = "indicator") |>
+  filter(!is.na(indicatorValue)) |>
+  ggplot(aes(
+    x = factor(infrastructureIndex), 
+    fill = factor(round(indicatorValue,2))))+
+  geom_bar(
+    position="fill"
+    )+
+  theme_bw(base_size = 12)+
+  guides(fill = guide_legend("Scaled indicator values"))+
+  ylab("Fraction of data points")+
+  xlab("HIA")+
+  scale_fill_brewer(palette = "RdYlGn")+
+  facet_grid(~indicator)
+```
+
 
 ```{r}
 #| eval: false
@@ -912,8 +942,76 @@ corrCheck |>
   mutate(condition = case_when(
     indicatorValue <0.6 ~"Poor",
     indicatorValue <0.8 ~"Intermediate",
-    .default = "Good"
-  )) |>
+    indicatorValue <0.91 ~"Good",
+    .default = "Perfect"
+  ),
+  condition = fct_reorder(condition, indicatorValue)
+  ) |>
+  ggplot(aes(
+    x = factor(infrastructureIndex), 
+    fill = condition))+
+  geom_bar(
+    position="fill"
+    )+
+  theme_bw(base_size = 12)+
+  guides(fill = guide_legend("Scaled indicator values"))+
+  ylab("Fraction of data points")+
+  xlab("HIA")+
+  #scale_y_log10() +
+  scale_fill_viridis_d(alpha = .8) +
+  facet_grid(~indicator)
+
+```
+```{r}
+#| eval: false
+
+# The figure changes a lot depending on which value gets the darker colour
+corrCheck |>
+  pivot_longer(cols = c(i_ADSV, i_alien),
+               values_to = "indicatorValue",
+               names_to = "indicator") |>
+  filter(!is.na(indicatorValue)) |>
+  mutate(condition = case_when(
+    indicatorValue <0.6 ~"Poor",
+    indicatorValue <0.8 ~"Intermediate",
+    indicatorValue <0.91 ~"Good",
+    .default = "Perfect"
+  ),
+  condition = fct_reorder(condition, -indicatorValue)
+  ) |>
+  ggplot(aes(
+    x = factor(infrastructureIndex), 
+    fill = condition))+
+  geom_bar(
+    position="fill"
+    )+
+  theme_bw(base_size = 12)+
+  guides(fill = guide_legend("Scaled indicator values"))+
+  ylab("Fraction of data points")+
+  xlab("HIA")+
+  #scale_y_log10() +
+  scale_fill_viridis_d(alpha = .8) +
+  facet_grid(~indicator)
+```
+
+
+```{r}
+#| eval: false
+
+# If I look at this on a log scale, it also changes and becomes less convincing
+corrCheck |>
+  pivot_longer(cols = c(i_ADSV, i_alien),
+               values_to = "indicatorValue",
+               names_to = "indicator") |>
+  filter(!is.na(indicatorValue)) |>
+  mutate(condition = case_when(
+    indicatorValue <0.6 ~"Poor",
+    indicatorValue <0.8 ~"Intermediate",
+    indicatorValue <0.91 ~"Good",
+    .default = "Perfect"
+  ),
+  condition = fct_reorder(condition, indicatorValue)
+  ) |>
   ggplot(aes(
     x = factor(infrastructureIndex), 
     fill = condition))+
@@ -930,6 +1028,41 @@ corrCheck |>
 
 ```
 
+```{r}
+#| eval: false
+
+# HIAs 1 and 2 are quite similar, so perhaps I can combine them
+corrCheck |>
+  pivot_longer(cols = c(i_ADSV, i_alien),
+               values_to = "indicatorValue",
+               names_to = "indicator") |>
+  filter(!is.na(indicatorValue)) |>
+  mutate(condition = case_when(
+    indicatorValue <0.6 ~"Poor",
+    indicatorValue <0.8 ~"Intermediate",
+    indicatorValue <0.91 ~"Good",
+    .default = "Perfect"
+  ),
+  condition = fct_reorder(condition, indicatorValue),
+  HIA = case_when(
+    infrastructureIndex %in% c(1,2) ~ "1 & 2",
+    .default = factor(infrastructureIndex)
+  )
+  ) |>
+  ggplot(aes(
+    x = HIA, 
+    fill = condition))+
+  geom_bar(
+    position="fill"
+    )+
+  theme_bw(base_size = 12)+
+  guides(fill = guide_legend("Scaled indicator values"))+
+  ylab("Fraction of data points")+
+  xlab("HIA")+
+  scale_y_log10() +
+  scale_fill_viridis_d(alpha = .8) +
+  facet_grid(~indicator)
+```
 
 ```{r infraMuniMaps}
 #| eval: false
