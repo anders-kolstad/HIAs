@@ -116,7 +116,7 @@ path_temp <- ifelse(dir == "C:",
 ```
 
 ```{r getRelevantNTs}
-#| eval: false
+#| eval: true
 
 
 # I already did some work to identify the relevant nature types
@@ -124,67 +124,14 @@ path_temp <- ifelse(dir == "C:",
 # summary file (https://github.com/NINAnor/ecosystemCondition/blob/main/data/naturetypes/natureType_summary.rds)
 naturetypes_summary <- readRDS("../data/natureType_summary.rds")
 
-# Getting the nature types that have 7FA
-myVars <- "7FA"
-
-# naturetypes_summary2 <- naturetypes_summary %>%
-#  rowwise() %>%
-#  mutate(keepers = sum(c_across(
-#    all_of(myVars))>0, na.rm=T)) %>%
-#  filter(keepers >0,
-#         Ecosystem == "våtmark") %>%
-#  select(Nature_type, NiN_mainType, Year)
-#
-# naturetypes_summary2$Nature_type
-
-# Getting the nature types that have the ADSV variables
-myVars2 <- c("7TK", "7SE", "PRTK", "PRSL")
-# naturetypes_summary3 <- naturetypes_summary %>%
-#  rowwise() %>%
-#  mutate(keepers = sum(c_across(
-#    all_of(myVars2))>0, na.rm=T)) %>%
-#  filter(keepers >0,
-#         Ecosystem == "våtmark") %>%
-#  select(Nature_type, NiN_mainType, Year)
-#
-# naturetypes_summary3$Nature_type
-```
-
-```{r relevantNTs}
-#| eval: false
-
-# These are the nature types I'm keeping for 7FA.
-# Note the absence of ombrotriphic types
-alienNTS <- c(
-  "Slåttemyr",
-  "Semi-naturlig våteng",
-  "Rik åpen jordvannsmyr i mellomboreal sone",
-  "Rik åpen sørlig jordvannsmyr",
-  "Rik åpen jordvannsmyr i nordboreal og lavalpin sone"
-)
-
-# And these are the nature types that we use for the ADSV indicator
-advsNTs <- c( # fens
-  "Slåttemyr",
-  "Sørlig slåttemyr",
-  "Rik åpen jordvannsmyr i mellomboreal sone",
-  "Rik åpen sørlig jordvannsmyr",
-  "Semi-naturlig myr",
-  "Rik åpen jordvannsmyr i nordboreal og lavalpin sone",
-  # "Sørlig kaldkilde", # excluded springs
-
-  # bogs (mainly)
-  "Høgereligende og nordlig nedbørsmyr",
-  "Øyblandingsmyr",
-  "Konsentrisk høymyr",
-  "Sørlig nedbørsmyr",
-  "Atlantisk høymyr",
-  "Terrengdekkende myr",
-  "Eksentrisk høymyr",
-  "Kanthøymyr",
-  "Platåhøymyr",
-  "Palsmyr"
-)
+myVars <- c("7TK", "7SE", "PRTK", "PRSL", "7FA", "7GR-GI")
+nts <- naturetypes_summary %>%
+  rowwise() %>%
+  mutate(keepers = sum(c_across(
+    all_of(myVars))>0, na.rm=T)) |>
+  filter(keepers >0,
+         Ecosystem == "våtmark") |>
+  pull(Nature_type)
 ```
 
 ```{r natureTypeData}
@@ -194,15 +141,16 @@ advsNTs <- c( # fens
 
 # Impart polygon data set
 naturetypes <- sf::st_read(dsn = path_naturetypes)
-# 117k polygons (2023)
-# sometimes this functin struggles with Norwegian letters.
+# 117k polygons (2022)
+# sometimes this function struggles with Norwegian letters.
 # Restart R and try again.
 
 naturetypes <- naturetypes |>
-  # keep only wetlands and our selected nature types
+  # keep only wetlands
   filter(
     hovedøkosystem == "våtmark",
-    naturtype %in% c(advsNTs, alienNTS)
+    naturtype %in% nts,
+    naturtype != "Kalkrik helofyttsump"
   ) |>
   # calculate the areas (m2) of the polygons
   mutate(area = SHAPE |> st_area()) |>
@@ -215,7 +163,7 @@ naturetypes <- naturetypes |>
     remove = F
   ) |>
   mutate(NiN_variable_value = as.numeric(NiN_variable_value)) |>
-  filter(NiN_variable_code %in% c(myVars, myVars2)) |>
+  filter(NiN_variable_code %in% myVars) |>
   select(
     id = identifikasjon_lokalId,
     municipality = kommunenummer,
@@ -229,9 +177,16 @@ naturetypes <- naturetypes |>
     value = NiN_variable_value,
     area
   ) |>
-  st_transform(myCRS) # Chosing this to match the EDM (se further down)
+  st_transform(myCRS) # Choosing this to match the EDM (se further down)
+# 19k obs.
 
-# 13k obs.
+naturetypes |>
+  as_tibble() |>
+  count(natureType, sort=T) |>
+  mutate(natureType = fct_reorder(natureType, n)) |>
+  ggplot(aes(x = natureType, y = n))+
+  geom_col()+
+  coord_flip()
 
 naturetypes |>
   saveRDS("../data/surveyData.RDS")
@@ -287,7 +242,8 @@ naturetypes <- naturetypes %>%
              4 ~ 12.5,
              5 ~ 25,
              6 ~ 50,
-             7 ~ 75)
+             7 ~ 75),
+    .default = value
     )
   )
 
@@ -309,6 +265,7 @@ naturetypes %>%
 # respectively
 
 naturetypes_wide <- naturetypes |>
+  filter(variable %in% c("7TK", "7SE", "PRTK", "PRSL")) |>
   # Column names starting with a number is problematic, so adding a prefix
   mutate(variable = paste0("var_", variable)) |>
   pivot_wider(
@@ -377,7 +334,7 @@ naturetypes_wide %>%
 ```{r}
 #| eval: true
 
-# Taking he sum of 7SE and 7TK (incl the PR.. variabels)
+# Taking the sum of 7SE and 7TK (incl the PR.. variables)
 naturetypes_wide <- naturetypes_wide |>
   rowwise() |>
   mutate(ADSV = sum(c(SE, TK), na.rm=TRUE))
@@ -403,20 +360,36 @@ naturetypes_wide %>%
 
 ```{r}
 #| eval: true
-# Now I will copy these ADVS-values into the sf object again
+
+
+# Now I will copy these ADVS-values into the sf object again, keeping things in wide format
 naturetypes <- naturetypes |>
-  left_join(naturetypes_wide |> select(id, var_7FA, ADSV), by = "id")
+  pivot_wider(#id_cols="id",
+              names_from = "variable",
+              values_from = "value") |>
+  left_join(naturetypes_wide |> select(id, ADSV), by = "id") |>
+  select(!c("7TK", "7SE", "PRSL", "PRTK")) 
+  # >
+  #pivot_longer(cols = c(ADSV, "7FA", "7GR-GI"),
+  #             names_to = "variable",
+  #             values_drop_na = T)
 ```
 
 ```{r rescale}
 #| eval: true
 
-# Now I rescale the now continous variables using reference and threshold values
-# I will use the same reference levels/values for all of Norway:
+# Now I rescale the now continuous variables using reference and threshold values
+# I will use the same reference levels/values for all of Norway for ADSV and alien species:
 
 upper <- 0
 lower <- 100
 threshold <- 10
+
+# For 7GR-GI I use this
+upper2 <- 1
+lower2 <- 5
+threshold2 <- 2.5 # = observable effect. Value 3 indicates a shit to a new type (grunntype)
+
 
 eaTools::ea_normalise(data = naturetypes,
                       vector = "ADSV",
@@ -432,7 +405,7 @@ eaTools::ea_normalise(data = naturetypes,
 
 # same for 7FK
 eaTools::ea_normalise(data = naturetypes,
-                      vector = "var_7FA",
+                      vector = "7FA",
                       upper_reference_level = lower,
                       lower_reference_level = upper,
                       break_point = threshold,
@@ -440,6 +413,16 @@ eaTools::ea_normalise(data = naturetypes,
                       reverse = T
                       )
 # The variables are really coarse
+
+eaTools::ea_normalise(data = naturetypes,
+                      vector = "7GR-GI",
+                      upper_reference_level = lower2,
+                      lower_reference_level = upper2,
+                      break_point = threshold2,
+                      plot=T,
+                      reverse = T
+                      )
+
 ```
 
 ```{r}
@@ -455,10 +438,18 @@ naturetypes$i_ADSV <- eaTools::ea_normalise(data = naturetypes,
                       )
 
 naturetypes$i_alien <- eaTools::ea_normalise(data = naturetypes,
-                      vector = "var_7FA",
+                      vector = "7FA",
                       upper_reference_level = lower,
                       lower_reference_level = upper,
                       break_point = threshold,
+                      reverse = T
+                      )
+
+naturetypes$i_ditch <- eaTools::ea_normalise(data = naturetypes,
+                      vector = "7GR-GI",
+                      upper_reference_level = lower2,
+                      lower_reference_level = upper2,
+                      break_point = threshold2,
                       reverse = T
                       )
 ```
@@ -872,7 +863,6 @@ infraMuni3_tbl |>
 # way to justify the stratification
 corrCheck <- st_intersection(naturetypes, infra)
 
-
 #corrCheck |>
 #  as_tibble() |>
 #  mutate(i_ADSV_fct = floor(round(i_ADSV*10,2))/10,
@@ -884,14 +874,15 @@ corrCheck <- st_intersection(naturetypes, infra)
 # A first look
 corrCheck |>
   mutate(i_ADSV_fct = floor(round(i_ADSV*10,2))/10,
-         i_alien_fct = floor(round(i_alien*10,2))/10) |>
-  pivot_longer(cols = c(i_ADSV_fct, i_alien_fct),
+         i_alien_fct = floor(round(i_alien*10,2))/10,
+         i_ditch_fct = floor(round(i_ditch*10,2))/10) |>
+  pivot_longer(cols = c(i_ADSV_fct, i_alien_fct, i_ditch_fct),
                values_to = "indicatorValue",
-               names_to = "indicator") |>
-  filter(!is.na(indicatorValue)) |>
+               names_to = "indicator",
+               values_drop_na =T) |>
   ggplot(aes(
     x = factor(infrastructureIndex), 
-    fill = factor(round(indicatorValue,2))))+
+    fill = factor(indicatorValue)))+
   geom_bar(
     position="fill"
     )+
@@ -905,18 +896,18 @@ corrCheck |>
 ```{r}
 #| eval: false
 
-# Try looking across all years
-# A first look
+# The year effect is constant, so ignoring that
 corrCheck |>
   mutate(i_ADSV_fct = floor(round(i_ADSV*10,2))/10,
-         i_alien_fct = floor(round(i_alien*10,2))/10) |>
-  pivot_longer(cols = c(i_ADSV_fct, i_alien_fct),
+         i_alien_fct = floor(round(i_alien*10,2))/10,
+         i_ditch_fct = floor(round(i_ditch*10,2))/10) |>
+  pivot_longer(cols = c(i_ADSV_fct, i_alien_fct, i_ditch_fct),
                values_to = "indicatorValue",
-               names_to = "indicator") |>
-  filter(!is.na(indicatorValue)) |>
+               names_to = "indicator",
+               values_drop_na =T) |>
   ggplot(aes(
     x = factor(infrastructureIndex), 
-    fill = factor(round(indicatorValue,2))))+
+    fill = factor(indicatorValue)))+
   geom_bar(
     position="fill"
     )+
@@ -935,10 +926,10 @@ corrCheck |>
 # Using a colour gradient emphasises the first colour (dark green).
 # Lets try discrete colours, and merge som classes to simplify
 corrCheck |>
-  pivot_longer(cols = c(i_ADSV, i_alien),
+  pivot_longer(cols = c(i_ADSV, i_alien, i_ditch),
                values_to = "indicatorValue",
-               names_to = "indicator") |>
-  filter(!is.na(indicatorValue)) |>
+               names_to = "indicator",
+               values_drop_na = T) |>
   mutate(condition = case_when(
     indicatorValue <0.6 ~"Poor",
     indicatorValue <0.8 ~"Intermediate",
@@ -957,7 +948,6 @@ corrCheck |>
   guides(fill = guide_legend("Scaled indicator values"))+
   ylab("Fraction of data points")+
   xlab("HIA")+
-  #scale_y_log10() +
   scale_fill_viridis_d(alpha = .8) +
   facet_grid(~indicator)
 
@@ -967,10 +957,10 @@ corrCheck |>
 
 # The figure changes a lot depending on which value gets the darker colour
 corrCheck |>
-  pivot_longer(cols = c(i_ADSV, i_alien),
+  pivot_longer(cols = c(i_ADSV, i_alien, i_ditch),
                values_to = "indicatorValue",
-               names_to = "indicator") |>
-  filter(!is.na(indicatorValue)) |>
+               names_to = "indicator",
+               values_drop_na = T) |>
   mutate(condition = case_when(
     indicatorValue <0.6 ~"Poor",
     indicatorValue <0.8 ~"Intermediate",
@@ -989,7 +979,6 @@ corrCheck |>
   guides(fill = guide_legend("Scaled indicator values"))+
   ylab("Fraction of data points")+
   xlab("HIA")+
-  #scale_y_log10() +
   scale_fill_viridis_d(alpha = .8) +
   facet_grid(~indicator)
 ```
@@ -998,19 +987,19 @@ corrCheck |>
 ```{r}
 #| eval: false
 
-# If I look at this on a log scale, it also changes and becomes less convincing
+# If I look at this on a log scale, it also changes and becomes less convincing for ADSV and alien
 corrCheck |>
-  pivot_longer(cols = c(i_ADSV, i_alien),
+  pivot_longer(cols = c(i_ADSV, i_alien, i_ditch),
                values_to = "indicatorValue",
-               names_to = "indicator") |>
-  filter(!is.na(indicatorValue)) |>
+               names_to = "indicator",
+               values_drop_na = T) |>
   mutate(condition = case_when(
     indicatorValue <0.6 ~"Poor",
     indicatorValue <0.8 ~"Intermediate",
     indicatorValue <0.91 ~"Good",
     .default = "Perfect"
   ),
-  condition = fct_reorder(condition, indicatorValue)
+  condition = fct_reorder(condition, -indicatorValue)
   ) |>
   ggplot(aes(
     x = factor(infrastructureIndex), 
@@ -1022,10 +1011,12 @@ corrCheck |>
   guides(fill = guide_legend("Scaled indicator values"))+
   ylab("Fraction of data points")+
   xlab("HIA")+
-  scale_y_log10() +
+  scale_y_log10()+
   scale_fill_viridis_d(alpha = .8) +
   facet_grid(~indicator)
 
+# This is not correct I think as it evens out differences that are clearly there.
+# i_ditch is showin less of a pattern for example
 ```
 
 ```{r}
