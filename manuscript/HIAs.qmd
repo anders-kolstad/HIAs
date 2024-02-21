@@ -82,6 +82,8 @@ library(tidyterra)
 library(ggtext)
 library(cowplot)
 library(units)
+library(rnaturalearth)
+library(rnaturalearthdata)
 
 myCRS <- 25832
 ```
@@ -148,6 +150,10 @@ muni <- sf::read_sf(path_muni, layer = "kommune") |>
 
 # Mire data
 mire_terra <- terra::rast(path_mire)
+
+# Infrastructure index (read proxy)
+infra <- stars::read_stars(path_infrastructure)
+
 ```
 
 
@@ -605,17 +611,24 @@ centroids <- muni3 |>
 ```
 
 ```{r positionMap}
-#| eval: false
+#| eval: true
 
-inc <- 1e5
+world <- ne_countries(scale = "medium", returnclass = "sf") |>
+  st_transform(myCRS) |>
+  filter(admin %in% c("Norway", "Sweden")) |>
+  st_make_valid()
+
+inc <- 200000
 myBbox <- st_bbox(centroids)
 myBbox[1:2] <- myBbox[1:2]-inc 
 myBbox[3:4] <- myBbox[3:4]+inc 
 
 (positionMap <- 
-  tm_shape(outline,
+  tm_shape(world,
            bbox = myBbox) +
-  tm_polygons() +
+    tm_polygons() +
+  tm_shape(muni3) +
+    tm_polygons(col = "green") +
   tm_shape(centroids) +
   tm_text(
     text = "Municipality",
@@ -624,18 +637,12 @@ myBbox[3:4] <- myBbox[3:4]+inc
     xmod = 1,
     ymod = 0
   ) +
-  tm_symbols(
-    size = 1.5,
-    shape = 17,
-    col = "black"
-  ) +
   tm_grid(projection = 4326) +
   tm_layout(
     bg.color = "skyblue",
     outer.margins = c(0.01, .02, .02, .02))+
   tm_compass()+
-  tm_scale_bar()+
-    tm_basemap(leaflet::providers$Stamen.Watercolor)
+  tm_scale_bar()
 )
   
 ```
@@ -643,77 +650,42 @@ myBbox[3:4] <- myBbox[3:4]+inc
 ```{r distanceBetweenMunis}
 #| eval: true
 
-# what is the distance between Nordre Follo and Målselv
-(latlong <- centroids |>
-  st_transform(4326) |>
-st_coordinates() |>
-  as_tibble())
-
-
-km_distance <- centroids |>
+# what is the distance between Nordre Follo and Nord-Aurdal
+(km_distance <- centroids |>
   st_distance() |>
   max() |>
   set_units("km") |>
   drop_units() |>
-  round()
-#round(max(latlong$Y)-min(latlong$Y), 1)
+  round())
 ```
 
-```{r mireDataTestCrop}
-#| eval: false
-
-# Testing the cropping proceedure using a downsampled starts object
-mire_test <- read_stars(mireFile, proxy = T) |>
-  setNames("mire") |>
-  st_downsample(100) |>
-  mutate(mire = na_if(mire, 0)) |>
-  st_as_stars()
-
-mire_test_nf <- mire_test |>
-  st_crop(nf)
-
-# The cropping is correct:
-# tmap_mode("plot")
-# tm_shape(mire_test)+
-#  tm_raster(palette = "red")+
-#  tm_shape(outline)+
-#  tm_borders()+
-#  tm_shape(mire_test_nf)+
-#  tm_raster(col="red")
-
-# Then we do the same, but without downsampling
-
-mire_nf <- read_stars(mireFile, proxy = T) |>
-  setNames("mire") |>
-  # mutate(mire = na_if(mire, 0)) |>
-  st_crop(nf) |>
-  st_as_stars()
-# The cropped raster is for some reason far into the ocean!
-
-# The cells have values, so it seems like there is something
-# that happens after the cropping
-tmap_mode("plot")
-tm_shape(mire_test) +
-  tm_raster(palette = "red") +
-  tm_shape(outline) +
-  tm_borders() +
-  tm_shape(mire_nf) +
-  tm_raster(col = "red")
-```
 
 ```{r mireTerra}
-#| eval: false
+#| eval: true
 
+# I first tried to import and crop the mire data using starts, but that failed (se pre 21 feb 2023)
 # trying { terra } instead
 
 # convert municipal outline to vect via st
 nf_vect <- as(nf, "Spatial") |>
   terra::vect()
+gr_vect <- as(gr, "Spatial") |>
+  terra::vect()
+na_vect <- as(na, "Spatial") |>
+  terra::vect()
 
 # crop and mask (very fast!)
-mire_nf_terra <- terra::rast(mireFile) |>
+mire_terra_nf <- mire_terra |>
   terra::crop(nf_vect) |>
   terra::mask(nf_vect)
+
+mire_terra_gr <- mire_terra |>
+  terra::crop(gr_vect) |>
+  terra::mask(gr_vect)
+
+mire_terra_na <- mire_terra |>
+  terra::crop(na_vect) |>
+  terra::mask(na_vect)
 
 # Plot to check overlap
 # ggplot()+
@@ -723,14 +695,18 @@ mire_nf_terra <- terra::rast(mireFile) |>
 # The cropping and masking worked.
 
 # I like the stars, sf and tmap combo better, so I return to stars
-mire_nf_stars <- mire_nf_terra |>
+mire_stars_nf <- mire_terra_nf |>
+  st_as_stars()
+mire_stars_gr <- mire_terra_gr |>
+  st_as_stars()
+mire_stars_na <- mire_terra_na |>
   st_as_stars()
 
-ggplot() +
-  geom_stars(data = mire_nf_stars) +
-  coord_equal() +
-  theme_void() +
-  scale_fill_viridis_c()
+par(mfrow=c(3,1))
+plot(mire_stars_nf)
+plot(mire_stars_gr)
+plot(mire_stars_na)
+
 ```
 
 ```{r dk2-CoverageMaps}
@@ -738,16 +714,11 @@ ggplot() +
 
 # calculate area of survey coverage maps
 # values goes into summary table in the ms
-dk2 <- read_sf("../data/dekningskartNF/Naturtyper NiN - Dekningskart.shp") |>
-  rbind(read_sf("../data/dekningskartTR/Naturtyper NiN - Dekningskart.shp")) |>
-  rbind(read_sf("../data/dekningskartME/Naturtyper NiN - Dekningskart.shp")) |>
-  st_transform(st_crs(muni3)) |>
-  st_intersection(muni3) |>
-  st_cast("POLYGON") |>
+dk2 <- coverage3 |>
   group_by(Municipality) |>
-  summarise(geometry = st_union(geometry)) |>
+  summarise(SHAPE = st_union(SHAPE)) |>
   mutate(
-    dk_area_km = geometry |> st_area(),
+    dk_area_km = SHAPE |> st_area(),
     dk_area_km = round(units::drop_units(dk_area_km * 1e-6))
   )
 ```
@@ -757,29 +728,63 @@ dk2 <- read_sf("../data/dekningskartNF/Naturtyper NiN - Dekningskart.shp") |>
 
 # calculate area of the mires in each municipality
 # -- Nordre Follo
-mireArea <- mire_nf_terra |>
+(mireArea <- mire_terra_nf |>
   global(c("mean", "sum"), na.rm = T) |>
   add_column("Municipality" = "Nordre Follo") |>
   mutate(
     mirePercent = round(mean * 100, 1),
     mire_km2 = sum / 1e+4
+  ))
+
+# -- Gran
+mireArea2 <- mire_terra_gr |>
+  global(c("mean", "sum"), na.rm = T) |>
+  add_column("Municipality" = "Gran") |>
+  mutate(
+    mirePercent = round(mean * 100, 1),
+    mire_km2 = sum / 1e+4
   )
+
+# -- Nord-Aurdal
+mireArea3 <- mire_terra_na |>
+  global(c("mean", "sum"), na.rm = T) |>
+  add_column("Municipality" = "Nord-Aurdal") |>
+  mutate(
+    mirePercent = round(mean * 100, 1),
+    mire_km2 = sum / 1e+4
+  )
+
+mireArea <- mireArea |>
+  rbind(mireArea2, mireArea3)
 
 # Calculate the area of mire inside the coverage maps
 # -- Nordre Follo
-mire_nf_terra_dk <- mire_nf_terra |>
+mire_in_dk <- mire_terra_nf |>
   terra::mask(dk2 |> filter(Municipality == "Nordre Follo")) |>
   global("sum", na.rm = T) |>
   mutate(mireInSurvey_km2 = sum / 1e+4) |>
   add_column(Municipality = "Nordre Follo")
+
+mire_in_dk2 <- mire_terra_gr |>
+  terra::mask(dk2 |> filter(Municipality == "Gran")) |>
+  global("sum", na.rm = T) |>
+  mutate(mireInSurvey_km2 = sum / 1e+4) |>
+  add_column(Municipality = "Gran")
+mire_in_dk3 <- mire_terra_na |>
+  terra::mask(dk2 |> filter(Municipality == "Nord-Aurdal")) |>
+  global("sum", na.rm = T) |>
+  mutate(mireInSurvey_km2 = sum / 1e+4) |>
+  add_column(Municipality = "Nord-Aurdal")
+
+mire_in_dk <- mire_in_dk |>
+  rbind(mire_in_dk2, mire_in_dk3)
 ```
 
 ```{r infrastructureIndex}
 #| eval: false
-
 # this data is on a 100x100m grid
-infra <- stars::read_stars(path_infrastructure) |>
-  # , which is mor then we need - warp it to 1x1km
+infra <- infra |>
+  # , which is more then we need - warp it to 1x1km
   st_warp(
     cellsize = c(1000, 1000),
     crs = st_crs(nf),
@@ -794,21 +799,23 @@ infra <- stars::read_stars(path_infrastructure) |>
     infrastructureIndex < 12 ~ 2,
     infrastructureIndex >= 12 ~ 3
   )) |>
-  # takeing away point in the sea
+  # taking away point in the sea
   st_crop(outline)
 
-# This step might seem rather stupid. We want to vectorize a rather large raster. This makes it a quite big data object. The reason is that there is no really good way to burn polygon data on to raster grid cells after the disuse of the raster package. It was not straight forward then either. But calculating intersections between polygons is very fast and easy.
+# This step might seem rather stupid. We want to vectorize a rather large 
+# raster. This makes it a quite big data object. The reason is that there is no 
+# really good way to burn polygon data on to raster grid cells after the disuse 
+# of the raster package. It was not straight forward then either. But 
+# calculating intersections between polygons is very fast and easy.
 
 infra <- eaTools::ea_homogeneous_area(infra,
   groups = infrastructureIndex
 )
 
-
-
 saveRDS(infra, paste0(path_temp, "infrastructureIndex_discrete_vectorized.rds"))
 ```
 
-```{r readInfraStructureIndex}
+```{r InfraStructureIndex}
 #| eval: true
 
 # read cached vetorized infrastructure data
@@ -817,20 +824,24 @@ infra <- readRDS(paste0(path_temp, "infrastructureIndex_discrete_vectorized.rds"
 ```
 
 ```{r}
-#| eval: false
+#| eval: true
 
-# Calulculate area
+# Calculate area
 infra <- infra |>
-  mutate(area = geometry |> st_area(),
-         area_km = area |> set_units("km2"))
+  mutate(
+    area = geometry |> st_area(),
+    area_km = area |> set_units("km2")
+  )
 
 # show the summered area per HIA
 infra |>
   as_tibble() |>
   group_by(infrastructureIndex) |>
   summarise(area_km = sum(area_km)) |>
-  ggplot(aes(x = infrastructureIndex,
-             y = area_km)) +
+  ggplot(aes(
+    x = infrastructureIndex,
+    y = area_km
+  )) +
   geom_col()
 
 
@@ -908,17 +919,15 @@ infraMuni3_tbl |>
   ) +
   guides(fill = "none", colour = "none") +
   scale_y_log10() +
-  facet_grid(cols = vars(Municipality)) 
+  facet_grid(cols = vars(Municipality))
 ```
-
-```{r HIA-validate}
-#| eval: false
-
+```{r corrCheck}
+#| eval: true
 # Now I want to see if the indicator values depend on the HIA is a predictable
 # way to justify the stratification
 corrCheck <- st_intersection(naturetypes, infra)
 
-#corrCheck |>
+# corrCheck |>
 #  as_tibble() |>
 #  mutate(i_ADSV_fct = floor(round(i_ADSV*10,2))/10,
 #         i_alien_fct = floor(round(i_alien*10,2))/10) |>
@@ -926,147 +935,176 @@ corrCheck <- st_intersection(naturetypes, infra)
 #  View()
 
 
+```
+
+```{r HIA-validate}
+#| eval: false
 # A first look
 corrCheck |>
-  mutate(i_ADSV_fct = floor(round(i_ADSV*10,2))/10,
-         i_alien_fct = floor(round(i_alien*10,2))/10,
-         i_ditch_fct = floor(round(i_ditch*10,2))/10) |>
-  pivot_longer(cols = c(i_ADSV_fct, i_alien_fct, i_ditch_fct),
-               values_to = "indicatorValue",
-               names_to = "indicator",
-               values_drop_na =T) |>
+  mutate(
+    i_ADSV_fct = floor(round(i_ADSV * 10, 2)) / 10,
+    i_alien_fct = floor(round(i_alien * 10, 2)) / 10,
+    i_ditch_fct = floor(round(i_ditch * 10, 2)) / 10
+  ) |>
+  pivot_longer(
+    cols = c(i_ADSV_fct, i_alien_fct, i_ditch_fct),
+    values_to = "indicatorValue",
+    names_to = "indicator",
+    values_drop_na = T
+  ) |>
   ggplot(aes(
-    x = factor(infrastructureIndex), 
-    fill = factor(indicatorValue)))+
+    x = factor(infrastructureIndex),
+    fill = factor(indicatorValue)
+  )) +
   geom_bar(
-    position="fill"
-    )+
-  theme_bw(base_size = 12)+
-  guides(fill = guide_legend("Scaled indicator values"))+
-  ylab("Fraction of data points")+
-  xlab("HIA")+
-  scale_fill_brewer(palette = "RdYlGn")+
-  facet_grid(indicator~year)
+    position = "fill"
+  ) +
+  theme_bw(base_size = 12) +
+  guides(fill = guide_legend("Scaled indicator values")) +
+  ylab("Fraction of data points") +
+  xlab("HIA") +
+  scale_fill_brewer(palette = "RdYlGn") +
+  facet_grid(indicator ~ year)
 ```
 
 ```{r}
 #| eval: false
-
 # The year effect is constant, so ignoring that
 corrCheck |>
-  mutate(i_ADSV_fct = floor(round(i_ADSV*10,2))/10,
-         i_alien_fct = floor(round(i_alien*10,2))/10,
-         i_ditch_fct = floor(round(i_ditch*10,2))/10) |>
-  pivot_longer(cols = c(i_ADSV_fct, i_alien_fct, i_ditch_fct),
-               values_to = "indicatorValue",
-               names_to = "indicator",
-               values_drop_na =T) |>
-  ggplot(aes(
-    x = factor(infrastructureIndex), 
-    fill = factor(indicatorValue)))+
-  geom_bar(
-    position="fill"
-    )+
-  theme_bw(base_size = 12)+
-  guides(fill = guide_legend("Scaled indicator values"))+
-  ylab("Fraction of data points")+
-  xlab("HIA")+
-  scale_fill_brewer(palette = "RdYlGn")+
-  facet_grid(~indicator)
-```
-
-```{r}
-#| eval: false
-
-# Using a colour gradient emphasises the first colour (dark green).
-# Lets try discrete colours, and merge som classes to simplify
-corrCheck |>
-  pivot_longer(cols = c(i_ADSV, i_alien, i_ditch),
-               values_to = "indicatorValue",
-               names_to = "indicator",
-               values_drop_na = T) |>
-  mutate(condition = case_when(
-    indicatorValue <0.6 ~"Poor",
-    indicatorValue <0.8 ~"Intermediate",
-    indicatorValue <0.91 ~"Good",
-    .default = "Perfect"
-  ),
-  condition = fct_reorder(condition, indicatorValue)
+  mutate(
+    i_ADSV_fct = floor(round(i_ADSV * 10, 2)) / 10,
+    i_alien_fct = floor(round(i_alien * 10, 2)) / 10,
+    i_ditch_fct = floor(round(i_ditch * 10, 2)) / 10
+  ) |>
+  pivot_longer(
+    cols = c(i_ADSV_fct, i_alien_fct, i_ditch_fct),
+    values_to = "indicatorValue",
+    names_to = "indicator",
+    values_drop_na = T
   ) |>
   ggplot(aes(
-    x = factor(infrastructureIndex), 
-    fill = condition))+
+    x = factor(infrastructureIndex),
+    fill = factor(indicatorValue)
+  )) +
   geom_bar(
-    position="fill"
-    )+
-  theme_bw(base_size = 12)+
-  guides(fill = guide_legend("Scaled indicator values"))+
-  ylab("Fraction of data points")+
-  xlab("HIA")+
-  scale_fill_viridis_d(alpha = .8) +
+    position = "fill"
+  ) +
+  theme_bw(base_size = 12) +
+  guides(fill = guide_legend("Scaled indicator values")) +
+  ylab("Fraction of data points") +
+  xlab("HIA") +
+  scale_fill_brewer(
+    palette = "RdYlGn") +
   facet_grid(~indicator)
+```
 
+```{r}
+#| eval: true
+# Using a color gradient emphasizes the first color (dark green).
+# Lets try discrete colors, and merge som classes to simplify
+(validationPlot <- corrCheck |>
+  #rename(ADSV = i_ADSV) |>
+  pivot_longer(
+    cols = c(i_ADSV, i_alien, i_ditch),
+    values_to = "indicatorValue",
+    names_to = "indicator",
+    values_drop_na = T
+  ) |>
+  mutate(
+    condition = case_when(
+      indicatorValue < 0.6 ~ "<0.6",
+      indicatorValue < 0.8 ~ "0.6 to 0.8",
+      indicatorValue < 0.91 ~ "0.8 to 0.9",
+      .default = "0.9 to 1"
+    ),
+    condition = fct_reorder(condition, indicatorValue),
+    indicator = case_when(
+      indicator == "i_ADSV" ~ "ADSV",
+      indicator == "i_alien" ~ "Alien species",
+      indicator == "i_ditch" ~ "Trenching"
+    )
+  ) |>
+  ggplot(aes(
+    x = factor(infrastructureIndex),
+    fill = condition
+  )) +
+  geom_bar(
+    position = "fill"
+  ) +
+  theme_bw(base_size = 12) +
+  guides(fill = guide_legend("Indicator values")) +
+  ylab("Fraction of data points") +
+  xlab("Human Impact Areas") +
+  scale_fill_brewer(palette = "RdYlGn") +
+  facet_grid(~indicator)
+)
 ```
 
 ```{r}
 #| eval: false
-
 # The figure changes a lot depending on which value gets the darker colour
 corrCheck |>
-  pivot_longer(cols = c(i_ADSV, i_alien, i_ditch),
-               values_to = "indicatorValue",
-               names_to = "indicator",
-               values_drop_na = T) |>
-  mutate(condition = case_when(
-    indicatorValue <0.6 ~"Poor",
-    indicatorValue <0.8 ~"Intermediate",
-    indicatorValue <0.91 ~"Good",
-    .default = "Perfect"
-  ),
-  condition = fct_reorder(condition, -indicatorValue)
+  pivot_longer(
+    cols = c(i_ADSV, i_alien, i_ditch),
+    values_to = "indicatorValue",
+    names_to = "indicator",
+    values_drop_na = T
+  ) |>
+  mutate(
+    condition = case_when(
+      indicatorValue < 0.6 ~ "Poor",
+      indicatorValue < 0.8 ~ "Intermediate",
+      indicatorValue < 0.91 ~ "Good",
+      .default = "Perfect"
+    ),
+    condition = fct_reorder(condition, -indicatorValue)
   ) |>
   ggplot(aes(
-    x = factor(infrastructureIndex), 
-    fill = condition))+
+    x = factor(infrastructureIndex),
+    fill = condition
+  )) +
   geom_bar(
-    position="fill"
-    )+
-  theme_bw(base_size = 12)+
-  guides(fill = guide_legend("Scaled indicator values"))+
-  ylab("Fraction of data points")+
-  xlab("HIA")+
+    position = "fill"
+  ) +
+  theme_bw(base_size = 12) +
+  guides(fill = guide_legend("Scaled indicator values")) +
+  ylab("Fraction of data points") +
+  xlab("HIA") +
   scale_fill_viridis_d(alpha = .8) +
   facet_grid(~indicator)
 ```
 
 ```{r}
 #| eval: false
-
 # If I look at this on a log scale, it also changes and becomes less convincing for ADSV and alien
 corrCheck |>
-  pivot_longer(cols = c(i_ADSV, i_alien, i_ditch),
-               values_to = "indicatorValue",
-               names_to = "indicator",
-               values_drop_na = T) |>
-  mutate(condition = case_when(
-    indicatorValue <0.6 ~"Poor",
-    indicatorValue <0.8 ~"Intermediate",
-    indicatorValue <0.91 ~"Good",
-    .default = "Perfect"
-  ),
-  condition = fct_reorder(condition, -indicatorValue)
+  pivot_longer(
+    cols = c(i_ADSV, i_alien, i_ditch),
+    values_to = "indicatorValue",
+    names_to = "indicator",
+    values_drop_na = T
+  ) |>
+  mutate(
+    condition = case_when(
+      indicatorValue < 0.6 ~ "Poor",
+      indicatorValue < 0.8 ~ "Intermediate",
+      indicatorValue < 0.91 ~ "Good",
+      .default = "Perfect"
+    ),
+    condition = fct_reorder(condition, -indicatorValue)
   ) |>
   ggplot(aes(
-    x = factor(infrastructureIndex), 
-    fill = condition))+
+    x = factor(infrastructureIndex),
+    fill = condition
+  )) +
   geom_bar(
-    position="fill"
-    )+
-  theme_bw(base_size = 12)+
-  guides(fill = guide_legend("Scaled indicator values"))+
-  ylab("Fraction of data points")+
-  xlab("HIA")+
-  scale_y_log10()+
+    position = "fill"
+  ) +
+  theme_bw(base_size = 12) +
+  guides(fill = guide_legend("Scaled indicator values")) +
+  ylab("Fraction of data points") +
+  xlab("HIA") +
+  scale_y_log10() +
   scale_fill_viridis_d(alpha = .8) +
   facet_grid(~indicator)
 
@@ -1136,7 +1174,7 @@ infraMuniMap_l <- tm_shape(muni3) +
   tm_polygons(
     col = "infrastructureIndex",
     style = "cat",
-    title = "Human Impact\nArea Class"
+    title = "Human\nImpact\nArea"
   ) +
   tm_layout(legend.only = TRUE,
             legend.position = c("left", "bottom"),
@@ -1144,7 +1182,7 @@ infraMuniMap_l <- tm_shape(muni3) +
 
 
 
-# Syrvey coverage and other colour overlayed the municipalities
+# Survey coverage and other colour overlayed the municipalities
 muniPlot <- tm_shape(muni3) +
   tm_borders() +
   tm_facets(
@@ -1161,7 +1199,7 @@ muniPlot <- tm_shape(muni3) +
     col = "skyblue",
     border.col = "black"
   ) +
-  tm_shape(dk) +
+  tm_shape(dk2) +
   tm_polygons(
     col = "grey",
     alpha = .8
