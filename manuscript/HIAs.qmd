@@ -89,24 +89,26 @@ myCRS <- 25832
 ```{r paths}
 #| eval: true
 
-
 # Conditional file directory
 dir <- substr(getwd(), 1, 2)
 
 # Some directories
-mireFile <- "P:/41201785_okologisk_tilstand_2022_2023/data/Myrmodell/myrmodell90pros.tif"
 
+# Ecosystem delineation map
+path_mire <- "P:/41201785_okologisk_tilstand_2022_2023/data/Myrmodell/myrmodell90pros.tif"
+
+# infrastructure index
 path_infrastructure <- ifelse(dir == "C:",
   "R:/GeoSpatialData/Utility_governmentalServices/Norway_Infrastructure_Index/Original/Infrastrukturindeks_UTM33/infra_tiff.tif",
   "/data/R/GeoSpatialData/Utility_governmentalServices/Norway_Infrastructure_Index/Original/Infrastrukturindeks_UTM33/infra_tiff.tif"
 )
 
-path_naturetypes <- ifelse(dir == "C:",
-  "R:/GeoSpatialData/Habitats_biotopes/Norway_Miljodirektoratet_Naturtyper_nin/Original/Naturtyper_nin_0000_norge_25833_FILEGDB/Naturtyper_nin_0000_norge_25833_FILEGDB.gdb",
-  "/data/R/GeoSpatialData/Habitats_biotopes/Norway_Miljodirektoratet_Naturtyper_nin/Original/Naturtyper_nin_0000_norge_25833_FILEGDB/Naturtyper_nin_0000_norge_25833_FILEGDB.gdb"
-)
+# field survey
+# # downloaded from https://kartkatalog.geonorge.no/metadata/naturtyper-miljoedirektoratets-instruks/eb48dd19-03da-41e1-afd9-7ebc3079265c
+path_naturetypes <- "../data/survey.gdb"
 
-path_muni <- paste0("../data/Basisdata_0000_Norge_25833_Kommuner_FGDB.gdb")
+# municipality outline
+path_muni <- "../data/Basisdata_0000_Norge_25833_Kommuner_FGDB.gdb"
 
 # path to local caching folder
 path_temp <- ifelse(dir == "C:",
@@ -115,14 +117,42 @@ path_temp <- ifelse(dir == "C:",
 )
 ```
 
-```{r getRelevantNTs}
-#| eval: true
-
+```{r import}
+#| cache: true
 
 # I already did some work to identify the relevant nature types
-
 # summary file (https://github.com/NINAnor/ecosystemCondition/blob/main/data/naturetypes/natureType_summary.rds)
 naturetypes_summary <- readRDS("../data/natureType_summary.rds")
+
+# Survey data
+# The data is too big to be stored on GitHub
+# Impart polygon data set
+st_layers(path_naturetypes)
+naturetypes <- sf::st_read(dsn = path_naturetypes, layer = "naturtyper_nin_omr")
+# 142k polygons (2023)
+# 
+# Impart survey coverage map
+coverage <- sf::st_read(dsn = path_naturetypes, layer = "naturtyper_nin_dekning") |>
+  st_transform(myCRS)
+
+# Outline of norway (coastline)
+outline <- sf::read_sf("../data/outlineOfNorway_EPSG25833.shp") |>
+  st_transform(myCRS)
+
+# Municipalities
+# find the correct layer
+st_layers(path_muni)
+# read inn data and transform
+muni <- sf::read_sf(path_muni, layer = "kommune") |>
+  st_transform(myCRS)
+
+# Mire data
+mire_terra <- terra::rast(path_mire)
+```
+
+
+```{r getRelevantNTs}
+#| eval: true
 
 myVars <- c("7TK", "7SE", "PRTK", "PRSL", "7FA", "7GR-GI")
 nts <- naturetypes_summary %>%
@@ -135,15 +165,10 @@ nts <- naturetypes_summary %>%
 ```
 
 ```{r natureTypeData}
-#| eval: false
+#| eval: true
+#| cache: true
 
-# The data is too big to be stored on GitHub
-
-# Impart polygon data set
-naturetypes <- sf::st_read(dsn = path_naturetypes)
-# 117k polygons (2022)
-# sometimes this function struggles with Norwegian letters.
-# Restart R and try again.
+# Clean the survey data
 
 naturetypes <- naturetypes |>
   # keep only wetlands
@@ -179,7 +204,11 @@ naturetypes <- naturetypes |>
   ) |>
   st_transform(myCRS) # Choosing this to match the EDM (se further down)
 # 19k obs.
+```
 
+```{r}
+#| eval: false
+# Plot to show what the most common nature types in the data set are
 naturetypes |>
   as_tibble() |>
   count(natureType, sort=T) |>
@@ -187,75 +216,71 @@ naturetypes |>
   ggplot(aes(x = natureType, y = n))+
   geom_col()+
   coord_flip()
-
-naturetypes |>
-  saveRDS("../data/surveyData.RDS")
-# head(naturetypes)
-```
-
-```{r readSurvey}
-#| eval: true
-
-# read cached rds file. This is not so big.
-naturetypes <- readRDS("../data/surveyData.RDS")
 ```
 
 ```{r convertToPercent}
 #| eval: true
-
-# I now want to take the variable and normalise it before I can then combine them
-# despite them being on different scales
-# I will first normalise by converting into %.
-# Remeber the ordinal categories represnts frequency ranges
-
+# I now want to take the variables and normalise them before I can then combine
+# them despite them being on different scales.
+# I will first normalise by converting into % (not for 7GR-GI).
+# Remember the ordinal categories represents frequency ranges
 # The data is strongly right skewed, so simply taking the center value of each
-# bin will not work.
-naturetypes %>% 
-  ggplot()+
+# bin will not work:
+naturetypes %>%
+  ggplot() +
   theme_bw() +
   geom_histogram(aes(x = value),
-                 binwidth = 1) +
-  facet_wrap(.~variable,
-             scales = "free")
+    binwidth = 1
+  ) +
+  facet_wrap(. ~ variable,
+    scales = "free"
+  )
 
-# I will use th lower bound for each bin.
+# I will use the lower bound for each bin instead.
 # The exception in when the variable is 1, because then the lower bound
 # is 0, same as when the variable is 0.
 # For these I will set manually a slightly higher value.
 
 naturetypes <- naturetypes %>%
   mutate(value = case_when(
-    # selecting the variable that follow the same 4 step scale
-    variable %in% c("7TK", "7SE", "7FA") ~ 
-      case_match(value,
-             0 ~ 0,
-             1 ~ mean(c(0, 1/16))*100,
-             2 ~ 1/16*100,
-             3 ~ 50), # note that it is not possible to get a value of 1
+    # selecting the variables that follow the same 4 step scale
+    variable %in% c("7TK", "7SE", "7FA") ~
+      case_match(
+        value,
+        0 ~ 0,
+        1 ~ mean(c(0, 1 / 16)) * 100,
+        2 ~ 1 / 16 * 100,
+        3 ~ 50
+      ), # note that it is not possible to get a value of 1
     # selecting the eight step variables
-    variable %in% c('PRTK', 'PRSL') ~ 
-      case_match(value,
-             0 ~ 0,
-             1 ~ 1.5,
-             2 ~ 3,
-             3 ~ 6.25,
-             4 ~ 12.5,
-             5 ~ 25,
-             6 ~ 50,
-             7 ~ 75),
+    variable %in% c("PRTK", "PRSL") ~
+      case_match(
+        value,
+        0 ~ 0,
+        1 ~ 1.5,
+        2 ~ 3,
+        3 ~ 6.25,
+        4 ~ 12.5,
+        5 ~ 25,
+        6 ~ 50,
+        7 ~ 75
+      ),
     .default = value
-    )
-  )
+  ))
 
-naturetypes %>% 
-  ggplot()+
+naturetypes %>%
+  filter(variable != "7GR-GI") |>
+  ggplot() +
   theme_bw() +
   geom_histogram(aes(x = value),
-                 binwidth = 1,
-                 color = "orange",
-                 fill = "orange") +
-  facet_wrap(.~variable,
-             scales = "free")
+    binwidth = 1,
+    color = "orange",
+    fill = "orange"
+  ) +
+  xlab("%") +
+  facet_wrap(. ~ variable,
+    scales = "free"
+  )
 
 ```
 
@@ -280,99 +305,122 @@ head(naturetypes_wide, 10)
 ```{r}
 #| eval: true
 # First I will combine 7TK and PRTK, and also 7SE and PRSL.
-
 naturetypes_wide <- naturetypes_wide %>%
-  mutate(TK = if_else(
-    is.na(var_PRTK), var_7TK, var_PRTK),
+  mutate(
+    TK = if_else(
+      is.na(var_PRTK), var_7TK, var_PRTK
+    ),
     SE = if_else(
-      is.na(var_PRSL), var_7SE, var_PRSL)
+      is.na(var_PRSL), var_7SE, var_PRSL
     )
+  )
 
 plot_grid(
-naturetypes_wide %>%
-  as_tibble() |>
-  count(SE,
-        name = "sum") |>
-  ggplot(
-    aes(
-      x = factor(SE),
-      y = sum))+
-  geom_bar(stat="identity",
-           fill="grey",
-           colour = "black")+
-  theme_bw(base_size = 12)+
-  labs(x = "7SE or PRSL score",
-       y = "Number of localities"),
-
-naturetypes_wide %>%
-  as_tibble() |>
-  count(TK,
-        name = "sum") |>
-  ggplot(
-    aes(
-      x = factor(TK),
-      y = sum))+
-  geom_bar(stat="identity",
-           fill="grey",
-           colour = "black")+
-  theme_bw(base_size = 12)+
-  labs(x = "7TK or PRTK score",
-       y = "Number of localities")
+  naturetypes_wide %>%
+    as_tibble() |>
+    count(SE,
+      name = "sum"
+    ) |>
+    ggplot(
+      aes(
+        x = factor(SE),
+        y = sum
+      )
+    ) +
+    geom_bar(
+      stat = "identity",
+      fill = "grey",
+      colour = "black"
+    ) +
+    theme_bw(base_size = 12) +
+    labs(
+      x = "7SE or PRSL score",
+      y = "Number of localities"
+    ),
+  naturetypes_wide %>%
+    as_tibble() |>
+    count(TK,
+      name = "sum"
+    ) |>
+    ggplot(
+      aes(
+        x = factor(TK),
+        y = sum
+      )
+    ) +
+    geom_bar(
+      stat = "identity",
+      fill = "grey",
+      colour = "black"
+    ) +
+    theme_bw(base_size = 12) +
+    labs(
+      x = "7TK or PRTK score",
+      y = "Number of localities"
+    )
 )
 
-# The NA's represnets localities where just one of the two variables 
+# The NA's represents localities where just one of the two variables
 # (then thinking 7SE and PRSL as the same variable)
-# is recorded. To combine these into one metric ADSV, I could take the 
+# is recorded. To combine these into one metric ADSV, I could take the
 # one with the highest value (worst-rule) og the sum.
-# Sum is problematic is not all locations ahve two values to sum together.
+# Sum is problematic is not all locations have two values to sum together.
 # But the other option is problematic since I think field workers often
 # tend to split the effects over two variables is they have that option.
-# And if we have 50% vehicle damaeg and 50% hiking damage, that is no doubt
+# And if we have 50% vehicle damage and 50% hiking damage, that is no doubt
 # worst than just having 50% of either. So I will use the sum, despite its issues.
 ```
 
 ```{r}
 #| eval: true
-
 # Taking the sum of 7SE and 7TK (incl the PR.. variables)
 naturetypes_wide <- naturetypes_wide |>
   rowwise() |>
-  mutate(ADSV = sum(c(SE, TK), na.rm=TRUE))
-  
+  mutate(ADSV = sum(c(SE, TK), na.rm = TRUE))
+
 naturetypes_wide %>%
   as_tibble() |>
   count(ADSV,
-        name = "sum") |>
+    name = "sum"
+  ) |>
   ggplot(
     aes(
-      x = (ADSV),
-      y = sum))+
-  geom_bar(stat="identity",
-           fill="grey",
-           colour = "black")+
-  theme_bw(base_size = 12)+
-  labs(x = "Summed ADVS score",
-       y = "Number of localities") +
-    scale_x_continuous(
-    labels = scales::label_number(accuracy = 1))
+      x = ADSV,
+      y = sum
+    )
+  ) +
+  geom_bar(
+    stat = "identity",
+    fill = "grey",
+    colour = "black"
+  ) +
+  theme_bw(base_size = 12) +
+  labs(
+    x = "Summed ADVS score",
+    y = "Number of localities"
+  ) +
+  scale_x_continuous(
+    labels = scales::label_number(accuracy = 1)
+  )
 
 ```
 
 ```{r}
 #| eval: true
 
-
 # Now I will copy these ADVS-values into the sf object again, keeping things in wide format
 naturetypes <- naturetypes |>
-  pivot_wider(#id_cols="id",
-              names_from = "variable",
-              values_from = "value") |>
+  pivot_wider(
+    names_from = "variable",
+    values_from = "value"
+  ) |>
   left_join(naturetypes_wide |> select(id, ADSV), by = "id") |>
-  select(!c("7TK", "7SE", "PRSL", "PRTK")) 
+  select(!c("7TK", "7SE", "PRSL", "PRTK"))
   # >
   #pivot_longer(cols = c(ADSV, "7FA", "7GR-GI"),
   #             names_to = "variable",
   #             values_drop_na = T)
+head(naturetypes)
 ```
 
 ```{r rescale}
@@ -392,88 +440,78 @@ threshold2 <- 2.5 # = observable effect. Value 3 indicates a shit to a new type 
 
 
 eaTools::ea_normalise(data = naturetypes,
-                      vector = "ADSV",
-                      upper_reference_level = lower,
-                      lower_reference_level = upper,
-                      break_point = threshold,
-                      plot=T,
-                      reverse = T
-                      )
+  vector = "ADSV",
+  upper_reference_level = lower,
+  lower_reference_level = upper,
+  break_point = threshold,
+  plot=T,
+  reverse = T
+  )
 
 # There is no point yet making this a time series
 # I will assign all the indicator value to the same time (2018-2022)
 
 # same for 7FK
 eaTools::ea_normalise(data = naturetypes,
-                      vector = "7FA",
-                      upper_reference_level = lower,
-                      lower_reference_level = upper,
-                      break_point = threshold,
-                      plot=T,
-                      reverse = T
-                      )
+  vector = "7FA",
+  upper_reference_level = lower,
+  lower_reference_level = upper,
+  break_point = threshold,
+  plot=T,
+  reverse = T
+  )
 # The variables are really coarse
 
 eaTools::ea_normalise(data = naturetypes,
-                      vector = "7GR-GI",
-                      upper_reference_level = lower2,
-                      lower_reference_level = upper2,
-                      break_point = threshold2,
-                      plot=T,
-                      reverse = T
-                      )
+  vector = "7GR-GI",
+  upper_reference_level = lower2,
+  lower_reference_level = upper2,
+  break_point = threshold2,
+  plot=T,
+  reverse = T
+  )
 
 ```
 
 ```{r}
 #| eval: true
-
 # Adding scaled indicator values to the dataset
-naturetypes$i_ADSV <- eaTools::ea_normalise(data = naturetypes,
-                      vector = "ADSV",
-                      upper_reference_level = lower,
-                      lower_reference_level = upper,
-                      break_point = threshold,
-                      reverse = T
-                      )
+naturetypes$i_ADSV <- eaTools::ea_normalise(
+  data = naturetypes,
+  vector = "ADSV",
+  upper_reference_level = lower,
+  lower_reference_level = upper,
+  break_point = threshold,
+  reverse = T
+)
 
-naturetypes$i_alien <- eaTools::ea_normalise(data = naturetypes,
-                      vector = "7FA",
-                      upper_reference_level = lower,
-                      lower_reference_level = upper,
-                      break_point = threshold,
-                      reverse = T
-                      )
+naturetypes$i_alien <- eaTools::ea_normalise(
+  data = naturetypes,
+  vector = "7FA",
+  upper_reference_level = lower,
+  lower_reference_level = upper,
+  break_point = threshold,
+  reverse = T
+)
 
-naturetypes$i_ditch <- eaTools::ea_normalise(data = naturetypes,
-                      vector = "7GR-GI",
-                      upper_reference_level = lower2,
-                      lower_reference_level = upper2,
-                      break_point = threshold2,
-                      reverse = T
-                      )
+naturetypes$i_ditch <- eaTools::ea_normalise(
+  data = naturetypes,
+  vector = "7GR-GI",
+  upper_reference_level = lower2,
+  lower_reference_level = upper2,
+  break_point = threshold2,
+  reverse = T
+)
 ```
 
-```{r getNorwayOutline}
-#| eval: true
 
-outline <- sf::read_sf("../data/outlineOfNorway_EPSG25833.shp") |>
-  st_transform(myCRS)
-```
 
 ```{r getMunicipalities}
 #| eval: true
 
 # Preparing the outlines for the three municipalieties
 
-# find the correct layer
-# st_layers(path_muni)
-
-# read inn data and transform
-muni <- sf::read_sf(path_muni, layer = "kommune") |>
-  st_transform(myCRS)
-
-# This returns some multisurfaces as well
+# The data contains some multisurfaces as well
 # table(st_geometry_type(muni))
 # function to make sure that multipolygons are returned
 ensure_multipolygons <- function(X) {
@@ -492,22 +530,22 @@ muni <- ensure_multipolygons(muni)
 muni3 <- muni |>
   filter(kommunenummer %in% c(
     "3020", # Nordre Follo
-    "5001", # Trondheim
-    "5418" # Målselv
+    "3451", # Nord-Aurdal
+    "3446" # Gran
   )) |>
   mutate(Municipality = case_when(
     kommunenummer == "3020" ~ "Nordre Follo",
-    kommunenummer == "5001" ~ "Trondheim",
-    kommunenummer == "5418" ~ "Målselv"
+    kommunenummer == "3451" ~ "Nord-Aurdal",
+    kommunenummer == "3446" ~ "Gran"
   ))
 
 # To crop EDM, I need the three municipalities seprately.
 nf <- muni3 |>
   filter(kommunenummer == "3020")
-tr <- muni3 |>
-  filter(kommunenummer == "5001")
-me <- muni3 |>
-  filter(kommunenummer == "5418")
+na <- muni3 |>
+  filter(kommunenummer == "3451")
+gr <- muni3 |>
+  filter(kommunenummer == "3446")
 ```
 
 ```{r prepPolygons}
@@ -522,15 +560,20 @@ nature3 |>
   count(municipality,
     sort = TRUE,
     name = "Number of polygons")
+# There where some polygons that spanned municipal borders. 
+# It's not a problem
 
 # and also to get the data coverage polygon.
-# These I had to manually download from naturbase.no
-dk <- read_sf("../data/dekningskartNF/Naturtyper NiN - Dekningskart.shp") |>
-  rbind(read_sf("../data/dekningskartTR/Naturtyper NiN - Dekningskart.shp")) |>
-  rbind(read_sf("../data/dekningskartME/Naturtyper NiN - Dekningskart.shp")) |>
-  st_transform(st_crs(muni3)) |>
-  st_intersection(muni3) |>
-  st_union()
+coverage3 <- coverage |>
+  st_intersection(muni3)
+
+## These I had to manually download from naturbase.no
+#dk <- read_sf("../data/dekningskartNF/Naturtyper NiN - Dekningskart.shp") |>
+#  rbind(read_sf("../data/dekningskartTR/Naturtyper NiN - Dekningskart.shp")) |>
+#  rbind(read_sf("../data/dekningskartME/Naturtyper NiN - Dekningskart.shp")) |>
+#  st_transform(st_crs(muni3)) |>
+#  st_intersection(muni3) |>
+#  st_union()
 ```
 
 ```{r prepSomeMoreMunicipalityShapes}
@@ -564,14 +607,22 @@ centroids <- muni3 |>
 ```{r positionMap}
 #| eval: false
 
-(positionMap <- tm_shape(outline) +
+inc <- 1e5
+myBbox <- st_bbox(centroids)
+myBbox[1:2] <- myBbox[1:2]-inc 
+myBbox[3:4] <- myBbox[3:4]+inc 
+
+(positionMap <- 
+  tm_shape(outline,
+           bbox = myBbox) +
   tm_polygons() +
   tm_shape(centroids) +
   tm_text(
     text = "Municipality",
+    just= "left",
     size = .8,
-    xmod = 2,
-    ymod = -1
+    xmod = 1,
+    ymod = 0
   ) +
   tm_symbols(
     size = 1.5,
@@ -581,7 +632,12 @@ centroids <- muni3 |>
   tm_grid(projection = 4326) +
   tm_layout(
     bg.color = "skyblue",
-    outer.margins = c(0.01, .02, .02, .02)))
+    outer.margins = c(0.01, .02, .02, .02))+
+  tm_compass()+
+  tm_scale_bar()+
+    tm_basemap(leaflet::providers$Stamen.Watercolor)
+)
+  
 ```
 
 ```{r distanceBetweenMunis}
