@@ -1057,7 +1057,7 @@ ggplot(aes(
   guides(fill = guide_legend("Indicator values")) +
   ylab("Fraction of data points") +
   xlab("Human Impact Areas") +
-  scale_fill_manual(values = c("#E85437","#FBBF00", "#B5DF73", "#009000")) +
+  scale_fill_manual(values = c("#E85437","#FBAF00", "#B5DF73", "#009000")) +
   facet_grid(~indicator)
 
 ```
@@ -1221,20 +1221,20 @@ corrCheck |>
 #| eval: false
 
 # Infratructure in each municipality
-infraMuniMap <- tm_shape(muni3) +
+(infraMuniMap <- tm_shape(muni3) +
   tm_borders() +
   tm_shape(infraMuni3) +
   tm_polygons(
     col = "infrastructureIndex",
     style = "cat",
-    title = "Human Impact\nArea Class"
+    title = "Human Impact Areas"
   ) +
+  tm_layout(
+    legend.show = F,
+    panel.label.height = 0) +
   tm_shape(muni3) +
   tm_borders(lwd = 3, col = "black") +
-  tm_facets(by = "Municipality") +
-  tm_layout(
-    legend.show = FALSE,
-    panel.label.height = 0)
+  tm_facets(by = "Municipality"))
 
 # A figure with just the legend
 infraMuniMap_l <- tm_shape(muni3) +
@@ -1247,9 +1247,12 @@ infraMuniMap_l <- tm_shape(muni3) +
   ) +
   tm_layout(legend.only = TRUE,
             legend.position = c("left", "bottom"),
-            legend.outside = TRUE)
+            legend.outside = F)
 
 
+empty <- tm_shape(muni3) +
+  tm_borders(col="white") +
+  tm_layout(frame = F)
 
 # Survey coverage and other colour overlayed the municipalities
 muniPlot <- tm_shape(muni3) +
@@ -1281,14 +1284,16 @@ muniPlot <- tm_shape(muni3) +
   )
 
 
+
 (methodsMap <- tmap_arrange(
-  positionMap,
   muniPlot,
-  infraMuniMap_l,
+  empty,
   infraMuniMap,
-  widths = c(.35, .65),
+  infraMuniMap_l,
+  ncol = 2,
+  widths = c(.8, .2),
   heights = c(.6, .4),
-  outer.margins = .01
+  outer.margins = NULL
 ))
 
 
