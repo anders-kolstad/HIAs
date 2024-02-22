@@ -997,11 +997,76 @@ corrCheck |>
     palette = "RdYlGn") +
   facet_grid(~indicator)
 ```
+```{r}
+temp <- corrCheck |>
+  pivot_longer(
+    cols = c(i_ADSV, i_alien, i_ditch),
+    values_to = "indicatorValue",
+    names_to = "indicator",
+    values_drop_na = T
+  ) |>
+  mutate(
+    condition = case_when(
+      indicatorValue < 0.6 ~ "<0.6",
+      indicatorValue < 0.8 ~ "0.6 to 0.8",
+      indicatorValue < 0.91 ~ "0.8 to 0.9",
+      .default = "0.9 to 1"
+    ),
+    condition = fct_reorder(condition, indicatorValue),
+    indicator = case_when(
+      indicator == "i_ADSV" ~ "ADSV",
+      indicator == "i_alien" ~ "Alien species",
+      indicator == "i_ditch" ~ "Trenching"
+    )
+  ) |>
+  as_tibble() |>
+  group_by(indicator, infrastructureIndex, condition) |>
+  summarise(n = n()) |>
+  ungroup() |>
+  group_by(indicator, infrastructureIndex) |>
+  mutate(lab = round(n/sum(n)*100),
+         lab = case_when(
+           lab < 5 ~ NA,
+           .default = paste0(lab, "%")
+         ))
+
+nrow(temp)
+
+temp |>
+ggplot(aes(
+    x = infrastructureIndex,
+    y = n,
+    fill = condition
+  )) +
+  geom_bar(
+    position = "fill",
+    stat = "identity"
+  ) +
+  geom_text(aes(label = lab),
+    position = position_fill(vjust = 0.5),
+    color= "black", vjust = 0.5, size = 4) +
+  theme_minimal(base_size = 15) +
+  theme(
+    panel.grid = element_blank(), 
+    axis.text.x = element_text(margin = margin(t = -10)),
+    axis.text.y = element_blank(),
+    strip.text = element_textbox(
+      size = 12,
+      halign = 0.5, linetype = 1, r = unit(5, "pt"), width = unit(1, "npc"),
+      padding = margin(2, 0, 1, 0), margin = margin(3, 3, 3, 3))) +
+  guides(fill = guide_legend("Indicator values")) +
+  ylab("Fraction of data points") +
+  xlab("Human Impact Areas") +
+  scale_fill_manual(values = c("#E85437","#FBBF00", "#B5DF73", "#009000")) +
+  facet_grid(~indicator)
+
+```
+
 
 ```{r}
 #| eval: true
 # Using a color gradient emphasizes the first color (dark green).
-# Lets try discrete colors, and merge som classes to simplify
+# Lets try discrete colors, and merge some classes to simplify
 (validationPlot <- corrCheck |>
   #rename(ADSV = i_ADSV) |>
   pivot_longer(
@@ -1031,7 +1096,11 @@ corrCheck |>
   geom_bar(
     position = "fill"
   ) +
-  theme_bw(base_size = 12) +
+  theme_minimal(base_size = 12) +
+  theme(
+    panel.grid = element_blank(), 
+    axis.text.x = element_markdown(),
+    axis.text.y = element_blank()) +
   guides(fill = guide_legend("Indicator values")) +
   ylab("Fraction of data points") +
   xlab("Human Impact Areas") +
@@ -1219,7 +1288,7 @@ muniPlot <- tm_shape(muni3) +
   infraMuniMap,
   widths = c(.35, .65),
   heights = c(.6, .4),
-  outer.margins = NULL
+  outer.margins = .01
 ))
 
 
