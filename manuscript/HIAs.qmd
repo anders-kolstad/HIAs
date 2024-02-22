@@ -719,6 +719,9 @@ saveRDS(mire_stars_na, "manual_cache/mire_stars_na.RDS")
 mire_stars_nf <- readRDS("manual_cache/mire_stars_nf.RDS")
 mire_stars_gr <- readRDS("manual_cache/mire_stars_gr.RDS")
 mire_stars_na <- readRDS("manual_cache/mire_stars_na.RDS")
+mire_terra_nf <- rast(mire_stars_nf)
+mire_terra_gr <- rast(mire_stars_gr)
+mire_terra_na <- rast(mire_stars_na)
 ```
 
 ```{r dk2-CoverageMaps}
@@ -1277,7 +1280,8 @@ muniPlot <- tm_shape(muni3) +
 ```
 
 ```{r muni-tbl}
-#| eval: false
+#| eval: true
+#| cache: true
 
 # Calculate some more stats for the table with municipality stats
 
@@ -1321,13 +1325,125 @@ muni_tbl <- muni3 |>
   left_join(mire_in_dk |> select(Municipality, mireInSurvey_km2)) |>
   mutate(mireInSurvery_percent = round(mireInSurvey_km2 / mire_km2 * 100, 2)) |>
   left_join(infraMuni3_summary)
-
-saveRDS(muni_tbl, "../data/municipality_stats.RDS")
 ```
 
 ```{r read-munitbl}
 #| eval: true
-muni_tbl <- readRDS("../data/municipality_stats.RDS")
+#muni_tbl <- readRDS("../data/municipality_stats.RDS")
+```
+
+
+```{r}
+#| eval: true
+
+# Now I need to spatially (horizontally) aggregate the indicator values for each 
+# HIA. Rather than taking the arithmetic mean, I will use a Bayesian updating 
+# approach. The point estimate (central tendency) will probably be the same
+# more or less, with the two approaches, but with the updating approach I can
+# get a honest measure for the uncertainty even with very small sample sizes.
+# For this I need a 'true' value for the variation in the indicator
+# I will use the entire national data set to determine this number
+
+national_sd_ADSV <- sd(naturetypes$i_ADSV, na.rm=T)
+national_sd_alien <- sd(naturetypes$i_alien, na.rm=T)
+national_sd_ditch <- sd(naturetypes$i_ditch, na.rm=T)
+
+barplot(c(national_sd_ADSV, national_sd_alien, national_sd_ditch),
+        names.arg = c("ADSV", "Alien", "Trenching"),
+        ylab="SD")
+
+# The figure shows that the Trenching indicator is more spatially variable
+```
+
+
+```{r wgt-mean-fn}
+#| eval: true
+
+# This function is modified from Bolstad::normdp
+# It updates a flat prior based on a sample of values (indicator values)
+# and weight (polygon area) and returns a distribution for the weighted mean
+# that has a gaussian distribution. It assumes the sampled population is also
+# Gaussian. The variance is estimated from the full sample of indicator values.
+
+
+wgt_mean <- function(x, weights, 
+                     sigma.x = NULL, 
+                     mu = seq(0, 1, length.out=1000), 
+                     mu.prior = rep(1/length(mu), times=length(mu)), 
+                     stat = "mean",
+                     ...) {
+  
+  mx <- weighted.mean(x, weights)
+  if (round(sum(mu.prior), 7) != 1) {
+    warning("The prior probabilities did not sum to 1, therefore the prior has been normalized")
+    mu.prior <- mu.prior / sum(mu.prior)
+  }
+  n.mu <- length(mu)
+  nx <- length(x)
+  snx <- sigma.x^2 / nx
+  likelihood <- exp(-0.5 * (mx - mu)^2 / snx)
+  posterior <- likelihood * mu.prior / sum(likelihood * mu.prior)
+  mx <- sum(mu * posterior)
+  vx <- sum((mu - mx)^2 * posterior)
+  
+  # draw 1k samples from the posterior to calculate the quantiles and sd from
+  sample <- sample(mu, size = 1000, prob = posterior, replace = T)
+  lower <- quantile(sample, probs = 0.025)
+  upper <- quantile(sample, probs = 0.975)
+  # we can assume that the distrubutin for the mean is gaussian, so we take a 
+  # symetrical sd from here and use it, along with the mean, to recreate a
+  # normal distribution later which we can sample from
+  sdx <- sd(sample)
+  results <- list(
+    name = "mu", 
+    param.x = mu, 
+    prior = mu.prior,
+    likelihood = likelihood, 
+    posterior = posterior, 
+    weighted_mean = mx,
+    var = vx
+  )
+  if(stat == "mean") return(mx)
+  if(stat == "lower") return(lower)
+  if(stat == "upper") return(upper)
+  if(stat == "sd") return(sdx)
+}
+
+```
+
+```{r test-function}
+#| eval: false
+test_sd <- wgt_mean(x = nature3$i_ADSV[!is.na(nature3$i_ADSV)], 
+                 weights = drop_units(nature3$area[!is.na(nature3$i_ADSV)]), 
+                 sigma.x = national_sd_ADSV,
+                 stat = "sd")
+test_mean <- wgt_mean(x = nature3$i_ADSV[!is.na(nature3$i_ADSV)], 
+                 weights = drop_units(nature3$area[!is.na(nature3$i_ADSV)]), 
+                 sigma.x = national_sd_ADSV,
+                 stat = "mean")
+
+hist(rnorm(1000, test_mean, test_sd))
+
+```
+
+
+```{r meanPerHIA}
+#| eval: true
+#| cache: true
+
+mu <- seq(0, 1, length.out=1000)
+# Intersect nature3 with the HIA
+temp <- nature3 |>
+  st_intersection(infraMuni3) |>
+  pivot_longer(cols = c(
+    i_ADSV,
+    i_alien,
+    i_ditch),
+    names_to = "indicator",
+    values_to = "indicatorValue") |>
+  filter(!is.na(indicatorValue)) |>
+  group_by(indicator, Municipality, infrastructureIndex) |>
+  summarise(mean )
 ```
 
 # Introduction
@@ -1415,7 +1531,7 @@ To describe these two characteristics we use six condition variables from the sa
 See @miljødirektoratet for the sampling protocol (in Norwegian).
 
 | id  | Variable code        | Variable name                                    | Measurement unit                                                                        | Description                                                                                                                                                       | Reference                          |
-|------------|------------|------------|------------|----------------|------------|
+|----------|----------|----------|----------|-----------------------|----------|
 | 1   | 7FK                  | Prevalence of alien species                      | Unitless, ordinal, non-linear scale from 1 (no alien species) to 7 (only alien species) | The fraction of the species composition made up from alien species                                                                                                | @runehalvorsen2019                 |
 | 2   | 7SE                  | Human caused abration or abration-caused erosion | Unitless, ordinal, non-linear scale from 1 to 4.                                        | Measures the frequency of imagined 4 m^2^ quadrats layed over the area that has some sign of abration                                                             | @runehalvorsen2019                 |
 | 3   | PRSL                 | *as above*                                       | Unitless, ordinal, non-linear scale from 0 to 7.                                        | Same as 7SE, but recorded at a higher resolution                                                                                                                  | @miljødirektoratet                 |
