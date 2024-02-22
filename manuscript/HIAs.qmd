@@ -120,6 +120,7 @@ path_temp <- ifelse(dir == "C:",
 ```
 
 ```{r import}
+#| eval: true
 #| cache: true
 
 # I already did some work to identify the relevant nature types
@@ -148,14 +149,17 @@ st_layers(path_muni)
 muni <- sf::read_sf(path_muni, layer = "kommune") |>
   st_transform(myCRS)
 
-# Mire data
-mire_terra <- terra::rast(path_mire)
-
 # Infrastructure index (read proxy)
 infra <- stars::read_stars(path_infrastructure)
 
 ```
 
+```{r terraLoad}
+#| eval: true
+# Mire data
+# Spat rasters cannot be cached
+mire_terra <- terra::rast(path_mire)
+```
 
 ```{r getRelevantNTs}
 #| eval: true
@@ -510,8 +514,6 @@ naturetypes$i_ditch <- eaTools::ea_normalise(
 )
 ```
 
-
-
 ```{r getMunicipalities}
 #| eval: true
 
@@ -659,11 +661,10 @@ myBbox[3:4] <- myBbox[3:4]+inc
   round())
 ```
 
-
 ```{r mireTerra}
-#| eval: true
+#| eval: false
 
-# I first tried to import and crop the mire data using starts, but that failed (se pre 21 feb 2023)
+# I first tried to import and crop the mire data using stars, but that failed (see pre 21 feb 2023)
 # trying { terra } instead
 
 # convert municipal outline to vect via st
@@ -693,8 +694,8 @@ mire_terra_na <- mire_terra |>
 #  geom_spatvector(data = nf_vect,
 #                  fill = NA)
 # The cropping and masking worked.
-
-# I like the stars, sf and tmap combo better, so I return to stars
+# 
+# # I like the stars, sf and tmap combo better, so I return to stars
 mire_stars_nf <- mire_terra_nf |>
   st_as_stars()
 mire_stars_gr <- mire_terra_gr |>
@@ -707,10 +708,22 @@ plot(mire_stars_nf)
 plot(mire_stars_gr)
 plot(mire_stars_na)
 
+saveRDS(mire_stars_nf, "manual_cache/mire_stars_nf.RDS")
+saveRDS(mire_stars_gr, "manual_cache/mire_stars_gr.RDS")
+saveRDS(mire_stars_na, "manual_cache/mire_stars_na.RDS")
+
+```
+
+```{r terraToSTars}
+#| eval: true
+mire_stars_nf <- readRDS("manual_cache/mire_stars_nf.RDS")
+mire_stars_gr <- readRDS("manual_cache/mire_stars_gr.RDS")
+mire_stars_na <- readRDS("manual_cache/mire_stars_na.RDS")
 ```
 
 ```{r dk2-CoverageMaps}
-#| eval: false
+#| eval: true
+#| cache: true
 
 # calculate area of survey coverage maps
 # values goes into summary table in the ms
@@ -724,7 +737,8 @@ dk2 <- coverage3 |>
 ```
 
 ```{r mireArea}
-#| eval: false
+#| eval: true
+#| cache: true
 
 # calculate area of the mires in each municipality
 # -- Nordre Follo
@@ -921,8 +935,10 @@ infraMuni3_tbl |>
   scale_y_log10() +
   facet_grid(cols = vars(Municipality))
 ```
+
 ```{r corrCheck}
 #| eval: true
+#| cache: true
 # Now I want to see if the indicator values depend on the HIA is a predictable
 # way to justify the stratification
 corrCheck <- st_intersection(naturetypes, infra)
@@ -967,7 +983,7 @@ corrCheck |>
   facet_grid(indicator ~ year)
 ```
 
-```{r}
+```{r test 4}
 #| eval: false
 # The year effect is constant, so ignoring that
 corrCheck |>
@@ -997,8 +1013,12 @@ corrCheck |>
     palette = "RdYlGn") +
   facet_grid(~indicator)
 ```
-```{r}
-temp <- corrCheck |>
+
+```{r realValidationPlot}
+#| eval: true
+# Using a color gradient emphasizes the first color (dark green).
+# Lets try discrete colors, and merge some classes to simplify
+(validationPlot <- corrCheck |>
   pivot_longer(
     cols = c(i_ADSV, i_alien, i_ditch),
     values_to = "indicatorValue",
@@ -1028,12 +1048,8 @@ temp <- corrCheck |>
          lab = case_when(
            lab < 5 ~ NA,
            .default = paste0(lab, "%")
-         ))
-
-nrow(temp)
-
-temp |>
-ggplot(aes(
+         )) |>
+  ggplot(aes(
     x = infrastructureIndex,
     y = n,
     fill = condition
@@ -1050,66 +1066,19 @@ ggplot(aes(
     panel.grid = element_blank(), 
     axis.text.x = element_text(margin = margin(t = -10)),
     axis.text.y = element_blank(),
+    axis.title.y = element_blank(),
     strip.text = element_textbox(
       size = 12,
       halign = 0.5, linetype = 1, r = unit(5, "pt"), width = unit(1, "npc"),
       padding = margin(2, 0, 1, 0), margin = margin(3, 3, 3, 3))) +
   guides(fill = guide_legend("Indicator values")) +
-  ylab("Fraction of data points") +
   xlab("Human Impact Areas") +
   scale_fill_manual(values = c("#E85437","#FBAF00", "#B5DF73", "#009000")) +
-  facet_grid(~indicator)
-
-```
-
-
-```{r}
-#| eval: true
-# Using a color gradient emphasizes the first color (dark green).
-# Lets try discrete colors, and merge some classes to simplify
-(validationPlot <- corrCheck |>
-  #rename(ADSV = i_ADSV) |>
-  pivot_longer(
-    cols = c(i_ADSV, i_alien, i_ditch),
-    values_to = "indicatorValue",
-    names_to = "indicator",
-    values_drop_na = T
-  ) |>
-  mutate(
-    condition = case_when(
-      indicatorValue < 0.6 ~ "<0.6",
-      indicatorValue < 0.8 ~ "0.6 to 0.8",
-      indicatorValue < 0.91 ~ "0.8 to 0.9",
-      .default = "0.9 to 1"
-    ),
-    condition = fct_reorder(condition, indicatorValue),
-    indicator = case_when(
-      indicator == "i_ADSV" ~ "ADSV",
-      indicator == "i_alien" ~ "Alien species",
-      indicator == "i_ditch" ~ "Trenching"
-    )
-  ) |>
-  ggplot(aes(
-    x = factor(infrastructureIndex),
-    fill = condition
-  )) +
-  geom_bar(
-    position = "fill"
-  ) +
-  theme_minimal(base_size = 12) +
-  theme(
-    panel.grid = element_blank(), 
-    axis.text.x = element_markdown(),
-    axis.text.y = element_blank()) +
-  guides(fill = guide_legend("Indicator values")) +
-  ylab("Fraction of data points") +
-  xlab("Human Impact Areas") +
-  scale_fill_brewer(palette = "RdYlGn") +
   facet_grid(~indicator)
 )
 ```
 
-```{r}
+```{r test3}
 #| eval: false
 # The figure changes a lot depending on which value gets the darker colour
 corrCheck |>
@@ -1143,7 +1112,7 @@ corrCheck |>
   facet_grid(~indicator)
 ```
 
-```{r}
+```{r test2}
 #| eval: false
 # If I look at this on a log scale, it also changes and becomes less convincing for ADSV and alien
 corrCheck |>
@@ -1181,7 +1150,7 @@ corrCheck |>
 # i_ditch is shown less of a pattern for example
 ```
 
-```{r}
+```{r test}
 #| eval: false
 
 # HIAs 1 and 2 are quite similar for i_alien and i_ADSV, so perhaps I can combine them
@@ -1218,7 +1187,8 @@ corrCheck |>
 ```
 
 ```{r infraMuniMaps}
-#| eval: false
+#| eval: true
+#| cache: true
 
 # Infratructure in each municipality
 (infraMuniMap <- tm_shape(muni3) +
@@ -1309,7 +1279,7 @@ muniPlot <- tm_shape(muni3) +
 ```{r muni-tbl}
 #| eval: false
 
-# Calulate some more stats for the table with municipality stats
+# Calculate some more stats for the table with municipality stats
 
 # Number of mire polygons per municipality
 # -- Try count() here instead
@@ -1334,9 +1304,10 @@ muni_tbl <- muni3 |>
   # make tibble for the coming join
   as_tibble() |>
   # paste inn terrestrial area
-  left_join(terrestrial |>
-              as_tibble() |> 
-              select(kommunenummer, t_area_km),
+  left_join(
+    terrestrial |>
+      as_tibble() |>
+      select(kommunenummer, t_area_km),
     keep = F
   ) |>
   # area of survey
@@ -1347,7 +1318,7 @@ muni_tbl <- muni3 |>
   # total mire area and %
   left_join(mireArea |> select(Municipality, mirePercent, mire_km2)) |>
   # % mire inside survey coverage map
-  left_join(mire_nf_terra_dk |> select(Municipality, mireInSurvey_km2)) |>
+  left_join(mire_in_dk |> select(Municipality, mireInSurvey_km2)) |>
   mutate(mireInSurvery_percent = round(mireInSurvey_km2 / mire_km2 * 100, 2)) |>
   left_join(infraMuni3_summary)
 
@@ -1444,7 +1415,7 @@ To describe these two characteristics we use six condition variables from the sa
 See @miljødirektoratet for the sampling protocol (in Norwegian).
 
 | id  | Variable code        | Variable name                                    | Measurement unit                                                                        | Description                                                                                                                                                       | Reference                          |
-|-----|----------------------|--------------------------------------------------|-----------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------|
+|------------|------------|------------|------------|----------------|------------|
 | 1   | 7FK                  | Prevalence of alien species                      | Unitless, ordinal, non-linear scale from 1 (no alien species) to 7 (only alien species) | The fraction of the species composition made up from alien species                                                                                                | @runehalvorsen2019                 |
 | 2   | 7SE                  | Human caused abration or abration-caused erosion | Unitless, ordinal, non-linear scale from 1 to 4.                                        | Measures the frequency of imagined 4 m^2^ quadrats layed over the area that has some sign of abration                                                             | @runehalvorsen2019                 |
 | 3   | PRSL                 | *as above*                                       | Unitless, ordinal, non-linear scale from 0 to 7.                                        | Same as 7SE, but recorded at a higher resolution                                                                                                                  | @miljødirektoratet                 |
@@ -1477,7 +1448,7 @@ The Alien plant cover was assigned to ECT class B1 - Compositional state charact
 ![Schematic workflow followed in this paper. Sub-index A is calculated using spatially explicit aggregation (i.e .a simple overlay taking the mean value).](../images/workflow.jpg){#fig-workflow}
 
 We chose three municipalities in Norway to test out the indicators (@fig-studyLocation).
-These municipalities are spread over `r round(max(latlong$Y)-min(latlong$Y), 1)` degrees latitude, or `r km_distance` km, and also differ in the amount of mire area, the total area surveyed, and the prevalence of infrastructure (@tbl-variables).
+The differ in several aspect, such as the amount of mire area, the total area surveyed, and the prevalence of infrastructure (@tbl-variables).
 
 ```{r fig-studyLocation}
 #| eval: true
@@ -1490,14 +1461,30 @@ These municipalities are spread over `r round(max(latlong$Y)-min(latlong$Y), 1)`
 #| in red, with polygon borderes made extra thich to make them visible,
 #| but then also exagerating their size."
 
-(temp <- readRDS("../figures/studyLocation.RDS"))
+#(temp <- readRDS("../figures/studyLocation.RDS"))
+positionMap
 ```
 
-| Municipality | Total terrestrial area (km^2^)                                            | \% of terrestrial area surveyed                                            | \% open mires in relation to total terrestrial area                         | Total mire area (km^2^)                                                  | %of mire area inside survey area                                                      | Number of mire polygons in survey                                 | Mean Infrastructure Index value                                         |
-|--------------|---------------------------------------------------------------------------|----------------------------------------------------------------------------|-----------------------------------------------------------------------------|--------------------------------------------------------------------------|---------------------------------------------------------------------------------------|-------------------------------------------------------------------|-------------------------------------------------------------------------|
-| Nordre Follo | `r muni_tbl |> filter(Municipality == "Nordre Follo") |> pull(t_area_km)` | `r muni_tbl |> filter(Municipality == "Nordre Follo") |> pull(dk_percent)` | `r muni_tbl |> filter(Municipality == "Nordre Follo") |> pull(mirePercent)` | `r muni_tbl |> filter(Municipality == "Nordre Follo") |> pull(mire_km2)` | `r muni_tbl |> filter(Municipality == "Nordre Follo") |> pull(mireInSurvery_percent)` | `r muni_tbl |> filter(Municipality == "Nordre Follo") |> pull(n)` | `r muni_tbl |> filter(Municipality == "Nordre Follo") |> pull(meanHIA)` |
-| Trondheim    | `r muni_tbl |> filter(Municipality == "Trondheim") |> pull(t_area_km)`    | `r muni_tbl |> filter(Municipality == "Trondheim") |> pull(dk_percent)`    |                                                                             |                                                                          |                                                                                       | `r muni_tbl |> filter(Municipality == "Trondheim") |> pull(n)`    | `r muni_tbl |> filter(Municipality == "Trondheim") |> pull(meanHIA)`    |
-| Målselv      | `r muni_tbl |> filter(Municipality == "Målselv") |> pull(t_area_km)`      | `r muni_tbl |> filter(Municipality == "Målselv") |> pull(dk_percent)`      |                                                                             |                                                                          |                                                                                       | `r muni_tbl |> filter(Municipality == "Målselv") |> pull(n)`      | `r muni_tbl |> filter(Municipality == "Målselv") |> pull(meanHIA)`      |
+```{r fig-studyLocation2}
+#| eval: true
+#| include: true
+#| out.width: '100%'
+#| fig.cap:
+#| - "Map of the three focal municiaplities. For each municipality the map shows 
+#| ocean in blue and non-ocean
+#| in green. The survey coverage maps are in grey, and the mapped mires are
+#| in red, with polygon borderes made extra thich to make them visible,
+#| but then also exagerating their size."
+
+#(temp <- readRDS("../figures/studyLocation.RDS"))
+methodsMap
+```
+
+| Municipality  | Total terrestrial area (km^2^)                                            | \% of terrestrial area surveyed                                            | \% open mires in relation to total terrestrial area                         | Total mire area (km^2^)                                                  | %of mire area inside survey area                                                      | Number of mire polygons in survey                                 | Mean Infrastructure Index value                                         |
+|---------|---------|---------|---------|---------|---------|---------|---------|
+| Nordre Follo  | `r muni_tbl |> filter(Municipality == "Nordre Follo") |> pull(t_area_km)` | `r muni_tbl |> filter(Municipality == "Nordre Follo") |> pull(dk_percent)` | `r muni_tbl |> filter(Municipality == "Nordre Follo") |> pull(mirePercent)` | `r muni_tbl |> filter(Municipality == "Nordre Follo") |> pull(mire_km2)` | `r muni_tbl |> filter(Municipality == "Nordre Follo") |> pull(mireInSurvery_percent)` | `r muni_tbl |> filter(Municipality == "Nordre Follo") |> pull(n)` | `r muni_tbl |> filter(Municipality == "Nordre Follo") |> pull(meanHIA)` |
+| `Gran`        | `r muni_tbl |> filter(Municipality == "Gran") |> pull(t_area_km)`         | `r muni_tbl |> filter(Municipality == "Gran") |> pull(dk_percent)`         | `r muni_tbl |> filter(Municipality == "Gran") |> pull(mirePercent)`         | `r muni_tbl |> filter(Municipality == "Gran") |> pull(mire_km2)`         | `r muni_tbl |> filter(Municipality == "Gran") |> pull(mireInSurvery_percent)`         | `r muni_tbl |> filter(Municipality == "Gran") |> pull(n)`         | `r muni_tbl |> filter(Municipality == "Gran") |> pull(meanHIA)`         |
+| `Nord-Aurdal` | `r muni_tbl |> filter(Municipality == "Nord-Aurdal") |> pull(t_area_km)`  | `r muni_tbl |> filter(Municipality == "Nord-Aurdal") |> pull(dk_percent)`  | `r muni_tbl |> filter(Municipality == "Nord-Aurdal") |> pull(mirePercent)`  | `r muni_tbl |> filter(Municipality == "Nord-Aurdal") |> pull(mire_km2)`  | `r muni_tbl |> filter(Municipality == "Nord-Aurdal") |> pull(mireInSurvery_percent)`  | `r muni_tbl |> filter(Municipality == "Nord-Aurdal") |> pull(n)`  | `r muni_tbl |> filter(Municipality == "Nord-Aurdal") |> pull(meanHIA)`  |
 
 : Information for the three target municipalities in Norway
 
@@ -1510,6 +1497,17 @@ Aggregation
 Data availability/coverage
 
 Validation
+
+```{r fig-validation}
+#| eval: true
+#| include: true
+#| out.width: '100%'
+#| fig.cap:
+#| - "Proportion of localities with different scaled indicator values for three 
+#| ecosystem condition indicators along a Human Impact Gradient" 
+
+validationPlot
+```
 
 National/regional indicator - do we have enough data?
 
