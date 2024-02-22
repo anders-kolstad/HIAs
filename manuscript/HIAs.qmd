@@ -1431,9 +1431,8 @@ hist(rnorm(1000, test_mean, test_sd))
 #| eval: true
 #| cache: true
 
-mu <- seq(0, 1, length.out=1000)
 # Intersect nature3 with the HIA
-temp <- nature3 |>
+stats_tbl <- nature3 |>
   st_intersection(infraMuni3) |>
   pivot_longer(cols = c(
     i_ADSV,
@@ -1442,8 +1441,33 @@ temp <- nature3 |>
     names_to = "indicator",
     values_to = "indicatorValue") |>
   filter(!is.na(indicatorValue)) |>
+  mutate(area = drop_units(area)) |>
   group_by(indicator, Municipality, infrastructureIndex) |>
-  summarise(mean )
+  summarise(sd = wgt_mean(indicatorValue,
+      weights = area,
+      sigma.x = case_when(
+        indicator == "i_alien" ~ national_sd_alien,
+        indicator == "i_ditch" ~ national_sd_ditch,
+        indicator == "i_ADSV" ~ national_sd_ADSV,
+        .default = NULL
+      ),
+      stat = "sd"),
+    mean = wgt_mean(indicatorValue,
+      weights = area,
+      sigma.x = case_when(
+        indicator == "i_alien" ~ national_sd_alien,
+        indicator == "i_ditch" ~ national_sd_ditch,
+        indicator == "i_ADSV" ~ national_sd_ADSV,
+        .default = NULL
+      ),
+      stat = "mean"),
+    n = n())
+stats_tbl
+```
+
+```{r forets plot}
+# Forest plot
+# https://stackoverflow.com/questions/58657802/forest-plot-with-subgroups-in-ggplot2
 ```
 
 # Introduction
