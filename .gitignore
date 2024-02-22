@@ -34,3 +34,6 @@ po/*~
 # RStudio Connect folder
 rsconnect/
 HIAs.Rproj
+data/*gdb
+manuscript/HIAs_files
+manuscript/manual_cache
