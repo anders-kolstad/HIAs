@@ -82,6 +82,8 @@ library(tidyterra)
 library(ggtext)
 library(cowplot)
 library(units)
+library(rnaturalearth)
+library(rnaturalearthdata)
 
 myCRS <- 25832
 ```
@@ -89,24 +91,26 @@ myCRS <- 25832
 ```{r paths}
 #| eval: true
 
-
 # Conditional file directory
 dir <- substr(getwd(), 1, 2)
 
 # Some directories
-mireFile <- "P:/41201785_okologisk_tilstand_2022_2023/data/Myrmodell/myrmodell90pros.tif"
 
+# Ecosystem delineation map
+path_mire <- "P:/41201785_okologisk_tilstand_2022_2023/data/Myrmodell/myrmodell90pros.tif"
+
+# infrastructure index
 path_infrastructure <- ifelse(dir == "C:",
   "R:/GeoSpatialData/Utility_governmentalServices/Norway_Infrastructure_Index/Original/Infrastrukturindeks_UTM33/infra_tiff.tif",
   "/data/R/GeoSpatialData/Utility_governmentalServices/Norway_Infrastructure_Index/Original/Infrastrukturindeks_UTM33/infra_tiff.tif"
 )
 
-path_naturetypes <- ifelse(dir == "C:",
-  "R:/GeoSpatialData/Habitats_biotopes/Norway_Miljodirektoratet_Naturtyper_nin/Original/Naturtyper_nin_0000_norge_25833_FILEGDB/Naturtyper_nin_0000_norge_25833_FILEGDB.gdb",
-  "/data/R/GeoSpatialData/Habitats_biotopes/Norway_Miljodirektoratet_Naturtyper_nin/Original/Naturtyper_nin_0000_norge_25833_FILEGDB/Naturtyper_nin_0000_norge_25833_FILEGDB.gdb"
-)
+# field survey
+# # downloaded from https://kartkatalog.geonorge.no/metadata/naturtyper-miljoedirektoratets-instruks/eb48dd19-03da-41e1-afd9-7ebc3079265c
+path_naturetypes <- "../data/survey.gdb"
 
-path_muni <- paste0("../data/Basisdata_0000_Norge_25833_Kommuner_FGDB.gdb")
+# municipality outline
+path_muni <- "../data/Basisdata_0000_Norge_25833_Kommuner_FGDB.gdb"
 
 # path to local caching folder
 path_temp <- ifelse(dir == "C:",
@@ -115,94 +119,73 @@ path_temp <- ifelse(dir == "C:",
 )
 ```
 
-```{r getRelevantNTs}
-#| eval: false
-
+```{r import}
+#| eval: true
+#| cache: true
 
 # I already did some work to identify the relevant nature types
-
 # summary file (https://github.com/NINAnor/ecosystemCondition/blob/main/data/naturetypes/natureType_summary.rds)
 naturetypes_summary <- readRDS("../data/natureType_summary.rds")
 
-# Getting the nature types that have 7FA
-myVars <- "7FA"
+# Survey data
+# The data is too big to be stored on GitHub
+# Impart polygon data set
+st_layers(path_naturetypes)
+naturetypes <- sf::st_read(dsn = path_naturetypes, layer = "naturtyper_nin_omr")
+# 142k polygons (2023)
+# 
+# Impart survey coverage map
+coverage <- sf::st_read(dsn = path_naturetypes, layer = "naturtyper_nin_dekning") |>
+  st_transform(myCRS)
 
-# naturetypes_summary2 <- naturetypes_summary %>%
-#  rowwise() %>%
-#  mutate(keepers = sum(c_across(
-#    all_of(myVars))>0, na.rm=T)) %>%
-#  filter(keepers >0,
-#         Ecosystem == "våtmark") %>%
-#  select(Nature_type, NiN_mainType, Year)
-#
-# naturetypes_summary2$Nature_type
+# Outline of norway (coastline)
+outline <- sf::read_sf("../data/outlineOfNorway_EPSG25833.shp") |>
+  st_transform(myCRS)
 
-# Getting the nature types that have the ADSV variables
-myVars2 <- c("7TK", "7SE", "PRTK", "PRSL")
-# naturetypes_summary3 <- naturetypes_summary %>%
-#  rowwise() %>%
-#  mutate(keepers = sum(c_across(
-#    all_of(myVars2))>0, na.rm=T)) %>%
-#  filter(keepers >0,
-#         Ecosystem == "våtmark") %>%
-#  select(Nature_type, NiN_mainType, Year)
-#
-# naturetypes_summary3$Nature_type
+# Municipalities
+# find the correct layer
+st_layers(path_muni)
+# read inn data and transform
+muni <- sf::read_sf(path_muni, layer = "kommune") |>
+  st_transform(myCRS)
+
+# Infrastructure index (read proxy)
+infra <- stars::read_stars(path_infrastructure)
+
 ```
 
-```{r relevantNTs}
-#| eval: false
+```{r terraLoad}
+#| eval: true
+# Mire data
+# Spat rasters cannot be cached
+mire_terra <- terra::rast(path_mire)
+```
 
-# These are the nature types I'm keeping for 7FA.
-# Note the absence of ombrotriphic types
-alienNTS <- c(
-  "Slåttemyr",
-  "Semi-naturlig våteng",
-  "Rik åpen jordvannsmyr i mellomboreal sone",
-  "Rik åpen sørlig jordvannsmyr",
-  "Rik åpen jordvannsmyr i nordboreal og lavalpin sone"
-)
+```{r getRelevantNTs}
+#| eval: true
 
-# And these are the nature types that we use for the ADSV indicator
-advsNTs <- c( # fens
-  "Slåttemyr",
-  "Sørlig slåttemyr",
-  "Rik åpen jordvannsmyr i mellomboreal sone",
-  "Rik åpen sørlig jordvannsmyr",
-  "Semi-naturlig myr",
-  "Rik åpen jordvannsmyr i nordboreal og lavalpin sone",
-  # "Sørlig kaldkilde", # excluded springs
-
-  # bogs (mainly)
-  "Høgereligende og nordlig nedbørsmyr",
-  "Øyblandingsmyr",
-  "Konsentrisk høymyr",
-  "Sørlig nedbørsmyr",
-  "Atlantisk høymyr",
-  "Terrengdekkende myr",
-  "Eksentrisk høymyr",
-  "Kanthøymyr",
-  "Platåhøymyr",
-  "Palsmyr"
-)
+myVars <- c("7TK", "7SE", "PRTK", "PRSL", "7FA", "7GR-GI")
+nts <- naturetypes_summary %>%
+  rowwise() %>%
+  mutate(keepers = sum(c_across(
+    all_of(myVars))>0, na.rm=T)) |>
+  filter(keepers >0,
+         Ecosystem == "våtmark") |>
+  pull(Nature_type)
 ```
 
 ```{r natureTypeData}
-#| eval: false
+#| eval: true
+#| cache: true
 
-# The data is too big to be stored on GitHub
-
-# Impart polygon data set
-naturetypes <- sf::st_read(dsn = path_naturetypes)
-# 117k polygons (2023)
-# sometimes this functin struggles with Norwegian letters.
-# Restart R and try again.
+# Clean the survey data
 
 naturetypes <- naturetypes |>
-  # keep only wetlands and our selected nature types
+  # keep only wetlands
   filter(
     hovedøkosystem == "våtmark",
-    naturtype %in% c(advsNTs, alienNTS)
+    naturtype %in% nts,
+    naturtype != "Kalkrik helofyttsump"
   ) |>
   # calculate the areas (m2) of the polygons
   mutate(area = SHAPE |> st_area()) |>
@@ -215,7 +198,7 @@ naturetypes <- naturetypes |>
     remove = F
   ) |>
   mutate(NiN_variable_value = as.numeric(NiN_variable_value)) |>
-  filter(NiN_variable_code %in% c(myVars, myVars2)) |>
+  filter(NiN_variable_code %in% myVars) |>
   select(
     id = identifikasjon_lokalId,
     municipality = kommunenummer,
@@ -229,77 +212,85 @@ naturetypes <- naturetypes |>
     value = NiN_variable_value,
     area
   ) |>
-  st_transform(myCRS) # Chosing this to match the EDM (se further down)
-
-# 13k obs.
-
-naturetypes |>
-  saveRDS("../data/surveyData.RDS")
-# head(naturetypes)
+  st_transform(myCRS) # Choosing this to match the EDM (se further down)
+# 19k obs.
 ```
 
-```{r readSurvey}
-#| eval: true
-
-# read cached rds file. This is not so big.
-naturetypes <- readRDS("../data/surveyData.RDS")
+```{r}
+#| eval: false
+# Plot to show what the most common nature types in the data set are
+naturetypes |>
+  as_tibble() |>
+  count(natureType, sort=T) |>
+  mutate(natureType = fct_reorder(natureType, n)) |>
+  ggplot(aes(x = natureType, y = n))+
+  geom_col()+
+  coord_flip()
 ```
 
 ```{r convertToPercent}
 #| eval: true
-
-# I now want to take the variable and normalise it before I can then combine them
-# despite them being on different scales
-# I will first normalise by converting into %.
-# Remeber the ordinal categories represnts frequency ranges
-
+# I now want to take the variables and normalise them before I can then combine
+# them despite them being on different scales.
+# I will first normalise by converting into % (not for 7GR-GI).
+# Remember the ordinal categories represents frequency ranges
 # The data is strongly right skewed, so simply taking the center value of each
-# bin will not work.
-naturetypes %>% 
-  ggplot()+
+# bin will not work:
+naturetypes %>%
+  ggplot() +
   theme_bw() +
   geom_histogram(aes(x = value),
-                 binwidth = 1) +
-  facet_wrap(.~variable,
-             scales = "free")
+    binwidth = 1
+  ) +
+  facet_wrap(. ~ variable,
+    scales = "free"
+  )
 
-# I will use th lower bound for each bin.
+# I will use the lower bound for each bin instead.
 # The exception in when the variable is 1, because then the lower bound
 # is 0, same as when the variable is 0.
 # For these I will set manually a slightly higher value.
 
 naturetypes <- naturetypes %>%
   mutate(value = case_when(
-    # selecting the variable that follow the same 4 step scale
-    variable %in% c("7TK", "7SE", "7FA") ~ 
-      case_match(value,
-             0 ~ 0,
-             1 ~ mean(c(0, 1/16))*100,
-             2 ~ 1/16*100,
-             3 ~ 50), # note that it is not possible to get a value of 1
+    # selecting the variables that follow the same 4 step scale
+    variable %in% c("7TK", "7SE", "7FA") ~
+      case_match(
+        value,
+        0 ~ 0,
+        1 ~ mean(c(0, 1 / 16)) * 100,
+        2 ~ 1 / 16 * 100,
+        3 ~ 50
+      ), # note that it is not possible to get a value of 1
     # selecting the eight step variables
-    variable %in% c('PRTK', 'PRSL') ~ 
-      case_match(value,
-             0 ~ 0,
-             1 ~ 1.5,
-             2 ~ 3,
-             3 ~ 6.25,
-             4 ~ 12.5,
-             5 ~ 25,
-             6 ~ 50,
-             7 ~ 75)
-    )
-  )
+    variable %in% c("PRTK", "PRSL") ~
+      case_match(
+        value,
+        0 ~ 0,
+        1 ~ 1.5,
+        2 ~ 3,
+        3 ~ 6.25,
+        4 ~ 12.5,
+        5 ~ 25,
+        6 ~ 50,
+        7 ~ 75
+      ),
+    .default = value
+  ))
 
-naturetypes %>% 
-  ggplot()+
+naturetypes %>%
+  filter(variable != "7GR-GI") |>
+  ggplot() +
   theme_bw() +
   geom_histogram(aes(x = value),
-                 binwidth = 1,
-                 color = "orange",
-                 fill = "orange") +
-  facet_wrap(.~variable,
-             scales = "free")
+    binwidth = 1,
+    color = "orange",
+    fill = "orange"
+  ) +
+  xlab("%") +
+  facet_wrap(. ~ variable,
+    scales = "free"
+  )
 
 ```
 
@@ -309,6 +300,7 @@ naturetypes %>%
 # respectively
 
 naturetypes_wide <- naturetypes |>
+  filter(variable %in% c("7TK", "7SE", "PRTK", "PRSL")) |>
   # Column names starting with a number is problematic, so adding a prefix
   mutate(variable = paste0("var_", variable)) |>
   pivot_wider(
@@ -323,151 +315,203 @@ head(naturetypes_wide, 10)
 ```{r}
 #| eval: true
 # First I will combine 7TK and PRTK, and also 7SE and PRSL.
-
 naturetypes_wide <- naturetypes_wide %>%
-  mutate(TK = if_else(
-    is.na(var_PRTK), var_7TK, var_PRTK),
+  mutate(
+    TK = if_else(
+      is.na(var_PRTK), var_7TK, var_PRTK
+    ),
     SE = if_else(
-      is.na(var_PRSL), var_7SE, var_PRSL)
+      is.na(var_PRSL), var_7SE, var_PRSL
     )
+  )
 
 plot_grid(
-naturetypes_wide %>%
-  as_tibble() |>
-  count(SE,
-        name = "sum") |>
-  ggplot(
-    aes(
-      x = factor(SE),
-      y = sum))+
-  geom_bar(stat="identity",
-           fill="grey",
-           colour = "black")+
-  theme_bw(base_size = 12)+
-  labs(x = "7SE or PRSL score",
-       y = "Number of localities"),
-
-naturetypes_wide %>%
-  as_tibble() |>
-  count(TK,
-        name = "sum") |>
-  ggplot(
-    aes(
-      x = factor(TK),
-      y = sum))+
-  geom_bar(stat="identity",
-           fill="grey",
-           colour = "black")+
-  theme_bw(base_size = 12)+
-  labs(x = "7TK or PRTK score",
-       y = "Number of localities")
+  naturetypes_wide %>%
+    as_tibble() |>
+    count(SE,
+      name = "sum"
+    ) |>
+    ggplot(
+      aes(
+        x = factor(SE),
+        y = sum
+      )
+    ) +
+    geom_bar(
+      stat = "identity",
+      fill = "grey",
+      colour = "black"
+    ) +
+    theme_bw(base_size = 12) +
+    labs(
+      x = "7SE or PRSL score",
+      y = "Number of localities"
+    ),
+  naturetypes_wide %>%
+    as_tibble() |>
+    count(TK,
+      name = "sum"
+    ) |>
+    ggplot(
+      aes(
+        x = factor(TK),
+        y = sum
+      )
+    ) +
+    geom_bar(
+      stat = "identity",
+      fill = "grey",
+      colour = "black"
+    ) +
+    theme_bw(base_size = 12) +
+    labs(
+      x = "7TK or PRTK score",
+      y = "Number of localities"
+    )
 )
 
-# The NA's represnets localities where just one of the two variables 
+# The NA's represents localities where just one of the two variables
 # (then thinking 7SE and PRSL as the same variable)
-# is recorded. To combine these into one metric ADSV, I could take the 
+# is recorded. To combine these into one metric ADSV, I could take the
 # one with the highest value (worst-rule) og the sum.
-# Sum is problematic is not all locations ahve two values to sum together.
+# Sum is problematic is not all locations have two values to sum together.
 # But the other option is problematic since I think field workers often
 # tend to split the effects over two variables is they have that option.
-# And if we have 50% vehicle damaeg and 50% hiking damage, that is no doubt
+# And if we have 50% vehicle damage and 50% hiking damage, that is no doubt
 # worst than just having 50% of either. So I will use the sum, despite its issues.
 ```
 
 ```{r}
 #| eval: true
-
-# Taking he sum of 7SE and 7TK (incl the PR.. variabels)
+# Taking the sum of 7SE and 7TK (incl the PR.. variables)
 naturetypes_wide <- naturetypes_wide |>
   rowwise() |>
-  mutate(ADSV = sum(c(SE, TK), na.rm=TRUE))
-  
+  mutate(ADSV = sum(c(SE, TK), na.rm = TRUE))
+
 naturetypes_wide %>%
   as_tibble() |>
   count(ADSV,
-        name = "sum") |>
+    name = "sum"
+  ) |>
   ggplot(
     aes(
-      x = (ADSV),
-      y = sum))+
-  geom_bar(stat="identity",
-           fill="grey",
-           colour = "black")+
-  theme_bw(base_size = 12)+
-  labs(x = "Summed ADVS score",
-       y = "Number of localities") +
-    scale_x_continuous(
-    labels = scales::label_number(accuracy = 1))
+      x = ADSV,
+      y = sum
+    )
+  ) +
+  geom_bar(
+    stat = "identity",
+    fill = "grey",
+    colour = "black"
+  ) +
+  theme_bw(base_size = 12) +
+  labs(
+    x = "Summed ADVS score",
+    y = "Number of localities"
+  ) +
+  scale_x_continuous(
+    labels = scales::label_number(accuracy = 1)
+  )
 
 ```
 
 ```{r}
 #| eval: true
-# Now I will copy these ADVS-values into the sf object again
+
+# Now I will copy these ADVS-values into the sf object again, keeping things in wide format
 naturetypes <- naturetypes |>
-  left_join(naturetypes_wide |> select(id, var_7FA, ADSV), by = "id")
+  pivot_wider(
+    names_from = "variable",
+    values_from = "value"
+  ) |>
+  left_join(naturetypes_wide |> select(id, ADSV), by = "id") |>
+  select(!c("7TK", "7SE", "PRSL", "PRTK"))
+  # >
+  #pivot_longer(cols = c(ADSV, "7FA", "7GR-GI"),
+  #             names_to = "variable",
+  #             values_drop_na = T)
+head(naturetypes)
 ```
 
 ```{r rescale}
 #| eval: true
 
-# Now I rescale the now continous variables using reference and threshold values
-# I will use the same reference levels/values for all of Norway:
+# Now I rescale the now continuous variables using reference and threshold values
+# I will use the same reference levels/values for all of Norway for ADSV and alien species:
 
 upper <- 0
 lower <- 100
 threshold <- 10
 
+# For 7GR-GI I use this
+upper2 <- 1
+lower2 <- 5
+threshold2 <- 2.5 # = observable effect. Value 3 indicates a shit to a new type (grunntype)
+
+
 eaTools::ea_normalise(data = naturetypes,
-                      vector = "ADSV",
-                      upper_reference_level = lower,
-                      lower_reference_level = upper,
-                      break_point = threshold,
-                      plot=T,
-                      reverse = T
-                      )
+  vector = "ADSV",
+  upper_reference_level = lower,
+  lower_reference_level = upper,
+  break_point = threshold,
+  plot=T,
+  reverse = T
+  )
 
 # There is no point yet making this a time series
 # I will assign all the indicator value to the same time (2018-2022)
 
 # same for 7FK
 eaTools::ea_normalise(data = naturetypes,
-                      vector = "var_7FA",
-                      upper_reference_level = lower,
-                      lower_reference_level = upper,
-                      break_point = threshold,
-                      plot=T,
-                      reverse = T
-                      )
+  vector = "7FA",
+  upper_reference_level = lower,
+  lower_reference_level = upper,
+  break_point = threshold,
+  plot=T,
+  reverse = T
+  )
 # The variables are really coarse
+
+eaTools::ea_normalise(data = naturetypes,
+  vector = "7GR-GI",
+  upper_reference_level = lower2,
+  lower_reference_level = upper2,
+  break_point = threshold2,
+  plot=T,
+  reverse = T
+  )
+
 ```
 
 ```{r}
 #| eval: true
-
 # Adding scaled indicator values to the dataset
-naturetypes$i_ADSV <- eaTools::ea_normalise(data = naturetypes,
-                      vector = "ADSV",
-                      upper_reference_level = lower,
-                      lower_reference_level = upper,
-                      break_point = threshold,
-                      reverse = T
-                      )
+naturetypes$i_ADSV <- eaTools::ea_normalise(
+  data = naturetypes,
+  vector = "ADSV",
+  upper_reference_level = lower,
+  lower_reference_level = upper,
+  break_point = threshold,
+  reverse = T
+)
 
-naturetypes$i_alien <- eaTools::ea_normalise(data = naturetypes,
-                      vector = "var_7FA",
-                      upper_reference_level = lower,
-                      lower_reference_level = upper,
-                      break_point = threshold,
-                      reverse = T
-                      )
-```
+naturetypes$i_alien <- eaTools::ea_normalise(
+  data = naturetypes,
+  vector = "7FA",
+  upper_reference_level = lower,
+  lower_reference_level = upper,
+  break_point = threshold,
+  reverse = T
+)
 
-```{r getNorwayOutline}
-#| eval: true
-
-outline <- sf::read_sf("../data/outlineOfNorway_EPSG25833.shp") |>
-  st_transform(myCRS)
+naturetypes$i_ditch <- eaTools::ea_normalise(
+  data = naturetypes,
+  vector = "7GR-GI",
+  upper_reference_level = lower2,
+  lower_reference_level = upper2,
+  break_point = threshold2,
+  reverse = T
+)
 ```
 
 ```{r getMunicipalities}
@@ -475,14 +519,7 @@ outline <- sf::read_sf("../data/outlineOfNorway_EPSG25833.shp") |>
 
 # Preparing the outlines for the three municipalieties
 
-# find the correct layer
-# st_layers(path_muni)
-
-# read inn data and transform
-muni <- sf::read_sf(path_muni, layer = "kommune") |>
-  st_transform(myCRS)
-
-# This returns some multisurfaces as well
+# The data contains some multisurfaces as well
 # table(st_geometry_type(muni))
 # function to make sure that multipolygons are returned
 ensure_multipolygons <- function(X) {
@@ -501,22 +538,22 @@ muni <- ensure_multipolygons(muni)
 muni3 <- muni |>
   filter(kommunenummer %in% c(
     "3020", # Nordre Follo
-    "5001", # Trondheim
-    "5418" # Målselv
+    "3451", # Nord-Aurdal
+    "3446" # Gran
   )) |>
   mutate(Municipality = case_when(
     kommunenummer == "3020" ~ "Nordre Follo",
-    kommunenummer == "5001" ~ "Trondheim",
-    kommunenummer == "5418" ~ "Målselv"
+    kommunenummer == "3451" ~ "Nord-Aurdal",
+    kommunenummer == "3446" ~ "Gran"
   ))
 
 # To crop EDM, I need the three municipalities seprately.
 nf <- muni3 |>
   filter(kommunenummer == "3020")
-tr <- muni3 |>
-  filter(kommunenummer == "5001")
-me <- muni3 |>
-  filter(kommunenummer == "5418")
+na <- muni3 |>
+  filter(kommunenummer == "3451")
+gr <- muni3 |>
+  filter(kommunenummer == "3446")
 ```
 
 ```{r prepPolygons}
@@ -531,15 +568,20 @@ nature3 |>
   count(municipality,
     sort = TRUE,
     name = "Number of polygons")
+# There where some polygons that spanned municipal borders. 
+# It's not a problem
 
 # and also to get the data coverage polygon.
-# These I had to manually download from naturbase.no
-dk <- read_sf("../data/dekningskartNF/Naturtyper NiN - Dekningskart.shp") |>
-  rbind(read_sf("../data/dekningskartTR/Naturtyper NiN - Dekningskart.shp")) |>
-  rbind(read_sf("../data/dekningskartME/Naturtyper NiN - Dekningskart.shp")) |>
-  st_transform(st_crs(muni3)) |>
-  st_intersection(muni3) |>
-  st_union()
+coverage3 <- coverage |>
+  st_intersection(muni3)
+
+## These I had to manually download from naturbase.no
+#dk <- read_sf("../data/dekningskartNF/Naturtyper NiN - Dekningskart.shp") |>
+#  rbind(read_sf("../data/dekningskartTR/Naturtyper NiN - Dekningskart.shp")) |>
+#  rbind(read_sf("../data/dekningskartME/Naturtyper NiN - Dekningskart.shp")) |>
+#  st_transform(st_crs(muni3)) |>
+#  st_intersection(muni3) |>
+#  st_union()
 ```
 
 ```{r prepSomeMoreMunicipalityShapes}
@@ -562,112 +604,89 @@ terrestrial <- terrestrial |>
   ) 
 ```
 
-```{r positionMap}
-#| eval: false
-
+```{r centroids}
+#| eval: true
 # Make map to show where the three municipalities are
 # First, get centroids
 centroids <- muni3 |>
   st_centroid()
+```
 
-(positionMap <- tm_shape(outline) +
-  tm_polygons() +
+```{r positionMap}
+#| eval: true
+
+world <- ne_countries(scale = "medium", returnclass = "sf") |>
+  st_transform(myCRS) |>
+  filter(admin %in% c("Norway", "Sweden")) |>
+  st_make_valid()
+
+inc <- 200000
+myBbox <- st_bbox(centroids)
+myBbox[1:2] <- myBbox[1:2]-inc 
+myBbox[3:4] <- myBbox[3:4]+inc 
+
+(positionMap <- 
+  tm_shape(world,
+           bbox = myBbox) +
+    tm_polygons() +
+  tm_shape(muni3) +
+    tm_polygons(col = "green") +
   tm_shape(centroids) +
   tm_text(
     text = "Municipality",
+    just= "left",
     size = .8,
-    xmod = 2,
-    ymod = -1
-  ) +
-  tm_symbols(
-    size = 1.5,
-    shape = 17,
-    col = "black"
+    xmod = 1,
+    ymod = 0
   ) +
   tm_grid(projection = 4326) +
   tm_layout(
     bg.color = "skyblue",
-    outer.margins = c(0.01, .02, .02, .02)))
+    outer.margins = c(0.01, .02, .02, .02))+
+  tm_compass()+
+  tm_scale_bar()
+)
+  
 ```
 
 ```{r distanceBetweenMunis}
 #| eval: true
 
-# what is the distance between Nordre Follo and Målselv
-(latlong <- centroids |>
-  st_transform(4326) |>
-st_coordinates() |>
-  as_tibble())
-
-
-km_distance <- centroids |>
+# what is the distance between Nordre Follo and Nord-Aurdal
+(km_distance <- centroids |>
   st_distance() |>
   max() |>
   set_units("km") |>
   drop_units() |>
-  round()
-
-
-round(max(latlong$Y)-min(latlong$Y), 1)
-
-
-```
-
-```{r mireDataTestCrop}
-#| eval: false
-
-# Testing the cropping proceedure using a downsampled starts object
-mire_test <- read_stars(mireFile, proxy = T) |>
-  setNames("mire") |>
-  st_downsample(100) |>
-  mutate(mire = na_if(mire, 0)) |>
-  st_as_stars()
-
-mire_test_nf <- mire_test |>
-  st_crop(nf)
-
-# The cropping is correct:
-# tmap_mode("plot")
-# tm_shape(mire_test)+
-#  tm_raster(palette = "red")+
-#  tm_shape(outline)+
-#  tm_borders()+
-#  tm_shape(mire_test_nf)+
-#  tm_raster(col="red")
-
-# Then we do the same, but without downsampling
-
-mire_nf <- read_stars(mireFile, proxy = T) |>
-  setNames("mire") |>
-  # mutate(mire = na_if(mire, 0)) |>
-  st_crop(nf) |>
-  st_as_stars()
-# The cropped raster is for some reason far into the ocean!
-
-# The cells have values, so it seems like there is something
-# that happens after the cropping
-tmap_mode("plot")
-tm_shape(mire_test) +
-  tm_raster(palette = "red") +
-  tm_shape(outline) +
-  tm_borders() +
-  tm_shape(mire_nf) +
-  tm_raster(col = "red")
+  round())
 ```
 
 ```{r mireTerra}
 #| eval: false
 
+# I first tried to import and crop the mire data using stars, but that failed (see pre 21 feb 2023)
 # trying { terra } instead
 
 # convert municipal outline to vect via st
 nf_vect <- as(nf, "Spatial") |>
   terra::vect()
+gr_vect <- as(gr, "Spatial") |>
+  terra::vect()
+na_vect <- as(na, "Spatial") |>
+  terra::vect()
 
 # crop and mask (very fast!)
-mire_nf_terra <- terra::rast(mireFile) |>
+mire_terra_nf <- mire_terra |>
   terra::crop(nf_vect) |>
   terra::mask(nf_vect)
+
+mire_terra_gr <- mire_terra |>
+  terra::crop(gr_vect) |>
+  terra::mask(gr_vect)
+
+mire_terra_na <- mire_terra |>
+  terra::crop(na_vect) |>
+  terra::mask(na_vect)
 
 # Plot to check overlap
 # ggplot()+
@@ -675,65 +694,111 @@ mire_nf_terra <- terra::rast(mireFile) |>
 #  geom_spatvector(data = nf_vect,
 #                  fill = NA)
 # The cropping and masking worked.
-
-# I like the stars, sf and tmap combo better, so I return to stars
-mire_nf_stars <- mire_nf_terra |>
+# 
+# # I like the stars, sf and tmap combo better, so I return to stars
+mire_stars_nf <- mire_terra_nf |>
+  st_as_stars()
+mire_stars_gr <- mire_terra_gr |>
+  st_as_stars()
+mire_stars_na <- mire_terra_na |>
   st_as_stars()
 
-ggplot() +
-  geom_stars(data = mire_nf_stars) +
-  coord_equal() +
-  theme_void() +
-  scale_fill_viridis_c()
+par(mfrow=c(3,1))
+plot(mire_stars_nf)
+plot(mire_stars_gr)
+plot(mire_stars_na)
+
+saveRDS(mire_stars_nf, "manual_cache/mire_stars_nf.RDS")
+saveRDS(mire_stars_gr, "manual_cache/mire_stars_gr.RDS")
+saveRDS(mire_stars_na, "manual_cache/mire_stars_na.RDS")
+
+```
+
+```{r terraToSTars}
+#| eval: true
+mire_stars_nf <- readRDS("manual_cache/mire_stars_nf.RDS")
+mire_stars_gr <- readRDS("manual_cache/mire_stars_gr.RDS")
+mire_stars_na <- readRDS("manual_cache/mire_stars_na.RDS")
 ```
 
 ```{r dk2-CoverageMaps}
-#| eval: false
+#| eval: true
+#| cache: true
 
 # calculate area of survey coverage maps
 # values goes into summary table in the ms
-dk2 <- read_sf("../data/dekningskartNF/Naturtyper NiN - Dekningskart.shp") |>
-  rbind(read_sf("../data/dekningskartTR/Naturtyper NiN - Dekningskart.shp")) |>
-  rbind(read_sf("../data/dekningskartME/Naturtyper NiN - Dekningskart.shp")) |>
-  st_transform(st_crs(muni3)) |>
-  st_intersection(muni3) |>
-  st_cast("POLYGON") |>
+dk2 <- coverage3 |>
   group_by(Municipality) |>
-  summarise(geometry = st_union(geometry)) |>
+  summarise(SHAPE = st_union(SHAPE)) |>
   mutate(
-    dk_area_km = geometry |> st_area(),
+    dk_area_km = SHAPE |> st_area(),
     dk_area_km = round(units::drop_units(dk_area_km * 1e-6))
   )
 ```
 
 ```{r mireArea}
-#| eval: false
+#| eval: true
+#| cache: true
 
 # calculate area of the mires in each municipality
 # -- Nordre Follo
-mireArea <- mire_nf_terra |>
+(mireArea <- mire_terra_nf |>
   global(c("mean", "sum"), na.rm = T) |>
   add_column("Municipality" = "Nordre Follo") |>
   mutate(
     mirePercent = round(mean * 100, 1),
     mire_km2 = sum / 1e+4
+  ))
+
+# -- Gran
+mireArea2 <- mire_terra_gr |>
+  global(c("mean", "sum"), na.rm = T) |>
+  add_column("Municipality" = "Gran") |>
+  mutate(
+    mirePercent = round(mean * 100, 1),
+    mire_km2 = sum / 1e+4
   )
+
+# -- Nord-Aurdal
+mireArea3 <- mire_terra_na |>
+  global(c("mean", "sum"), na.rm = T) |>
+  add_column("Municipality" = "Nord-Aurdal") |>
+  mutate(
+    mirePercent = round(mean * 100, 1),
+    mire_km2 = sum / 1e+4
+  )
+
+mireArea <- mireArea |>
+  rbind(mireArea2, mireArea3)
 
 # Calculate the area of mire inside the coverage maps
 # -- Nordre Follo
-mire_nf_terra_dk <- mire_nf_terra |>
+mire_in_dk <- mire_terra_nf |>
   terra::mask(dk2 |> filter(Municipality == "Nordre Follo")) |>
   global("sum", na.rm = T) |>
   mutate(mireInSurvey_km2 = sum / 1e+4) |>
   add_column(Municipality = "Nordre Follo")
+
+mire_in_dk2 <- mire_terra_gr |>
+  terra::mask(dk2 |> filter(Municipality == "Gran")) |>
+  global("sum", na.rm = T) |>
+  mutate(mireInSurvey_km2 = sum / 1e+4) |>
+  add_column(Municipality = "Gran")
+mire_in_dk3 <- mire_terra_na |>
+  terra::mask(dk2 |> filter(Municipality == "Nord-Aurdal")) |>
+  global("sum", na.rm = T) |>
+  mutate(mireInSurvey_km2 = sum / 1e+4) |>
+  add_column(Municipality = "Nord-Aurdal")
+
+mire_in_dk <- mire_in_dk |>
+  rbind(mire_in_dk2, mire_in_dk3)
 ```
 
 ```{r infrastructureIndex}
 #| eval: false
-
 # this data is on a 100x100m grid
-infra <- stars::read_stars(path_infrastructure) |>
-  # , which is mor then we need - warp it to 1x1km
+infra <- infra |>
+  # , which is more then we need - warp it to 1x1km
   st_warp(
     cellsize = c(1000, 1000),
     crs = st_crs(nf),
@@ -748,25 +813,51 @@ infra <- stars::read_stars(path_infrastructure) |>
     infrastructureIndex < 12 ~ 2,
     infrastructureIndex >= 12 ~ 3
   )) |>
-  # takeing away point in the sea
+  # taking away point in the sea
   st_crop(outline)
 
-# This step might seem rather stupid. We want to vectorize a rather large raster. This makes it a quite big data object. The reason is that there is no really good way to burn polygon data on to raster grid cells after the disuse of the raster package. It was not straight forward then either. But calculating intersections between polygons is very fast and easy.
+# This step might seem rather stupid. We want to vectorize a rather large 
+# raster. This makes it a quite big data object. The reason is that there is no 
+# really good way to burn polygon data on to raster grid cells after the disuse 
+# of the raster package. It was not straight forward then either. But 
+# calculating intersections between polygons is very fast and easy.
 
 infra <- eaTools::ea_homogeneous_area(infra,
   groups = infrastructureIndex
 )
 
-
-
 saveRDS(infra, paste0(path_temp, "infrastructureIndex_discrete_vectorized.rds"))
 ```
 
-```{r readInfraStructureIndex}
-#| eval: false
+```{r InfraStructureIndex}
+#| eval: true
 
 # read cached vetorized infrastructure data
 infra <- readRDS(paste0(path_temp, "infrastructureIndex_discrete_vectorized.rds"))
+
+```
+
+```{r}
+#| eval: true
+
+# Calculate area
+infra <- infra |>
+  mutate(
+    area = geometry |> st_area(),
+    area_km = area |> set_units("km2")
+  )
+
+# show the summered area per HIA
+infra |>
+  as_tibble() |>
+  group_by(infrastructureIndex) |>
+  summarise(area_km = sum(area_km)) |>
+  ggplot(aes(
+    x = infrastructureIndex,
+    y = area_km
+  )) +
+  geom_col()
+
 
 # intersect with the three municipalities
 # and calculate area
@@ -842,68 +933,247 @@ infraMuni3_tbl |>
   ) +
   guides(fill = "none", colour = "none") +
   scale_y_log10() +
-  facet_grid(cols = vars(Municipality)) 
+  facet_grid(cols = vars(Municipality))
+```
+
+```{r corrCheck}
+#| eval: true
+#| cache: true
+# Now I want to see if the indicator values depend on the HIA is a predictable
+# way to justify the stratification
+corrCheck <- st_intersection(naturetypes, infra)
+
+# corrCheck |>
+#  as_tibble() |>
+#  mutate(i_ADSV_fct = floor(round(i_ADSV*10,2))/10,
+#         i_alien_fct = floor(round(i_alien*10,2))/10) |>
+#  count(i_ADSV_fct, infrastructureIndex) |>
+#  View()
+
+
 ```
 
 ```{r HIA-validate}
 #| eval: false
-
-# Now I want to see if the indicator values depend on the HIA is a predictable
-# way to justify the stratification
-infra |>
-  as_tibble() |>
-  count(infrastructureIndex)
-
-
-corrCheck <- st_intersection(naturetypes, infra)
+# A first look
 corrCheck |>
-  as_tibble() |>
-  mutate(i_ADSV_fct = floor(round(i_ADSV*10,2))/10,
-         i_alien_fct = floor(round(i_alien*10,2))/10) |>
-  count(i_ADSV_fct, infrastructureIndex) |>
-  View()
-
-
-
-corrCheck |>
-  mutate(i_ADSV_fct = floor(round(i_ADSV*10,2))/10,
-         i_alien_fct = floor(round(i_alien*10,2))/10) |>
-  pivot_longer(cols = c(i_ADSV_fct, i_alien_fct),
-               values_to = "indicatorValue",
-               names_to = "indicator") |>
-  filter(!is.na(indicatorValue)) |>
+  mutate(
+    i_ADSV_fct = floor(round(i_ADSV * 10, 2)) / 10,
+    i_alien_fct = floor(round(i_alien * 10, 2)) / 10,
+    i_ditch_fct = floor(round(i_ditch * 10, 2)) / 10
+  ) |>
+  pivot_longer(
+    cols = c(i_ADSV_fct, i_alien_fct, i_ditch_fct),
+    values_to = "indicatorValue",
+    names_to = "indicator",
+    values_drop_na = T
+  ) |>
   ggplot(aes(
-    x = factor(infrastructureIndex), 
-    fill = factor(round(indicatorValue,2))))+
+    x = factor(infrastructureIndex),
+    fill = factor(indicatorValue)
+  )) +
   geom_bar(
-    #position="fill"
-    )+
-  theme_bw(base_size = 12)+
-  guides(fill = guide_legend("Scaled indicator values"))+
-  ylab("Fraction of data points")+
-  xlab("HIA")+
-  scale_fill_brewer(palette = "RdYlGn")+
+    position = "fill"
+  ) +
+  theme_bw(base_size = 12) +
+  guides(fill = guide_legend("Scaled indicator values")) +
+  ylab("Fraction of data points") +
+  xlab("HIA") +
+  scale_fill_brewer(palette = "RdYlGn") +
+  facet_grid(indicator ~ year)
+```
+
+```{r test 4}
+#| eval: false
+# The year effect is constant, so ignoring that
+corrCheck |>
+  mutate(
+    i_ADSV_fct = floor(round(i_ADSV * 10, 2)) / 10,
+    i_alien_fct = floor(round(i_alien * 10, 2)) / 10,
+    i_ditch_fct = floor(round(i_ditch * 10, 2)) / 10
+  ) |>
+  pivot_longer(
+    cols = c(i_ADSV_fct, i_alien_fct, i_ditch_fct),
+    values_to = "indicatorValue",
+    names_to = "indicator",
+    values_drop_na = T
+  ) |>
+  ggplot(aes(
+    x = factor(infrastructureIndex),
+    fill = factor(indicatorValue)
+  )) +
+  geom_bar(
+    position = "fill"
+  ) +
+  theme_bw(base_size = 12) +
+  guides(fill = guide_legend("Scaled indicator values")) +
+  ylab("Fraction of data points") +
+  xlab("HIA") +
+  scale_fill_brewer(
+    palette = "RdYlGn") +
   facet_grid(~indicator)
 ```
 
-```{r}
+```{r realValidationPlot}
+#| eval: true
+# Using a color gradient emphasizes the first color (dark green).
+# Lets try discrete colors, and merge some classes to simplify
+(validationPlot <- corrCheck |>
+  pivot_longer(
+    cols = c(i_ADSV, i_alien, i_ditch),
+    values_to = "indicatorValue",
+    names_to = "indicator",
+    values_drop_na = T
+  ) |>
+  mutate(
+    condition = case_when(
+      indicatorValue < 0.6 ~ "<0.6",
+      indicatorValue < 0.8 ~ "0.6 to 0.8",
+      indicatorValue < 0.91 ~ "0.8 to 0.9",
+      .default = "0.9 to 1"
+    ),
+    condition = fct_reorder(condition, indicatorValue),
+    indicator = case_when(
+      indicator == "i_ADSV" ~ "ADSV",
+      indicator == "i_alien" ~ "Alien species",
+      indicator == "i_ditch" ~ "Trenching"
+    )
+  ) |>
+  as_tibble() |>
+  group_by(indicator, infrastructureIndex, condition) |>
+  summarise(n = n()) |>
+  ungroup() |>
+  group_by(indicator, infrastructureIndex) |>
+  mutate(lab = round(n/sum(n)*100),
+         lab = case_when(
+           lab < 5 ~ NA,
+           .default = paste0(lab, "%")
+         )) |>
+  ggplot(aes(
+    x = infrastructureIndex,
+    y = n,
+    fill = condition
+  )) +
+  geom_bar(
+    position = "fill",
+    stat = "identity"
+  ) +
+  geom_text(aes(label = lab),
+    position = position_fill(vjust = 0.5),
+    color= "black", vjust = 0.5, size = 4) +
+  theme_minimal(base_size = 15) +
+  theme(
+    panel.grid = element_blank(), 
+    axis.text.x = element_text(margin = margin(t = -10)),
+    axis.text.y = element_blank(),
+    axis.title.y = element_blank(),
+    strip.text = element_textbox(
+      size = 12,
+      halign = 0.5, linetype = 1, r = unit(5, "pt"), width = unit(1, "npc"),
+      padding = margin(2, 0, 1, 0), margin = margin(3, 3, 3, 3))) +
+  guides(fill = guide_legend("Indicator values")) +
+  xlab("Human Impact Areas") +
+  scale_fill_manual(values = c("#E85437","#FBAF00", "#B5DF73", "#009000")) +
+  facet_grid(~indicator)
+)
+```
+
+```{r test3}
+#| eval: false
+# The figure changes a lot depending on which value gets the darker colour
+corrCheck |>
+  pivot_longer(
+    cols = c(i_ADSV, i_alien, i_ditch),
+    values_to = "indicatorValue",
+    names_to = "indicator",
+    values_drop_na = T
+  ) |>
+  mutate(
+    condition = case_when(
+      indicatorValue < 0.6 ~ "Poor",
+      indicatorValue < 0.8 ~ "Intermediate",
+      indicatorValue < 0.91 ~ "Good",
+      .default = "Perfect"
+    ),
+    condition = fct_reorder(condition, -indicatorValue)
+  ) |>
+  ggplot(aes(
+    x = factor(infrastructureIndex),
+    fill = condition
+  )) +
+  geom_bar(
+    position = "fill"
+  ) +
+  theme_bw(base_size = 12) +
+  guides(fill = guide_legend("Scaled indicator values")) +
+  ylab("Fraction of data points") +
+  xlab("HIA") +
+  scale_fill_viridis_d(alpha = .8) +
+  facet_grid(~indicator)
+```
+
+```{r test2}
+#| eval: false
+# If I look at this on a log scale, it also changes and becomes less convincing for ADSV and alien
+corrCheck |>
+  pivot_longer(
+    cols = c(i_ADSV, i_alien, i_ditch),
+    values_to = "indicatorValue",
+    names_to = "indicator",
+    values_drop_na = T
+  ) |>
+  mutate(
+    condition = case_when(
+      indicatorValue < 0.6 ~ "Poor",
+      indicatorValue < 0.8 ~ "Intermediate",
+      indicatorValue < 0.91 ~ "Good",
+      .default = "Perfect"
+    ),
+    condition = fct_reorder(condition, -indicatorValue)
+  ) |>
+  ggplot(aes(
+    x = factor(infrastructureIndex),
+    fill = condition
+  )) +
+  geom_bar(
+    position = "fill"
+  ) +
+  theme_bw(base_size = 12) +
+  guides(fill = guide_legend("Scaled indicator values")) +
+  ylab("Fraction of data points") +
+  xlab("HIA") +
+  scale_y_log10() +
+  scale_fill_viridis_d(alpha = .8) +
+  facet_grid(~indicator)
+
+# This is not correct I think as it evens out differences that are clearly there.
+# i_ditch is shown less of a pattern for example
+```
+
+```{r test}
 #| eval: false
 
-# There is very little data from HIA 3, so I combine it with HIA 2
+# HIAs 1 and 2 are quite similar for i_alien and i_ADSV, so perhaps I can combine them
 corrCheck |>
-  mutate(i_ADSV_fct = floor(round(i_ADSV*10,2))/10,
-         i_alien_fct = floor(round(i_alien*10,2))/10,
-         infrastructureIndex = case_when(
-           infrastructureIndex == 3 ~ 2,
-           .default = infrastructureIndex
-         )) |>
-  pivot_longer(cols = c(i_ADSV_fct, i_alien_fct),
+  pivot_longer(cols = c(i_ADSV, i_alien),
                values_to = "indicatorValue",
                names_to = "indicator") |>
   filter(!is.na(indicatorValue)) |>
+  mutate(condition = case_when(
+    indicatorValue <0.6 ~"Poor",
+    indicatorValue <0.8 ~"Intermediate",
+    indicatorValue <0.91 ~"Good",
+    .default = "Perfect"
+  ),
+  condition = fct_reorder(condition, indicatorValue),
+  HIA = case_when(
+    infrastructureIndex %in% c(1,2) ~ "1 & 2",
+    .default = factor(infrastructureIndex)
+  )
+  ) |>
   ggplot(aes(
-    x = factor(infrastructureIndex), 
-    fill = factor(round(indicatorValue,2))))+
+    x = HIA, 
+    fill = condition))+
   geom_bar(
     position="fill"
     )+
@@ -911,117 +1181,30 @@ corrCheck |>
   guides(fill = guide_legend("Scaled indicator values"))+
   ylab("Fraction of data points")+
   xlab("HIA")+
-  scale_fill_brewer(palette = "RdYlGn")+
+  scale_y_log10() +
+  scale_fill_viridis_d(alpha = .8) +
   facet_grid(~indicator)
-```
-
-```{r}
-# That did not made it better
-# Is there a year effect?
-
-corrCheck |>
-  mutate(i_ADSV_fct = floor(round(i_ADSV*10,2))/10,
-         i_alien_fct = floor(round(i_alien*10,2))/10,
-         infrastructureIndex = case_when(
-           infrastructureIndex == 3 ~ 2,
-           .default = infrastructureIndex
-         )) |>
-  pivot_longer(cols = c(i_ADSV_fct, i_alien_fct),
-               values_to = "indicatorValue",
-               names_to = "indicator") |>
-  filter(!is.na(indicatorValue)) |>
-  ggplot(aes(
-    x = factor(infrastructureIndex), 
-    fill = factor(round(indicatorValue,2))))+
-  geom_bar(
-    position="fill"
-    )+
-  theme_bw(base_size = 12)+
-  guides(fill = guide_legend("Scaled indicator values"))+
-  ylab("Fraction of data points")+
-  xlab("HIA")+
-  scale_fill_brewer(palette = "RdYlGn")+
-  facet_grid(indicator~year)
-```
-
-```{r}
-# Next, make a violing/box plot
-
-corrCheck |>
-  mutate(i_ADSV_fct = floor(round(i_ADSV*10,2))/10,
-         i_alien_fct = floor(round(i_alien*10,2))/10,
-         infrastructureIndex = case_when(
-           infrastructureIndex == 3 ~ 2,
-           .default = infrastructureIndex
-         )) |>
-  pivot_longer(cols = c(i_ADSV_fct, i_alien_fct),
-               values_to = "indicatorValue",
-               names_to = "indicator") |>
-  filter(!is.na(indicatorValue)) |>
-  ggplot(aes(
-    x = factor(infrastructureIndex), 
-    y = indicatorValue))+
-  geom_boxplot(
-    )+
-  theme_bw(base_size = 12)+
-  guides(fill = guide_legend("Scaled indicator values"))+
-  ylab("Fraction of data points")+
-  xlab("HIA")+
-  scale_fill_brewer(palette = "RdYlGn")+
-  facet_grid(indicator~year)
-```
-
-```{r}
-#| eval: false
-
-# All the 1's might make it hard to see the pattern.
-# Try removing the 1's (the areas in best condition)
-
-corrCheck |>
-  mutate(i_ADSV_fct = floor(round(i_ADSV*10,2))/10,
-         i_alien_fct = floor(round(i_alien*10,2))/10,
-         infrastructureIndex = case_when(
-           infrastructureIndex == 3 ~ 2,
-           .default = infrastructureIndex
-           )) |>
-  pivot_longer(cols = c(i_ADSV_fct, i_alien_fct),
-               values_to = "indicatorValue",
-               names_to = "indicator") |>
-  mutate(indicatorValue = na_if(indicatorValue, 1)) |>
-  filter(!is.na(indicatorValue)) |>
-  ggplot(aes(
-    x = factor(infrastructureIndex), 
-    fill = factor(round(indicatorValue,2))))+
-  geom_bar(
-    position="fill"
-    )+
-  theme_bw(base_size = 12)+
-  guides(fill = guide_legend("Scaled indicator values"))+
-  ylab("Fraction of data points")+
-  xlab("HIA")+
-  scale_fill_brewer(palette = "RdYlGn")+
-  facet_grid(~indicator)
-
 ```
 
 ```{r infraMuniMaps}
-#| eval: false
+#| eval: true
+#| cache: true
 
 # Infratructure in each municipality
-infraMuniMap <- tm_shape(muni3) +
+(infraMuniMap <- tm_shape(muni3) +
   tm_borders() +
   tm_shape(infraMuni3) +
   tm_polygons(
     col = "infrastructureIndex",
     style = "cat",
-    title = "Human Impact\nArea Class"
+    title = "Human Impact Areas"
   ) +
+  tm_layout(
+    legend.show = F,
+    panel.label.height = 0) +
   tm_shape(muni3) +
   tm_borders(lwd = 3, col = "black") +
-  tm_facets(by = "Municipality") +
-  tm_layout(
-    legend.show = FALSE,
-    panel.label.height = 0)
+  tm_facets(by = "Municipality"))
 
 # A figure with just the legend
 infraMuniMap_l <- tm_shape(muni3) +
@@ -1030,15 +1213,18 @@ infraMuniMap_l <- tm_shape(muni3) +
   tm_polygons(
     col = "infrastructureIndex",
     style = "cat",
-    title = "Human Impact\nArea Class"
+    title = "Human\nImpact\nArea"
   ) +
   tm_layout(legend.only = TRUE,
             legend.position = c("left", "bottom"),
-            legend.outside = TRUE)
+            legend.outside = F)
 
 
+empty <- tm_shape(muni3) +
+  tm_borders(col="white") +
+  tm_layout(frame = F)
 
-# Syrvey coverage and other colour overlayed the municipalities
+# Survey coverage and other colour overlayed the municipalities
 muniPlot <- tm_shape(muni3) +
   tm_borders() +
   tm_facets(
@@ -1055,7 +1241,7 @@ muniPlot <- tm_shape(muni3) +
     col = "skyblue",
     border.col = "black"
   ) +
-  tm_shape(dk) +
+  tm_shape(dk2) +
   tm_polygons(
     col = "grey",
     alpha = .8
@@ -1068,12 +1254,14 @@ muniPlot <- tm_shape(muni3) +
   )
 
 
+
 (methodsMap <- tmap_arrange(
-  positionMap,
   muniPlot,
-  infraMuniMap_l,
+  empty,
   infraMuniMap,
-  widths = c(.35, .65),
+  infraMuniMap_l,
+  ncol = 2,
+  widths = c(.8, .2),
   heights = c(.6, .4),
   outer.margins = NULL
 ))
@@ -1091,7 +1279,7 @@ muniPlot <- tm_shape(muni3) +
 ```{r muni-tbl}
 #| eval: false
 
-# Calulate some more stats for the table with municipality stats
+# Calculate some more stats for the table with municipality stats
 
 # Number of mire polygons per municipality
 # -- Try count() here instead
@@ -1116,9 +1304,10 @@ muni_tbl <- muni3 |>
   # make tibble for the coming join
   as_tibble() |>
   # paste inn terrestrial area
-  left_join(terrestrial |>
-              as_tibble() |> 
-              select(kommunenummer, t_area_km),
+  left_join(
+    terrestrial |>
+      as_tibble() |>
+      select(kommunenummer, t_area_km),
     keep = F
   ) |>
   # area of survey
@@ -1129,7 +1318,7 @@ muni_tbl <- muni3 |>
   # total mire area and %
   left_join(mireArea |> select(Municipality, mirePercent, mire_km2)) |>
   # % mire inside survey coverage map
-  left_join(mire_nf_terra_dk |> select(Municipality, mireInSurvey_km2)) |>
+  left_join(mire_in_dk |> select(Municipality, mireInSurvey_km2)) |>
   mutate(mireInSurvery_percent = round(mireInSurvey_km2 / mire_km2 * 100, 2)) |>
   left_join(infraMuni3_summary)
 
@@ -1183,24 +1372,13 @@ We end by interviewing end-users from the relevant municipalities about the perc
 
 # Material and Methods
 
-In this study we focused on open mire ecosystems in Norway.
-For this ecosystem we have an ecosystem delineation map produced using remotely sensed data and a deep learning model [@bakkestuen_delineation_2023].
-This model, which has a 90.9% precision when tested against independent field data, estimates 12.7% of the area in southern Norway is mire [@bakkestuen_delineation_2023].
-Mires are ecologically and socially important in Norway simply doe to its large extent, and due to its role in climate mitigation, as mires store a large amount of carbon (REF?).
-There has not been a national assessment of the ecosystem condition of mires in Norway, but we recent contributed on a report which presented several new indicators that can be used in future assessment [@nybo_indikatorer_2023; see also @kolstad2023]).
-This study builds on the work in that report.
-
-We started by defining the reference state as one where ecosystems are subject to little or no human influence, with a climate as in the period 1961-1990 and a native species pool similar as today (i.e no mammoths allowed).
-We then identified two *ecosystem condition characteristics* that, along with many other characteristics that we do not specify here, define the typical behavior of open mire ecosystems in the reference condition: species composition, and; vegetation intactness.
-
-To describe these two characteristics we use five condition variables from the same data set ( @tbl-variables).
-The data set is from a standardised field survey of nature types in Norway that started in 2018 and which is still ongoing.
-The data is freely available [@norwegian_environmental_agency_naturtyper_2024].
-See @miljødirektoratet for the sampling protocol (in Norwegian).
-We included data from 2018 to 2023.
+This study makes use of a data set from from a standardised field survey of nature types in Norway that started in 2018 and which is still ongoing [@norwegian_environmental_agency_naturtyper_2024].
+We included data from 2018 to 2022.
 In this survey, selected nature types are delineated on a map, and each locality is scored on a range of variables relevant for describing the state and quality of nature.
 The surveys are commissioned with the goal of producing data relevant for immediate land-use decisions, and is therefore spatially biased, typically towards areas with high human impact or expected impact.
 In addition there is a thematic and size bias in the sampling protocol.
+For examples, for the forest ecosystem, rare, endangered or calcareous forest types are delineated, whereas more common or ordinary forest types are not.
+For that reason we we focused on open mire ecosystems in Norway where the thematic bias is less severe.
 Of all possible mire types, the survey only maps the following:
 
 -   Southern ombrotrophic mires \> 2500 m^2^
@@ -1214,28 +1392,55 @@ Of all possible mire types, the survey only maps the following:
 -   Calcareous northern fens \>1000 m^2^
 
 In the above, *southern* refers to boreonemoral and southboreal zones, and *northern* refers to mid-boreal, north boreal, and alpine zones @asbjørnmoen1998 .
-In addition, the northern fens need to be even more calcareous than the southern fens in order to be surveyed, and the variable 7FK is not recorded in ombrotrophic mires.
+In addition, the northern fens need to be even more calcareous than the southern fens in order to be surveyed.
+
+<!--# and the variable 7FK is not recorded in ombrotrophic mires -->
+
 In this paper we assume the survey is representative for the entire mire ecosystem in Norway.
-Although it is possible that smaller or less calcareous mires will score systematically different than the ones that are surveyed we do not think this is the case for our variables at least.
+Although it is possible that smaller or less calcareous mires will score systematically different than the ones that are surveyed we do not think this is so much the case for our variables.
 It may also be that alien plants are more or less common on bogs relative to fens.
 For this we have no assumption.
 
-| Variable code        | Variable name                                    | Measurement unit                                                                        | Description                                                                                                    | Reference                          |
-|---------------|---------------|---------------|---------------|---------------|
-| 7FK                  | Prevalence of alien species                      | Unitless, ordinal, non-linear scale from 1 (no alien species) to 7 (only alien species) | The fraction of the species composition made up from alien species                                             | @runehalvorsen2019                 |
-| 7SE                  | Human caused abration or abration-caused erosion | Unitless, ordinal, non-linear scale from 1 to 4.                                        | Measures the frequency of imagined 4 m^2^ quadrats layed over the area that has some sign of abration          | @runehalvorsen2019                 |
-| PRSL                 | *as above*                                       | Unitless, ordinal, non-linear scale from 0 to 7.                                        | Same as 7SE, but recorded at a higher resolution                                                               | @miljødirektoratet                 |
-| 7TK                  | Tracks from large vehicles                       | Unitless, ordinal, non-linear scale from 1 to 4.                                        | Measures the frequency of imagined 100 m^2^ quadrats layed over the area that has some signs of vehicle tracks | @rune_halvorsen_dokumentasjon_2019 |
-| PRTK                 | *as above*                                       | Unitless, ordinal, non-linear scale from 0 to 7.                                        | Same as 7TK, but recorded at a higher resolution                                                               | @miljødirektoratet                 |
-| Infrastructure Index | Infrastructure Index                             | Unitelss linear scale from 0 to 13.2                                                    | Unitelss index ranging from from 0 to 13.2                                                                     | @erikstad_index_2023               |
-| HIA                  | Human Impact area                                | Ordinal, non-linear scale from 1 to 4                                                   | A categorical representation of the infrastructure index                                                       | this paper                         |
+For the mire ecosystem we have an ecosystem delineation map produced using remotely sensed data and a deep learning model [@bakkestuen_delineation_2023].
+This model, which has a 90.9% precision when tested against independent field data, estimates 12.7% of the area in southern Norway is mire [@bakkestuen_delineation_2023].
+Mires are ecologically and socially important in Norway simply doe to its large extent, and due to its role in climate mitigation, as mires store a large amount of carbon (REF?).
+There has not been a national assessment of the ecosystem condition of mires in Norway, but we recent contributed on a report which presented several new indicators that can be used in future assessment [@nybo_indikatorer_2023; see also @kolstad2023]).
+This study builds on the work in that report.
+
+We started by defining the reference state as one where ecosystems are subject to little or no human influence, with a climate as in the period 1961-1990 and a native species pool similar as today (i.e no mammoths allowed).
+We then identified two *ecosystem condition characteristics* that, along with many other characteristics that we do not specify here, define the typical behavior of open mire ecosystems in the reference condition: species composition, and; vegetation intactness.
+
+To describe these two characteristics we use six condition variables from the same data set ( @tbl-variables).
+
+See @miljødirektoratet for the sampling protocol (in Norwegian).
+
+| id  | Variable code        | Variable name                                    | Measurement unit                                                                        | Description                                                                                                                                                       | Reference                          |
+|------------|------------|------------|------------|----------------|------------|
+| 1   | 7FK                  | Prevalence of alien species                      | Unitless, ordinal, non-linear scale from 1 (no alien species) to 7 (only alien species) | The fraction of the species composition made up from alien species                                                                                                | @runehalvorsen2019                 |
+| 2   | 7SE                  | Human caused abration or abration-caused erosion | Unitless, ordinal, non-linear scale from 1 to 4.                                        | Measures the frequency of imagined 4 m^2^ quadrats layed over the area that has some sign of abration                                                             | @runehalvorsen2019                 |
+| 3   | PRSL                 | *as above*                                       | Unitless, ordinal, non-linear scale from 0 to 7.                                        | Same as 7SE, but recorded at a higher resolution                                                                                                                  | @miljødirektoratet                 |
+| 4   | 7TK                  | Tracks from large vehicles                       | Unitless, ordinal, non-linear scale from 1 to 4.                                        | Measures the frequency of imagined 100 m^2^ quadrats layed over the area that has some signs of vehicle tracks                                                    | @rune_halvorsen_dokumentasjon_2019 |
+| 5   | PRTK                 | *as above*                                       | Unitless, ordinal, non-linear scale from 0 to 7.                                        | Same as 7TK, but recorded at a higher resolution                                                                                                                  | @miljødirektoratet                 |
+| 6   | 7GR-GI               | Ditching intensity                               | Unitless, ordinal scale from 1 to 5                                                     | Describes the effect that drainage ditches is estimate to have on the species composition and environmental variables ones the system reached its new equilibrium | @miljødirektoratet                 |
+| 7   | Infrastructure Index | Infrastructure Index                             | Unitelss linear scale from 0 to 13.2                                                    | Unitelss index ranging from from 0 to 13.2                                                                                                                        | @erikstad_index_2023               |
+| 8   | HIA                  | Human Impact area                                | Ordinal, non-linear scale from 1 to 4                                                   | A categorical representation of the infrastructure index                                                                                                          | this paper                         |
 
 : Variables used in this study {#tbl-variables}
 
+Variables 1 -5 were 7FK were originally recorded along frequency ranges.
+We the lower limit for each frequency range to convert them into percentages.
+This was done because the data was strongly right skewed .
 7FK was developed into a single indicator (i.e. a normalised variable) named *Alien plant cover*.
 Variables 2-5 describe very related aspects and so they where combined into one indicator called antropogenic disturbance to soil and vegetation, or ADSV for short.
-This was done by taking the value from the variable with the lowest value, i.e. worst condition.
-For both indicators, the lower and upper reference values, i.e. the worst and best possible condition that the variables can be in, is given by the range of the data where 0 or 1 is the lower limit and 4, 7 or 8 is the upper limit, depending on the variable (see @tbl-variables).
+This was done by summing the two variables after they had been converted to percentages.
+This was not a perfect solution, especially since some localities only had one of the variables recorded, but we chose this, rather than for example using a *worst rule* principle, in order to better separate the localities in terms of their indicator values.
+For both indicators (alien species and ADSV), the lower and upper reference values, i.e. the worst and best possible condition that the variables can be in, is defined as 100% and 0%, respectively.
+The threshold for *good ecosystem condition* was defined as 10%, and this was mapped to the value 0.6 on the rescaled indicators.
+Variable 7GR-GI was rescaled into an indicator named *ditching intensity* by using the lower and upper reference values 1 and 5, respectively, and a threshold value of 2.5.
+A variable value of 1 indicates an intact mire, and a value of 5 indicates a mire transitioning away from a wetland.
+A value of 2 indicator observable change within the range expected for the same mapping unit, and a value of 3 indicates a mire transitioning into a neighboring (ecologically speaking) mapping unit.
+
+The .
 See @fig-workflow for a schematic workflow for the indicator development.
 
 The Alien plant cover was assigned to ECT class B1 - Compositional state characteristics, and ADSV was assigned to ECT class A1 - Physical state characteristics [@czucz_common_2021].
@@ -1243,7 +1448,7 @@ The Alien plant cover was assigned to ECT class B1 - Compositional state charact
 ![Schematic workflow followed in this paper. Sub-index A is calculated using spatially explicit aggregation (i.e .a simple overlay taking the mean value).](../images/workflow.jpg){#fig-workflow}
 
 We chose three municipalities in Norway to test out the indicators (@fig-studyLocation).
-These municipalities are spread over `r round(max(latlong$Y)-min(latlong$Y), 1)` degrees latitude, or `r km_distance` km, and also differ in the amount of mire area, the total area surveyed, and the prevalence of infrastructure (@tbl-variables).
+The differ in several aspect, such as the amount of mire area, the total area surveyed, and the prevalence of infrastructure (@tbl-variables).
 
 ```{r fig-studyLocation}
 #| eval: true
@@ -1256,14 +1461,30 @@ These municipalities are spread over `r round(max(latlong$Y)-min(latlong$Y), 1)`
 #| in red, with polygon borderes made extra thich to make them visible,
 #| but then also exagerating their size."
 
-(temp <- readRDS("../figures/studyLocation.RDS"))
+#(temp <- readRDS("../figures/studyLocation.RDS"))
+positionMap
 ```
 
-| Municipality | Total terrestrial area (km^2^)                                            | \% of terrestrial area surveyed                                            | \% open mires in relation to total terrestrial area                         | Total mire area (km^2^)                                                  | %of mire area inside survey area                                                      | Number of mire polygons in survey                                 | Mean Infrastructure Index value                                         |
+```{r fig-studyLocation2}
+#| eval: true
+#| include: true
+#| out.width: '100%'
+#| fig.cap:
+#| - "Map of the three focal municiaplities. For each municipality the map shows 
+#| ocean in blue and non-ocean
+#| in green. The survey coverage maps are in grey, and the mapped mires are
+#| in red, with polygon borderes made extra thich to make them visible,
+#| but then also exagerating their size."
+
+#(temp <- readRDS("../figures/studyLocation.RDS"))
+methodsMap
+```
+
+| Municipality  | Total terrestrial area (km^2^)                                            | \% of terrestrial area surveyed                                            | \% open mires in relation to total terrestrial area                         | Total mire area (km^2^)                                                  | %of mire area inside survey area                                                      | Number of mire polygons in survey                                 | Mean Infrastructure Index value                                         |
 |---------|---------|---------|---------|---------|---------|---------|---------|
-| Nordre Follo | `r muni_tbl |> filter(Municipality == "Nordre Follo") |> pull(t_area_km)` | `r muni_tbl |> filter(Municipality == "Nordre Follo") |> pull(dk_percent)` | `r muni_tbl |> filter(Municipality == "Nordre Follo") |> pull(mirePercent)` | `r muni_tbl |> filter(Municipality == "Nordre Follo") |> pull(mire_km2)` | `r muni_tbl |> filter(Municipality == "Nordre Follo") |> pull(mireInSurvery_percent)` | `r muni_tbl |> filter(Municipality == "Nordre Follo") |> pull(n)` | `r muni_tbl |> filter(Municipality == "Nordre Follo") |> pull(meanHIA)` |
-| Trondheim    | `r muni_tbl |> filter(Municipality == "Trondheim") |> pull(t_area_km)`    | `r muni_tbl |> filter(Municipality == "Trondheim") |> pull(dk_percent)`    |                                                                             |                                                                          |                                                                                       | `r muni_tbl |> filter(Municipality == "Trondheim") |> pull(n)`    | `r muni_tbl |> filter(Municipality == "Trondheim") |> pull(meanHIA)`    |
-| Målselv      | `r muni_tbl |> filter(Municipality == "Målselv") |> pull(t_area_km)`      | `r muni_tbl |> filter(Municipality == "Målselv") |> pull(dk_percent)`      |                                                                             |                                                                          |                                                                                       | `r muni_tbl |> filter(Municipality == "Målselv") |> pull(n)`      | `r muni_tbl |> filter(Municipality == "Målselv") |> pull(meanHIA)`      |
+| Nordre Follo  | `r muni_tbl |> filter(Municipality == "Nordre Follo") |> pull(t_area_km)` | `r muni_tbl |> filter(Municipality == "Nordre Follo") |> pull(dk_percent)` | `r muni_tbl |> filter(Municipality == "Nordre Follo") |> pull(mirePercent)` | `r muni_tbl |> filter(Municipality == "Nordre Follo") |> pull(mire_km2)` | `r muni_tbl |> filter(Municipality == "Nordre Follo") |> pull(mireInSurvery_percent)` | `r muni_tbl |> filter(Municipality == "Nordre Follo") |> pull(n)` | `r muni_tbl |> filter(Municipality == "Nordre Follo") |> pull(meanHIA)` |
+| `Gran`        | `r muni_tbl |> filter(Municipality == "Gran") |> pull(t_area_km)`         | `r muni_tbl |> filter(Municipality == "Gran") |> pull(dk_percent)`         | `r muni_tbl |> filter(Municipality == "Gran") |> pull(mirePercent)`         | `r muni_tbl |> filter(Municipality == "Gran") |> pull(mire_km2)`         | `r muni_tbl |> filter(Municipality == "Gran") |> pull(mireInSurvery_percent)`         | `r muni_tbl |> filter(Municipality == "Gran") |> pull(n)`         | `r muni_tbl |> filter(Municipality == "Gran") |> pull(meanHIA)`         |
+| `Nord-Aurdal` | `r muni_tbl |> filter(Municipality == "Nord-Aurdal") |> pull(t_area_km)`  | `r muni_tbl |> filter(Municipality == "Nord-Aurdal") |> pull(dk_percent)`  | `r muni_tbl |> filter(Municipality == "Nord-Aurdal") |> pull(mirePercent)`  | `r muni_tbl |> filter(Municipality == "Nord-Aurdal") |> pull(mire_km2)`  | `r muni_tbl |> filter(Municipality == "Nord-Aurdal") |> pull(mireInSurvery_percent)`  | `r muni_tbl |> filter(Municipality == "Nord-Aurdal") |> pull(n)`  | `r muni_tbl |> filter(Municipality == "Nord-Aurdal") |> pull(meanHIA)`  |
 
 : Information for the three target municipalities in Norway
 
@@ -1276,6 +1497,17 @@ Aggregation
 Data availability/coverage
 
 Validation
+
+```{r fig-validation}
+#| eval: true
+#| include: true
+#| out.width: '100%'
+#| fig.cap:
+#| - "Proportion of localities with different scaled indicator values for three 
+#| ecosystem condition indicators along a Human Impact Gradient" 
+
+validationPlot
+```
 
 National/regional indicator - do we have enough data?
 
