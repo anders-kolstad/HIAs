@@ -76,6 +76,7 @@ library(tidyverse)
 library(knitr)
 library(sf)
 library(tmap)
+libarary(tmaptools)
 library(stars)
 library(terra)
 library(tidyterra)
@@ -1471,10 +1472,8 @@ stats_tbl
 # 
 # #define colours for dots and bars
 dotCOLS = c("grey90","grey70", "grey50", "grey40")
-
 barCOLS <- tmaptools::get_brewer_pal("Set1", n = 4)
-#barCOLS = c("grey80","grey60", "grey40", "grey20")
-  
+
   
 stats_tbl |>
   mutate(
@@ -1484,41 +1483,53 @@ stats_tbl |>
       indicator == "i_ditch" ~ "Trenching"
     )
   ) |>
+  rowwise() |>
+  mutate(
+    low = quantile(rnorm(200, mean, sd), probs = 0.025),
+    high = quantile(rnorm(200, mean, sd), probs = 0.975),
+    high = ifelse(high > 1, 1, high)
+  ) |>
   ggplot(aes(x=infrastructureIndex, 
              y=mean, 
-             ymin=mean-sd, 
-             ymax=mean+sd,
+             ymin=low,
+             ymax=high,
              col=factor(infrastructureIndex),
              fill=factor(infrastructureIndex))) + 
-#specify position here
   geom_linerange(
     size=10,
-    #position=position_dodge(width = .9)
-    ) +
-  #geom_hline(yintercept=1, lty=2) +
-#specify position here too
   geom_point(
     size=3, 
     shape=21, 
     colour="white", 
     stroke = 0.5,
-    #position=position_dodge(width = .9)
     ) +
   geom_text(
-    aes(y = mean-sd, label = n),
+    aes(y = low, label = n),
     nudge_y = -0.1,
     show.legend = F
   ) +
   scale_fill_manual(values=dotCOLS)+
   scale_color_manual(values=barCOLS)+
   scale_x_discrete(name="") +
-  scale_y_continuous(name="Indicator values", limits = c(0, 1)) +
+  scale_y_continuous(name="Indicator values", limits = c(-0.1, 1)) +
   coord_flip() +
   theme_bw() +
   labs(fill = "HIA",
        col = "HIA") +
   facet_grid(indicator ~ Municipality)
 ```
+
+```{r}
+# Next I need to 
+#  - copy the weighted means and SDs over to the ecosystem delineation map polygons 
+#  - show intermittent resulting map with ggmagnify
+#  - sample from these distributions (ignore missing HIAs)
+```
+
+```{r}
+
+```
+
 
 # Introduction
 
