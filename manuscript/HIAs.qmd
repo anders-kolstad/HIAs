@@ -1602,20 +1602,28 @@ spread_na_map <- spread_na |>
                           corners = 0.1) +
   theme_bw()
 
-ggsave("../images/spread-na.tiff",
-       plot = spread_na_map)
-ggsave("../images/spread-na-small.tiff",
-       plot = spread_na_map,
-       dpi=150)
-ggsave("../images/spread-na-small.jpg",
-       plot = spread_na_map)
+#ggsave("../images/spread-na.tiff",
+#       plot = spread_na_map)
+#ggsave("../images/spread-na-small.tiff",
+#       plot = spread_na_map,
+#       dpi=150)
+#ggsave("../images/spread-na-small.jpg",
+#       plot = spread_na_map)
 ```
 
 ```{r EAA}
 #| eval: true
 #| cache: true
 
-combineALl <- rbind(
+# Now I sample indicator values from the EDM and create a new distribution for 
+# indicator values in the EEA (the municipalities). First I sample the individual
+# distributions for each mire polygon with n defined by the polygon area.
+# The distribution for the polygon areas is strongly right skewed, meaning
+# some polygons will contribute much more to the EAA value than others.
+# I will keep this design in-line with SEEA EA guidelines for area weighting, 
+# but it's worth noting that this could be solved in other ways.
+# 
+combineAll <- rbind(
   spread_nf,
   spread_gr,
   spread_na
@@ -1625,18 +1633,81 @@ combineALl <- rbind(
   group_by(Municipality, indicator) |>
   rowwise() |>
   mutate(
-    i_sample = list(sample(rnorm(10, mean, sd)))) |>
-  unnest(cols=i_sample) |>
-  summarise(mean = mean(i_sample),
-            lower = quantile(i_sample, probs = c(0.025)),
-            upper = quantile(i_sample, probs = c(0.975)))
+    i_sample = list(sample(rnorm(n, mean, sd)))) |>
+  select(-geometry) |>
+  group_by(Municipality, indicator) |>
+  reframe(i_sample = 
+            sample(
+              unlist(i_sample), 
+              size = 1000,
+              replace = TRUE)) |>
+  mutate(i_sample = case_when(
+    i_sample < 0 ~ 0,
+    i_sample >1  ~ 1,
+    .default = i_sample
+  ))
+```
 
-# add area weights to the above and make forest plot
+```{r EEA-plot}
+#| eval: true
+#| cache: true
+library(ggridges)
 
-  
-#combineALl
-#tail(combineALl)
-#combineALl$i_sample[2]
+(ridgepPlot <- combineAll |>
+  mutate(
+    indicator = case_when(
+      indicator == "i_ADSV" ~ "ADSV",
+      indicator == "i_alien" ~ "Alien species",
+      indicator == "i_ditch" ~ "Trenching"
+    )) |>
+  ggplot(
+    aes(
+      x = i_sample, 
+      y = Municipality,
+      fill = after_stat(x))
+  ) +
+  geom_density_ridges_gradient(
+    bandwidth=.05,
+    quantile_lines = TRUE, 
+    quantiles = c(0.025, .5, 0.975)
+  ) +
+  #scale_fill_viridis_c(option = "D") +
+  scale_fill_distiller(palette = "RdYlGn",
+    direction = 1) +
+  theme_bw(base_size = 15) +
+  guides(fill = "none") +
+  geom_vline(xintercept = .6,
+    size=1.2,
+    lty=2) +
+  theme(axis.text.x = element_text(angle=45, hjust=1, vjust=1))+
+  labs(y = "", x = "Indicator values")+
+  xlim(c(0,1)) +
+  facet_wrap(.~indicator)
+)
+
+#ggsave(plot = ridgepPlot,
+#       "../images/ridgePlot.jpg",
+#       width=10,
+#       height=5)
+```
+
+```{r EEA-tbl}
+#| eval: true
+(EEA_tbl <- combineAll |>
+  mutate(
+    indicator = case_when(
+      indicator == "i_ADSV" ~ "ADSV",
+      indicator == "i_alien" ~ "Alien species",
+      indicator == "i_ditch" ~ "Trenching"
+    )) |>
+  group_by(Municipality, indicator) |>
+  summarise(mean = round(mean(i_sample), 2),
+            median = round(median(i_sample), 2),
+            percentile_025 = round(quantile(i_sample, probs = 0.025), 2),
+            percentile_975 = round(quantile(i_sample, probs = 0.975), 2))
+)
+
+# saveRDS(EEA_tbl, "../output/EEA-table.RDS")
 ```
 
 
@@ -1778,7 +1849,17 @@ See @fig-workflow for a schematic workflow for the indicator development.
 
 The Alien plant cover was assigned to ECT class B1 - Compositional state characteristics, and ADSV was assigned to ECT class A1 - Physical state characteristics [@czucz_common_2021].
 
-![Schematic workflow followed in this paper. Sub-index A is calculated using spatially explicit aggregation (i.e .a simple overlay taking the mean value).](../images/workflow.jpg){#fig-workflow}
+```{r fig-workflow}
+#| eval: true
+#| include: true
+#| out.width: '90%'
+#| fig.cap:
+#| - "Schematic workflow followed in this paper. Sub-index A is calculated using 
+#| spatially explicit aggregation." 
+
+knitr::include_graphics("../images/workflow.jpg")
+```
+
 
 We chose three municipalities in Norway to test out the indicators (@fig-studyLocation).
 The differ in several aspect, such as the amount of mire area, the total area surveyed, and the prevalence of infrastructure (@tbl-variables).
@@ -1842,6 +1923,20 @@ knitr::include_graphics("../images/forest-plot.jpg")
 
 knitr::include_graphics("../images/spread-na-small.jpg")
 ```
+
+```{r fig-EEA-ridgePlot}
+#| eval: true
+#| include: true
+#| out.width: '80%'
+#| fig.cap:
+#| - "Distributions for three ecosystem condition indicators in the Norwegian 
+#| Municiaplities. The color gradient reflects the same as the x-axis. 
+#| The dotted vertical line represnet the threshold for what is considered 
+#| reduced ecosystem condtion (< 0.6). "
+
+knitr::include_graphics("../images/ridgePlot.jpg")
+```
+
 
 # Discussion
 
