@@ -1545,10 +1545,42 @@ combineAll <- rbind(
             percentile_975 = round(quantile(i_sample, probs = 0.975), 2))
 )
 
+library(kableExtra)
 
-#EEA_tbl |>
-#  kable()
 # saveRDS(EEA_tbl, "../output/EEA-table.RDS")
+```
+
+```{r}
+(EEA_tbl_out <- EEA_tbl |>
+  ungroup() |>
+  mutate(value = 
+    paste0(
+      format(median, 2), 
+      " [",
+      format(percentile_025,2),
+      " - ",
+      format(percentile_975,2),
+      "] ")) |>
+  rename(Indicator = indicator) |>
+  select(
+    -mean,
+    -median,
+    -percentile_025,
+    -percentile_975,
+    -Municipality
+  )|>
+  kbl(table.attr = "style = \"color: black;\"",
+      align = "lr") |>
+  kable_classic("striped",
+    full_width = F) |>
+  row_spec(0, bold=T) %>%
+    pack_rows("Gran", 1, 3, 
+      label_row_css = "background-color: #cef598; color: #000000;") |>
+  pack_rows("Nord-Aurdal", 4, 6, 
+      label_row_css = "background-color: #cef598; color: #000000;") |>
+  pack_rows("Nordre Follo", 7, 9, 
+      label_row_css = "background-color: #cef598; color: #000000;")
+)
 ```
 
 # Introduction
