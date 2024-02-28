@@ -1,0 +1,62 @@
+---
+title: Appendix A
+subtitle: For the article 'Using spatially biased variables in ecosystem condition accounting with a GIS based workflow'
+author:
+  - name: Anders Lorentzen Kolstad
+    email: anders.kolstad@nina.no
+    orchid: https://orcid.org/0000-0002-9623-9491
+    affiliations: 
+        - id: nina
+          name: Norwegian Institute for Nature Research
+          department: Department of Terrestrial Ecology
+          address: Pb 5685 Torgarden
+          city: Trondheim
+          postal-code: 7485
+  - name: Matthew Grainger
+    email: matthew.grainger@nina.no
+    orchid: https://orcid.org/0000-0001-8426-6495
+    affiliations:
+        - ref: nina
+date: last-modified
+format:
+  elsevier-pdf:
+    keep-tex: true
+    journal:
+      name: Ecological Indicators
+      formatting: preprint
+      model: 3p
+      cite-style: authoryear
+    include-in-header:
+      text: '\usepackage{lineno}\linenumbers'
+editor: 
+  markdown: 
+    wrap: sentence
+crossref:
+  fig-title: |
+    Supplementary Figure
+  fig-prefix: Fig S.
+  tbl-title: |
+    Supplementary Table
+  tbl-prefix: Fig S.
+execute:
+  echo: false
+---
+
+
+
+```{r fig-studyLocations}
+#| fig.cap: "Position of the three example municiaplieies in Norway."
+#| out.width: '50%'
+
+knitr::include_graphics("../images/positionMap.jpg")
+```
+
+{{< pagebreak >}}
+```{r tbl-EEA}
+#| tbl-cap: "Idicator values for three ecosystem condition indicators in three 
+#| Norwegian municipalities. Values are medians with 2.5 and 97.5 percentiles
+#| for the distribution of possible values."
+
+(tbl <- readRDS("../output/EEA-tbl.RDS"))
+```
+
