@@ -1,5 +1,5 @@
 ---
-title: Using spatially biased variables in ecosystem condition accounting with a GIS based workflow
+title: Horizontal aggregation of spatially biased ecosystem condition indicators – a GIS based workflow
 subtitle: A Short Subtitle
 author:
   - name: Anders Lorentzen Kolstad
@@ -54,12 +54,7 @@ execute:
   message: false
 ---
 
-<!--# The document is set to eval=F in the yaml. This only affect the rendering, and not the interactive session. Eval is also set explicitly for each chunk. Larger operations are cached. Remember to clean the cache occatinally and re-run. -->
-
 ```{r setup}
-#| warning: false
-#| message: false
-#| include: false
 #| eval: true
 
 library(tidyverse)
@@ -77,6 +72,9 @@ library(rnaturalearth)
 library(rnaturalearthdata)
 library(ggmagnify)
 library(ggridges)
+library(eaTools) #https://ninanor.github.io/eaTools/ version 0.0.0.9000
+library(ggpubr)
+library(kableExtra)
 
 myCRS <- 25832
 ```
@@ -122,11 +120,11 @@ naturetypes_summary <- readRDS("../data/natureType_summary.rds")
 
 # Survey data
 # The data is too big to be stored on GitHub
-# Impart polygon data set
+# Import polygon data set
 st_layers(path_naturetypes)
 naturetypes <- sf::st_read(dsn = path_naturetypes, layer = "naturtyper_nin_omr")
 # 142k polygons (2023)
-# 
+
 # Impart survey coverage map
 coverage <- sf::st_read(dsn = path_naturetypes, layer = "naturtyper_nin_dekning") |>
   st_transform(myCRS)
@@ -367,9 +365,11 @@ plot_grid(
 
 # The NA's represents localities where just one of the two variables
 # (then thinking 7SE and PRSL as the same variable)
-# is recorded. To combine these into one metric ADSV, I could take the
-# one with the highest value (worst-rule) og the sum.
-# Sum is problematic is not all locations have two values to sum together.
+# is recorded. 
+
+# To combine these into one metric, ADSV, I could take the
+# one with the highest value (worst-rule) or the sum.
+# Sum is problematic as not all locations have two values to sum together.
 # But the other option is problematic since I think field workers often
 # tend to split the effects over two variables is they have that option.
 # And if we have 50% vehicle damage and 50% hiking damage, that is no doubt
@@ -441,38 +441,56 @@ lower2 <- 5
 threshold2 <- 2.5 # = observable effect. Value 3 indicates a shift to a new type (grunntype)
 
 
-eaTools::ea_normalise(data = naturetypes,
+scale1 <- eaTools::ea_normalise(data = naturetypes,
   vector = "ADSV",
   upper_reference_level = lower,
   lower_reference_level = upper,
   break_point = threshold,
   plot=T,
   reverse = T
-  )
+  ) +
+  labs(x = "ADVS (converted to %)") +
+  ylim(0,1)
 
 # There is no point yet making this a time series
 # I will assign all the indicator value to the same time (2018-2022)
 
 # same for 7FK
-eaTools::ea_normalise(data = naturetypes,
+scale2 <- eaTools::ea_normalise(data = naturetypes,
   vector = "7FA",
   upper_reference_level = lower,
   lower_reference_level = upper,
   break_point = threshold,
   plot=T,
   reverse = T
-  )
+  ) +
+  labs(x = "7FA (converted to %)",
+       y = "") +
+  ylim(0,1)
 # The variables are really coarse
 
-eaTools::ea_normalise(data = naturetypes,
+scale3 <- eaTools::ea_normalise(data = naturetypes,
   vector = "7GR-GI",
   upper_reference_level = lower2,
   lower_reference_level = upper2,
   break_point = threshold2,
   plot=T,
   reverse = T
-  )
+  )+
+  labs(x = "7GR-GI (original units)",
+       y = "") +
+  ylim(0,1)
 
+(scaling_plot <- ggarrange(scale1,
+          scale2,
+          scale3,
+          ncol=3)
+)
+
+#ggsave(plot = scaling_plot,
+#  "../images/scaling-plot.jpg",
+#  width=8,
+#  height=5)
 ```
 
 ```{r}
@@ -597,6 +615,10 @@ world <- ne_countries(scale = "medium", returnclass = "sf") |>
   filter(admin %in% c("Norway", "Sweden")) |>
   st_make_valid()
 
+# get centroids
+centroids <- muni3 |>
+  st_centroid()
+
 inc <- 200000
 myBbox <- st_bbox(centroids)
 myBbox[1:2] <- myBbox[1:2]-inc 
@@ -623,17 +645,15 @@ myBbox[3:4] <- myBbox[3:4]+inc
   tm_compass()+
   tm_scale_bar()
 )
-  
+
+tmap_save(tm = positionMap,
+       "../images/positionMap.jpg")
 ```
 
 ```{r distanceBetweenMunis}
 #| eval: true
 
 # what is the distance between Nordre Follo and Nord-Aurdal
-# First, get centroids
-centroids <- muni3 |>
-  st_centroid()
-
 (km_distance <- centroids |>
   st_distance() |>
   max() |>
@@ -1031,10 +1051,10 @@ corrCheck |>
   facet_grid(~indicator)
 )
 
-ggsave("../images/validation-plot.jpg",
-       plot=validationPlot,
-       width = 9,
-  height = 5)
+#ggsave("../images/validation-plot.jpg",
+#  plot=validationPlot,
+#  width = 9,
+#  height = 5)
 ```
 
 ```{r infraMuniMaps}
@@ -1042,7 +1062,7 @@ ggsave("../images/validation-plot.jpg",
 #| cache: true
 
 # Infratructure in each municipality
-(infraMuniMap <- tm_shape(muni3) +
+infraMuniMap <- tm_shape(muni3) +
   tm_borders() +
   tm_shape(infraMuni3) +
   tm_polygons(
@@ -1055,7 +1075,7 @@ ggsave("../images/validation-plot.jpg",
     panel.label.height = 0) +
   tm_shape(muni3) +
   tm_borders(lwd = 3, col = "black") +
-  tm_facets(by = "Municipality"))
+  tm_facets(by = "Municipality")
 
 # A figure with just the legend
 infraMuniMap_l <- tm_shape(muni3) +
@@ -1292,7 +1312,7 @@ stats_tbl <- nature3 |>
 stats_tbl
 ```
 
-```{r forets plot}
+```{r forets-plot}
 #| eval: true
 #| cache: true
 
@@ -1350,6 +1370,55 @@ barCOLS <- tmaptools::get_brewer_pal("Set1", n = 4)
 
 #ggsave("../images/forest-plot.jpg",
 #       plot=forest_plot)
+```
+
+```{r forest_plotExample}
+#| eval: true
+#| cache:true
+# Here is the same plot but only for trenching
+
+# #define colours for dots and bars
+dotCOLS = c("grey90","grey70", "grey50", "grey40")
+barCOLS <- tmaptools::get_brewer_pal("Set1", n = 4)
+
+  
+(forest_plot_ex <- stats_tbl |>
+  filter(indicator == "i_ditch",
+         Municipality == "Nord-Aurdal") |>
+  rowwise() |>
+  mutate(
+    low = quantile(rnorm(200, mean, sd), probs = 0.025),
+    high = quantile(rnorm(200, mean, sd), probs = 0.975),
+    high = ifelse(high > 1, 1, high)
+  ) |>
+  ggplot(aes(x=infrastructureIndex, 
+             y=mean, 
+             ymin=low,
+             ymax=high,
+             col=factor(infrastructureIndex),
+             fill=factor(infrastructureIndex))) + 
+  geom_linerange(
+    size=10) +
+  geom_point(
+    size=3, 
+    shape=21, 
+    colour="white", 
+    stroke = 0.5,
+    ) +
+  scale_fill_manual(values=dotCOLS)+
+  scale_color_manual(values=barCOLS)+
+  scale_x_discrete(name="") +
+  scale_y_continuous(name="Indicator values", limits = c(.7, 1)) +
+  coord_flip() +
+  theme_bw() +
+  labs(fill = "HIA",
+       col = "HIA")
+)
+
+#ggsave(plot = forest_plot_ex,
+#       "../images/forest-plot-ex.jpg",
+#       width=3,
+#       height = 3)
 ```
 
 ```{r notes}
@@ -1529,6 +1598,38 @@ combineAll <- rbind(
 #       height=5)
 ```
 
+```{r EEA-plot2}
+#| eval:true
+#| cache: true
+# Same as above, but for trenching only
+
+(ridgepPlot2 <- combineAll |>
+  filter(indicator == "i_ditch",
+     Municipality == "Nord-Aurdal") |>
+  select(indicator, i_sample, Municipality) |>  
+  ggplot(
+    aes(
+      x = i_sample)
+    ) +
+  geom_density(
+    fill = "lightgreen",
+    alpha=.5
+  ) +
+  theme_bw(base_size = 15) +
+  guides(fill = "none") +
+  theme(
+        axis.ticks.y = element_blank(),
+        axis.text.y = element_blank())+
+  labs(y = "", x = "Indicator values")+
+  xlim(c(0.7,1))
+)
+
+#ggsave(plot = ridgepPlot2,
+#       "../images/ridgePlot-ex.jpg",
+#       width=6,
+#       height=4)
+```
+
 ```{r EEA-tbl}
 #| eval: true
 (EEA_tbl <- combineAll |>
@@ -1544,16 +1645,13 @@ combineAll <- rbind(
             percentile_025 = round(quantile(i_sample, probs = 0.025), 2),
             percentile_975 = round(quantile(i_sample, probs = 0.975), 2))
 )
-
-library(kableExtra)
-
 # saveRDS(EEA_tbl, "../output/EEA-table.RDS")
 ```
 
 ```{r}
 (EEA_tbl_out <- EEA_tbl |>
   ungroup() |>
-  mutate(value = 
+  mutate("Indicator value" = 
     paste0(
       format(median, 2), 
       " [",
@@ -1581,6 +1679,49 @@ library(kableExtra)
   pack_rows("Nordre Follo", 7, 9, 
       label_row_css = "background-color: #cef598; color: #000000;")
 )
+
+#saveRDS(EEA_tbl_out, "../output/EEA-tbl.RDS")
+```
+
+```{r indicator-map-zoom}
+#| eval: true
+#| cache: true
+
+# Just an example figure to show what the spatial indicator data looks like
+from <- c(xmin = 510000, xmax = 510600, ymin = 6747200, ymax = 6747800)
+to <-   c(xmin = 495000, xmax = 520000, ymin = 6765000, ymax = 6790000)
+myCols <- c(
+  #"#E85437",
+  "#FBAF00", 
+  "#B5DF73", 
+  "#009000"
+  )
+
+
+(indicator_magnify <- nature3 |>
+  select(i_ditch) |>
+  drop_na() |>
+  mutate(Trenching = factor(format(round(i_ditch, 2), 2))) |>
+  ggplot() +
+  geom_sf(data = na,
+          alpha=0) +
+  geom_sf(aes(fill=Trenching,
+              color = Trenching)) +
+  scale_color_manual(values = RColorBrewer::brewer.pal(5, "Set2")) +
+  scale_fill_manual(values = RColorBrewer::brewer.pal(5, "Set2")) +
+  coord_sf(
+    datum = st_crs(myCRS),
+    xlim = c(494174.8 , 537114.7 ), 
+    ylim = c(6737092 , 6789676)) +
+  ggmagnify::geom_magnify(from = from, to = to, 
+                          expand = 0,
+                          shadow =T,
+                          corners = 0.1) +
+  theme_bw()
+)
+
+#ggsave(plot = indicator_magnify,
+#       "../images/indicator-magnify.jpg")
 ```
 
 # Introduction
@@ -1623,22 +1764,10 @@ We demonstrate this technique using a generic GIS-based workflow for compiling e
 The main question is how much generalisation can we perform on the data we have before the resulting indicator looses its practical value in local governance processes.
 We end by interviewing end-users from the relevant municipalities about the perceived benefits and shortcomings of our condition indicators.
 
-```{r fig-studyLocation}
-#| eval: true
-#| include: true
-#| out.width: '100%'
-#| fig.cap:
-#| - "Postion of the three example municipalities in
-#| Norway. "
-
-positionMap
-```
-
 # Material and Methods
 
 This study makes use of a data set from from a standardised field survey of nature types in Norway that started in 2018 and which is still ongoing [@norwegian_environmental_agency_naturtyper_2024].
-We included data from 2018 to 2022.
-In this survey, selected nature types are delineated on a map, and each locality is scored on a range of variables relevant for describing the state and quality of nature.
+In this survey, selected nature types are delineated on a map (over 140 000 polygons at the end of 2023), and each locality is scored on a range of variables relevant for describing the state and quality of nature (REF INSTRUKS).
 The surveys are commissioned with the goal of producing data relevant for immediate land-use decisions, and is therefore spatially biased, typically towards areas with high human impact or expected impact.
 In addition there is a thematic and size bias in the sampling protocol.
 For examples, for the forest ecosystem, rare, endangered or calcareous forest types are delineated, whereas more common or ordinary forest types are not.
@@ -1655,26 +1784,40 @@ Of all possible mire types, the survey only maps the following:
 
 -   Calcareous northern fens \>1000 m^2^
 
-In the above, *southern* refers to boreonemoral and southboreal zones, and *northern* refers to mid-boreal, north boreal, and alpine zones @asbjørnmoen1998 .
+In the above, *southern* refers to boreonemoral and southboreal zones, and *northern* refers to mid-boreal, north boreal, and alpine zones @asbjørnmoen1998.
 In addition, the northern fens need to be even more calcareous than the southern fens in order to be surveyed.
-
-<!--# and the variable 7FK is not recorded in ombrotrophic mires -->
+We included data from 2018 to 2023.
 
 In this paper we assume the survey is representative for the entire mire ecosystem in Norway.
 Although it is possible that smaller or less calcareous mires will score systematically different than the ones that are surveyed we do not think this is so much the case for our variables.
-It may also be that alien plants are more or less common on bogs relative to fens.
-For this we have no assumption.
+However, we do assume that alien plants are slightly less common on bogs relative to fens, and therefore that this variable will biased since that variable for only recorded in fens.
 
-For the mire ecosystem we have an ecosystem delineation map produced using remotely sensed data and a deep learning model [@bakkestuen_delineation_2023].
+From the survey data set we identified six relevnt variables (variable 1-6 in @tbl-variables) which we attribute to three different ecosystem condition characteristics that describe the typical behavior of open mire ecosystems in the reference condition @fig-workflow.
+
+Variables 1 -5 were were originally recorded along binned frequency ranges.
+because the data was strongly right skewed we used the lower limit for each frequency range to convert them into percentages.
+Variables 2-5 describe very related aspects, and are attributed to the same ecosystem condition characteristic (vegetation intactness) and so they where combined into a single indicator called antropogenic disturbance to soil and vegetation, or ADSV for short.
+This was done by summing the two variables after they had been converted to percentages.
+This was not a perfect solution, especially since some localities only had one of the variables recorded, but we chose this, rather than for example using a *worst rule* principle, in order to better separate the localities in terms of their indicator values.
+
+To turn the variables into indicators we scaled them using three normative reference values each: an upper (best possible condition), a lower (worst possible condition), and a threshold value that defines the breaking point between good and poor condition.
+The reference values are numerical representation of the reference condition.
+We define the reference condition as one where ecosystems are subject to little or no human influence, with a climate as in the period 1961-1990 and a native species pool similar as today.
+
+For the indicators Alien species and ADSV, the lower and upper reference values were defined as 100% and 0%, respectively.
+The threshold for *good ecosystem condition* was defined as 10%, which was then mapped to the value 0.6 on the rescaled indicators [@fig-scaling].
+The variable 7GR-GI was rescaled into the indicator named *trenchin* by using the lower and upper reference values 1 and 5, respectively, and a threshold value of 2.5.
+A variable value of 1 indicates an intact mire, and a value of 5 indicates a mire transitioning away from a wetland.
+A value of 2 indicates observable change within the range expected for the same mapping unit, and a value of 3 indicates a mire transitioning into a neighboring (ecologically speaking) mapping unit.
+See @fig-workflow for a schematic workflow for the indicator development.
+
+*Alien species* was assigned to ECT class B1 - Compositional state characteristics and *ADSV* and *Trenching* were both assigned to ECT class A1 - Physical state characteristics [@czucz_common_2021].
+
+We used an ecosystem delineation map for open mires in southern Norway, produced using remotely sensed data and a deep learning model [@bakkestuen_delineation_2023].
 This model, which has a 90.9% precision when tested against independent field data, estimates 12.7% of the area in southern Norway is mire [@bakkestuen_delineation_2023].
-Mires are ecologically and socially important in Norway simply doe to its large extent, and due to its role in climate mitigation, as mires store a large amount of carbon (REF?).
-There has not been a national assessment of the ecosystem condition of mires in Norway, but we recent contributed on a report which presented several new indicators that can be used in future assessment [@nybo_indikatorer_2023; see also @kolstad2023]).
-This study builds on the work in that report.
-
-We started by defining the reference state as one where ecosystems are subject to little or no human influence, with a climate as in the period 1961-1990 and a native species pool similar as today (i.e no mammoths allowed).
-We then identified two *ecosystem condition characteristics* that, along with many other characteristics that we do not specify here, define the typical behavior of open mire ecosystems in the reference condition: species composition, and; vegetation intactness.
-To describe these two characteristics we use six condition variables from the same data set ( @tbl-variables).
-See @miljødirektoratet for the sampling protocol (in Norwegian).
+Mires are ecologically and socially important in Norway simply doe to its large extent, and due to its role in climate mitigation as mires store a large amount of carbon (REF?).
+There has not been a national assessment of the ecosystem condition of mires in Norway, but the authors recent contributed on a report which presented several new indicators that can be used in future assessments for this ecosystem [@nybo_indikatorer_2023; see also @kolstad2023]).
+The current study builds on the work in that report.
 
 ```{r fig-studyLocation2}
 #| eval: true
@@ -1690,36 +1833,20 @@ See @miljødirektoratet for the sampling protocol (in Norwegian).
 knitr::include_graphics("../images/studyLocations.jpg")
 ```
 
-<!--# Three characteristics now? -->
+{{< pagebreak >}}
 
 | id  | Variable code        | Variable name                                    | Measurement unit                                                                        | Description                                                                                                                                                       | Reference                          |
-|----------|----------|----------|----------|-----------------------|----------|
+|------------|------------|------------|------------|------------|------------|
 | 1   | 7FK                  | Prevalence of alien species                      | Unitless, ordinal, non-linear scale from 1 (no alien species) to 7 (only alien species) | The fraction of the species composition made up from alien species                                                                                                | @runehalvorsen2019                 |
 | 2   | 7SE                  | Human caused abration or abration-caused erosion | Unitless, ordinal, non-linear scale from 1 to 4.                                        | Measures the frequency of imagined 4 m^2^ quadrats layed over the area that has some sign of abration                                                             | @runehalvorsen2019                 |
 | 3   | PRSL                 | *as above*                                       | Unitless, ordinal, non-linear scale from 0 to 7.                                        | Same as 7SE, but recorded at a higher resolution                                                                                                                  | @miljødirektoratet                 |
 | 4   | 7TK                  | Tracks from large vehicles                       | Unitless, ordinal, non-linear scale from 1 to 4.                                        | Measures the frequency of imagined 100 m^2^ quadrats layed over the area that has some signs of vehicle tracks                                                    | @rune_halvorsen_dokumentasjon_2019 |
 | 5   | PRTK                 | *as above*                                       | Unitless, ordinal, non-linear scale from 0 to 7.                                        | Same as 7TK, but recorded at a higher resolution                                                                                                                  | @miljødirektoratet                 |
 | 6   | 7GR-GI               | Ditching intensity                               | Unitless, ordinal scale from 1 to 5                                                     | Describes the effect that drainage ditches is estimate to have on the species composition and environmental variables ones the system reached its new equilibrium | @miljødirektoratet                 |
-| 7   | Infrastructure Index | Infrastructure Index                             | Unitelss linear scale from 0 to 13.2                                                    | Unitelss index ranging from from 0 to 13.2                                                                                                                        | @erikstad_index_2023               |
+| 7   | Infrastructure Index | Infrastructure Index                             | Unitless linear scale from 0 to 13.2                                                    | Unitelss index ranging from from 0 to 13.2                                                                                                                        | @erikstad_index_2023               |
 | 8   | HIA                  | Human Impact area                                | Ordinal, non-linear scale from 1 to 4                                                   | A categorical representation of the infrastructure index                                                                                                          | this paper                         |
 
 : Variables used in this study {#tbl-variables}
-
-Variables 1 -5 were 7FK were originally recorded along frequency ranges.
-We the lower limit for each frequency range to convert them into percentages.
-This was done because the data was strongly right skewed .
-7FK was developed into a single indicator (i.e. a normalised variable) named *Alien plant cover*.
-Variables 2-5 describe very related aspects and so they where combined into one indicator called antropogenic disturbance to soil and vegetation, or ADSV for short.
-This was done by summing the two variables after they had been converted to percentages.
-This was not a perfect solution, especially since some localities only had one of the variables recorded, but we chose this, rather than for example using a *worst rule* principle, in order to better separate the localities in terms of their indicator values.
-For both indicators (alien species and ADSV), the lower and upper reference values, i.e. the worst and best possible condition that the variables can be in, is defined as 100% and 0%, respectively.
-The threshold for *good ecosystem condition* was defined as 10%, and this was mapped to the value 0.6 on the rescaled indicators.
-Variable 7GR-GI was rescaled into an indicator named *ditching intensity* by using the lower and upper reference values 1 and 5, respectively, and a threshold value of 2.5.
-A variable value of 1 indicates an intact mire, and a value of 5 indicates a mire transitioning away from a wetland.
-A value of 2 indicator observable change within the range expected for the same mapping unit, and a value of 3 indicates a mire transitioning into a neighboring (ecologically speaking) mapping unit.
-See @fig-workflow for a schematic workflow for the indicator development.
-
-The Alien plant cover was assigned to ECT class B1 - Compositional state characteristics, and ADSV was assigned to ECT class A1 - Physical state characteristics [@czucz_common_2021].
 
 ```{r fig-workflow}
 #| eval: true
@@ -1732,8 +1859,8 @@ The Alien plant cover was assigned to ECT class B1 - Compositional state charact
 knitr::include_graphics("../images/workflow.jpg")
 ```
 
-We chose three municipalities in Norway to test out the indicators (@fig-studyLocation).
-The differ in several aspect, such as the amount of mire area, the total area surveyed, and the prevalence of infrastructure (@tbl-variables).
+We chose three municipalities in Norway to test out the indicators.
+THe municipalities differ in several aspects, such as the amount of mire area, the total area surveyed, and the prevalence of infrastructure (@tbl-munis, @fig-studyLocation2, Figure S1).
 
 {{< pagebreak >}}
 
@@ -1743,15 +1870,35 @@ The differ in several aspect, such as the amount of mire area, the total area su
 | `Gran`        | `r muni_tbl |> filter(Municipality == "Gran") |> pull(t_area_km)`         | `r muni_tbl |> filter(Municipality == "Gran") |> pull(dk_percent)`         | `r muni_tbl |> filter(Municipality == "Gran") |> pull(mirePercent)`         | `r muni_tbl |> filter(Municipality == "Gran") |> pull(mire_km2)`         | `r muni_tbl |> filter(Municipality == "Gran") |> pull(mireInSurvery_percent)`         | `r muni_tbl |> filter(Municipality == "Gran") |> pull(n)`         | `r muni_tbl |> filter(Municipality == "Gran") |> pull(meanHIA)`         |
 | `Nord-Aurdal` | `r muni_tbl |> filter(Municipality == "Nord-Aurdal") |> pull(t_area_km)`  | `r muni_tbl |> filter(Municipality == "Nord-Aurdal") |> pull(dk_percent)`  | `r muni_tbl |> filter(Municipality == "Nord-Aurdal") |> pull(mirePercent)`  | `r muni_tbl |> filter(Municipality == "Nord-Aurdal") |> pull(mire_km2)`  | `r muni_tbl |> filter(Municipality == "Nord-Aurdal") |> pull(mireInSurvery_percent)`  | `r muni_tbl |> filter(Municipality == "Nord-Aurdal") |> pull(n)`  | `r muni_tbl |> filter(Municipality == "Nord-Aurdal") |> pull(meanHIA)`  |
 
-: Information for the three target municipalities in Norway
+: Information for the three target municipalities in Norway {#tbl-munis}
 
-Validation/sensitivity analyses (varying HIA resolution and minimum *n*?)
+Because the nature type survey data is spatially biased, we cannot simply assume that they are area representative.
+In an attempt to overcome this issue we divided the area of Norway into four non-overlapping Homogeneous Impact Areas (HIAs) based on an infrastructure index [@tbl-variables, @erikstad_index_2023].
+This index measures the frequency of different infrastructure types inside 500 m radius circles around each 10×10 m pixel.
+We categorised this continuous variable into four classes (0–3) using the following value ranges: 0 = \<1; 1 ≤ 1 ≥ 6; 6 ≤ 2 ≥12; 3 ≥ 12.
+We plotted this categorical map over an area in Norway that we are familiar with and confirmed a sensible seperation of areas from areas with no roads of major infrastructure (HIA = 0) to urban areas (HIA = 3).
+We then aggregated the data to 1×1 km pixels to ease computations.
 
-Aggregation
+We then took the nature type polygons with the indicator values and intersected with the HIA map and a map of municipal outlines in Norway.
+For each HIA and municipality combination we then created a probability distribution for the indicator values using Bayesian updating of a uniform prior between 0 and 1.
+The resulting distribution will be
 
 # Results
 
 Data availability/coverage
+
+```{r fig-scaling}
+#| eval: true
+#| include: true
+#| out.width: '70%'
+#| fig.cap:
+#| - "Custom re-scaling of variables to indicators. Unique threshold values are 
+#| assignes to each variable and this value is normalised to become 0.6 on the 
+#| indicator scale (y-axis). The variables also differ in the number of possible 
+#| values they can take, hence the varying number of points for the three panes."
+
+knitr::include_graphics("../images/scaling-plot.jpg")
+```
 
 Validation
 
