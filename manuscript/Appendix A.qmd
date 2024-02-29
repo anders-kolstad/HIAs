@@ -1,6 +1,6 @@
 ---
 title: Appendix A
-subtitle: For the article 'Using spatially biased variables in ecosystem condition accounting with a GIS based workflow'
+subtitle: For the article 'Horizontal aggregation of spatially biased ecosystem condition indicators – a GIS based workflow'
 author:
   - name: Anders Lorentzen Kolstad
     email: anders.kolstad@nina.no
@@ -17,6 +17,16 @@ author:
     orchid: https://orcid.org/0000-0001-8426-6495
     affiliations:
         - ref: nina
+  - name: Marianne Evju
+    email: marianne.evju@nina.no
+    orchid: https://orcid.org/0000-0001-7338-5376
+    affiliations:
+        - id: nina2
+          name: Norwegian Institute for Nature Research
+          department: NINA Oslo
+          address: Sognsveien 68
+          city: Oslo
+          postal-code: NO-0855
 date: last-modified
 format:
   pdf
@@ -39,8 +49,7 @@ execute:
 #| include: true
 #| out.width: '90%'
 #| fig.cap:
-#| - "Schematic workflow followed in this paper. Sub-index A is calculated using 
-#| spatially explicit aggregation." 
+#| - "Schematic workflow followed in this paper. ADSV = Anthropogenic Disturbance to Soil and Vegetation."
 
 knitr::include_graphics("../images/workflow.jpg")
 ```
@@ -58,7 +67,7 @@ knitr::include_graphics("../images/workflow.jpg")
 knitr::include_graphics("../images/scaling-plot.jpg")
 ```
 
-```{r fig-studyLocations}
+```{r fig-muniPosition}
 #| fig.cap: "Position of the three example municiaplieies in Norway."
 #| out.width: '50%'
 
@@ -66,7 +75,7 @@ knitr::include_graphics("../images/positionMap.jpg")
 ```
 
 
-```{r fig-studyLocations}
+```{r fig-muniHIAs}
 #| fig.cap: "Barplot showing the total area from each homogeneous impact area 
 #| in three Norwegian municipalities"
 #| out.width: '50%'
