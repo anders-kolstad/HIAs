@@ -34,7 +34,29 @@ execute:
   echo: false
 ---
 
+```{r fig-workflow}
+#| eval: true
+#| include: true
+#| out.width: '90%'
+#| fig.cap:
+#| - "Schematic workflow followed in this paper. Sub-index A is calculated using 
+#| spatially explicit aggregation." 
 
+knitr::include_graphics("../images/workflow.jpg")
+```
+
+```{r fig-scaling}
+#| eval: true
+#| include: true
+#| out.width: '70%'
+#| fig.cap:
+#| - "Custom re-scaling of variables to indicators. Unique threshold values are 
+#| assignes to each variable and this value is normalised to become 0.6 on the 
+#| indicator scale (y-axis). The variables also differ in the number of possible 
+#| values they can take, hence the varying number of points for the three panes."
+
+knitr::include_graphics("../images/scaling-plot.jpg")
+```
 
 ```{r fig-studyLocations}
 #| fig.cap: "Position of the three example municiaplieies in Norway."
@@ -52,18 +74,8 @@ knitr::include_graphics("../images/positionMap.jpg")
 knitr::include_graphics("../images/infra-dist-plot.jpg")
 ```
 
-```{r fig-scaling}
-#| eval: true
-#| include: true
-#| out.width: '70%'
-#| fig.cap:
-#| - "Custom re-scaling of variables to indicators. Unique threshold values are 
-#| assignes to each variable and this value is normalised to become 0.6 on the 
-#| indicator scale (y-axis). The variables also differ in the number of possible 
-#| values they can take, hence the varying number of points for the three panes."
 
-knitr::include_graphics("../images/scaling-plot.jpg")
-```
+
 
 {{< pagebreak >}}
 ```{r tbl-EEA}
