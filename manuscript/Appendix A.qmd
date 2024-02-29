@@ -19,25 +19,17 @@ author:
         - ref: nina
 date: last-modified
 format:
-  elsevier-pdf:
-    keep-tex: true
-    journal:
-      name: Ecological Indicators
-      formatting: preprint
-      model: 3p
-      cite-style: authoryear
-    include-in-header:
-      text: '\usepackage{lineno}\linenumbers'
+  pdf
 editor: 
   markdown: 
     wrap: sentence
 crossref:
   fig-title: |
-    Supplementary Figure
+    Figure S
+  tbl-prefix: Fig S.
   fig-prefix: Fig S.
   tbl-title: |
-    Supplementary Table
-  tbl-prefix: Fig S.
+    Table S
 execute:
   echo: false
 ---
@@ -51,9 +43,31 @@ execute:
 knitr::include_graphics("../images/positionMap.jpg")
 ```
 
+
+```{r fig-studyLocations}
+#| fig.cap: "Barplot showing the total area from each homogeneous impact area 
+#| in three Norwegian municipalities"
+#| out.width: '50%'
+
+knitr::include_graphics("../images/infra-dist-plot.jpg")
+```
+
+```{r fig-scaling}
+#| eval: true
+#| include: true
+#| out.width: '70%'
+#| fig.cap:
+#| - "Custom re-scaling of variables to indicators. Unique threshold values are 
+#| assignes to each variable and this value is normalised to become 0.6 on the 
+#| indicator scale (y-axis). The variables also differ in the number of possible 
+#| values they can take, hence the varying number of points for the three panes."
+
+knitr::include_graphics("../images/scaling-plot.jpg")
+```
+
 {{< pagebreak >}}
 ```{r tbl-EEA}
-#| tbl-cap: "Idicator values for three ecosystem condition indicators in three 
+#| tbl-cap: "Indicator values for three ecosystem condition indicators in three 
 #| Norwegian municipalities. Values are medians with 2.5 and 97.5 percentiles
 #| for the distribution of possible values."
 

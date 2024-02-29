@@ -1151,6 +1151,31 @@ muniPlot <- tm_shape(muni3) +
 #saveRDS(methodsMap, "../figures/studyLocation.RDS")
 ```
 
+```{r infra-NA}
+# Infratructure in Nord-Aurdal only
+(infraMuniMap_NA <- 
+  tm_shape(muni3 |> filter(Municipality == "Nord-Aurdal")) +
+  tm_borders() +
+  tm_shape(infraMuni3) +
+  tm_polygons(
+    col = "infrastructureIndex",
+    style = "cat",
+    title = "Homogeneous\nImpact\nAreas"
+  ) +
+  tm_layout(
+    legend.show = T,
+    legend.position = c("left", "top"),
+    legend.text.size = 1.2) +
+  tm_shape(muni3) +
+  tm_borders(lwd = 3, col = "black")
+)
+
+tmap_save(tm = infraMuniMap_NA,
+       "../images/HIA-NA.jpg",
+       width=4,
+       height=4)
+```
+
 ```{r muni-tbl}
 #| eval: true
 #| cache: true
@@ -1885,22 +1910,16 @@ The resulting distribution will be
 
 # Results
 
-Data availability/coverage
-
-```{r fig-scaling}
+```{r fig-workflowExample}
 #| eval: true
 #| include: true
-#| out.width: '70%'
-#| fig.cap:
-#| - "Custom re-scaling of variables to indicators. Unique threshold values are 
-#| assignes to each variable and this value is normalised to become 0.6 on the 
-#| indicator scale (y-axis). The variables also differ in the number of possible 
-#| values they can take, hence the varying number of points for the three panes."
+#| out.width: '100%'
+#| fig.cap: |
+#| - "Simplified schematic showing the workflow (Figures a-E) for horizontal aggregation of a spatially biased ecosystem condition indicator. Figure A shows a spatially explicit indicator. The colors indicator different indicator values (highlighted in the inset). The outline is the ecosystem accounting area (EEA). Figure B shows the distributio of four homogeneous impact areas (HIAs) inside the EEA. The indicator values in Figure A are used to update a uniform prior to produce a posterior probability distributio for the mean indicator value for each HIA (Figure C). The bayesian updating is informed by the standard deviation for the indicator in the much bigger national data set. Unlike an arithmetic approach where the variance in the mean indicator value per HIA is unreligable for very small sample sizes, the posterior distribution gives a religable measure for the indicator uncertainty even with a singe observation. The distributions in Figure C are assumed normally distributed. In Figure D the mean and SD from the posterior distributions are transferred to individual polygons in an ecosystem delineation map, for each HIA seperately. For each ecosystem occurence (i.e. ecosystem assets), we draw one random value for each square meter from a normal distribution with the mean and SD that is associated with that polygon. In Figure E we randomly sample 1000 values from the entire vector of sample in the previous step, and we get a area weighted probability distribution for the mean indicator value for the EEA."
 
-knitr::include_graphics("../images/scaling-plot.jpg")
+knitr::include_graphics("../images/aggregation-workflow.jpg")
+
 ```
-
-Validation
 
 ```{r fig-validation}
 #| eval: true
