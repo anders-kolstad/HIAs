@@ -1,0 +1,97 @@
+---
+title: Appendix A
+subtitle: For the article 'Horizontal aggregation of spatially biased ecosystem condition indicators – a GIS based workflow'
+author:
+  - name: Anders Lorentzen Kolstad
+    email: anders.kolstad@nina.no
+    orchid: https://orcid.org/0000-0002-9623-9491
+    affiliations: 
+        - id: nina
+          name: Norwegian Institute for Nature Research
+          department: Department of Terrestrial Ecology
+          address: Pb 5685 Torgarden
+          city: Trondheim
+          postal-code: 7485
+  - name: Matthew Grainger
+    email: matthew.grainger@nina.no
+    orchid: https://orcid.org/0000-0001-8426-6495
+    affiliations:
+        - ref: nina
+  - name: Marianne Evju
+    email: marianne.evju@nina.no
+    orchid: https://orcid.org/0000-0001-7338-5376
+    affiliations:
+        - id: nina2
+          name: Norwegian Institute for Nature Research
+          department: NINA Oslo
+          address: Sognsveien 68
+          city: Oslo
+          postal-code: NO-0855
+date: last-modified
+format:
+  pdf
+editor: 
+  markdown: 
+    wrap: sentence
+crossref:
+  fig-title: |
+    Figure S
+  tbl-prefix: Fig S.
+  fig-prefix: Fig S.
+  tbl-title: |
+    Table S
+execute:
+  echo: false
+---
+
+```{r fig-workflow}
+#| eval: true
+#| include: true
+#| out.width: '90%'
+#| fig.cap:
+#| - "Schematic workflow followed in this paper. ADSV = Anthropogenic Disturbance to Soil and Vegetation."
+
+knitr::include_graphics("../images/workflow.jpg")
+```
+
+```{r fig-scaling}
+#| eval: true
+#| include: true
+#| out.width: '70%'
+#| fig.cap:
+#| - "Custom re-scaling of variables to indicators. Unique threshold values are 
+#| assignes to each variable and this value is normalised to become 0.6 on the 
+#| indicator scale (y-axis). The variables also differ in the number of possible 
+#| values they can take, hence the varying number of points for the three panes."
+
+knitr::include_graphics("../images/scaling-plot.jpg")
+```
+
+```{r fig-muniPosition}
+#| fig.cap: "Position of the three example municiaplieies in Norway."
+#| out.width: '50%'
+
+knitr::include_graphics("../images/positionMap.jpg")
+```
+
+
+```{r fig-muniHIAs}
+#| fig.cap: "Barplot showing the total area from each homogeneous impact area 
+#| in three Norwegian municipalities"
+#| out.width: '50%'
+
+knitr::include_graphics("../images/infra-dist-plot.jpg")
+```
+
+
+
+
+{{< pagebreak >}}
+```{r tbl-EEA}
+#| tbl-cap: "Indicator values for three ecosystem condition indicators in three 
+#| Norwegian municipalities. Values are medians with 2.5 and 97.5 percentiles
+#| for the distribution of possible values."
+
+(tbl <- readRDS("../output/EEA-tbl.RDS"))
+```
+
