@@ -1,0 +1,88 @@
+---
+title: "Presenation"
+format: revealjs
+editor: visual
+include-in-header: 
+  text: |
+    <style>
+      .custom-small table {
+        font-size: .5em
+      }
+    </style>
+---
+
+## Horizontal aggregation of spatially biased ecosystem condition indicators – a GIS based workflow
+
+Anders L. Kolstad
+
+Mathew Grainger
+
+Marianne Evju
+
+<br> *1st draft* - aimed at Ecosystem Indicators
+
+## Question
+
+-   Is there a way to make use of spatially biased data in ecosystem condition indicators?\
+
+::: {.callout-note appearance="minimal"}
+Ecosystem condition indicators should be wall-to-wall. For municipalities with little available data, the indicators values could be inferred from projections based on a model. If municipalities are somehow judged based on their indicator scores, it is not ideal if this is based on an assumption that all municipality are the same.
+:::
+
+-   Can we make local wall-to-wall indicator maps from sporadic data without relying on data from other municipalities?
+
+## Workflow
+
+```{r}
+#| fig.cap: ""
+knitr::include_graphics("images/aggregation-workflow.jpg")
+```
+
+## Variables
+
+::: custom-small
+| id  | Variable code        | Variable name                                    |
+|---------------|---------------|-------------------------------------------|
+| 1   | 7FK                  | Prevalence of alien species                      |
+| 2   | 7SE                  | Human caused abration or abration-caused erosion |
+| 3   | PRSL                 | *as above*                                       |
+| 4   | 7TK                  | Tracks from large vehicles                       |
+| 5   | PRTK                 | *as above*                                       |
+| 6   | 7GR-GI               | Trenching intensity                              |
+| 7   | Infrastructure Index | Infrastructure Index                             |
+| 8   | HIA                  | Homogeneous Impact Area                          |
+:::
+
+## Workflow 2
+
+![](images/workflow-01.jpg)
+
+## Pilot municipalities
+
+![](images/positionMap.jpg)
+
+## Pilot municipalities
+
+![](images/studyLocations.jpg)
+
+## Scaling![](images/scaling-plot.jpg)
+
+## Trenching variable
+
+![](images/indicator-magnify.jpg)
+
+## Validation
+
+![](images/validation-plot.jpg)
+
+## Generalise
+
+![](images/forest-plot.jpg)
+
+## Spread
+
+![](images/spread-na-small.jpg)
+
+## Aggregate
+
+![](images/ridgePlot.jpg)
