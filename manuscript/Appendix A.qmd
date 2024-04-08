@@ -68,7 +68,7 @@ knitr::include_graphics("../images/scaling-plot.jpg")
 ```
 
 ```{r fig-muniPosition}
-#| fig.cap: "Position of the three example municiaplieies in Norway."
+#| fig.cap: "Position of the three example municipalities in Norway."
 #| out.width: '50%'
 
 knitr::include_graphics("../images/positionMap.jpg")
