@@ -1873,7 +1873,7 @@ The municipalities differ in several aspects, such as the amount of mire area, t
 #| include: true
 #| out.width: '80%'
 #| fig.cap:
-#| - "Map of the three focal municiaplities. For each municipality the maps
+#| - "Map of the three focal municipalities. For each municipality the maps
 #| in the top row show ocean in blue and non-ocean in green. 
 #| The survey coverage maps are in grey, and the mapped mires are
 #| in red, with polygon borders made extra thich to make them visible,
@@ -1912,10 +1912,8 @@ knitr::include_graphics("../images/studyLocations.jpg")
 
 Because the nature type survey data are spatially biased, we cannot assume that they are area-representative.
 In an attempt to overcome this issue we divided the area of Norway into four non-overlapping Homogeneous Impact Areas (HIAs) based on an infrastructure index for the year 2022 (@tbl-variables).
-This index is a continuous variable that represents the frequency of different infrastructure types inside 500 m radius circles around each 100×100 m pixel \[ @erikstad2023\].
+This index is a continuous variable that represents the frequency of different infrastructure types inside 500 m radius circles around each 100×100 m pixel [@erikstad2023].
 We then categorised this continuous variable into four classes (0–3) using the following value ranges: 0 = \<1; 1 ≤ 1 \> 6; 6 ≤ 2 \>12; 3 ≤ 12.
-
-
 
 The name HIAs is not a perfect representation of the information found in the infrastructure index, but we introduce this name here as a general term which is aligned with the concept of Homogeneous Ecosystem Areas, *sensu* @vallecillo_eu-wide_2022.
 We plotted the HIA map over an area in Norway that we are familiar with and confirmed a sensible separation of areas from areas with no roads of major infrastructure (HIA = 0) to urban areas (HIA = 3).
@@ -1932,19 +1930,25 @@ When there were no indicator values for a given HIA class, we ignored that class
 
 # Results
 
+## Indicator validty and trends in Norway
+
 The three indicators showed some association with the HIAs when we looked at data from all of Norway with `r nrow(naturetypes)` individual mires.
 The indicators mostly showed a worsening of condition with increasing presence of human infrastructure (@fig-validation).
 This relationship was much stronger for the indicator Trenching, and weakest for the indicator Alien species.
 Alien species also had the highest indicator values overall, with most mires having no alien species recorded.
 For Trenching, 57% of mires in HIA-3 had some trenches, whereas in HIA-0 this number was 10%.
-However, only in Gran municipality was there a significant difference in the Trenching indicator between HIAs, with HIA-2 having worse condition than HIA-1 (@fig-forest).
+
+## The three focal municipalities
+
+Only in Gran municipality was there a significant difference in the Trenching indicator between HIAs, with HIA-2 having worse condition than HIA-1 (@fig-forest).
 Conversely, the ADSV indicator in Gran showed worse condition in HIA-1 compared to HIA-2.
 Nordre-Follo had considerably fewer data points compared to Gran, and especially to Nord-Aurdal who had the most data points, and this paucity of data is reflected in the wide credible intervals for all three indicators in Nordre Follo.
-The credible intervals are widest for the Trenching indicators, and this is because the national data set showed more variation in the underlying variable 7GR-GI, and this information is informing the Bayesian updating process (see @sec-methods).
-None of the three municipalities had data for all four HIAs.
-Therefore, when we transferred the mean and SD for each HIA over to the ecosystem delineation map (@fig-spread-example), some mire polygons did not get assigned any data, and were therefore dropped from any further analyses.
-At the municipality level (i.e. the ecosystem accounting area level) the three municipalities show some differentiation.
-Nordre-Follo had the highest (the best) indicator values for ADSV, but the lowest for Trenching, which was also the only instance of an indicator crossing the threshold from good to deteriorated condition (@fig-EEA-ridgePlot; Table S1).
+The credible intervals are widest for the Trenching indicator, and this is because the national data set showed more variation in the underlying variable 7GR-GI compared to the other variables 1-5 (@tbl-variables), and this information is informing the Bayesian updating process (see @sec-methods).
+Besides Nordre Follo, which do not contain any HIA-0 areas (i.e. relatovely wild areas), the three municipalities had areas in all HIA classes.
+Yet, none of the three municipalities had survey data from all HIAs.
+Therefore, when we transferred the mean and SD for each HIA (@fig-forest) over to the ecosystem delineation map (@fig-spread-example), some mire polygons in the ecosystem delineation map did not get assigned any data, and were therefore not included (i.e. did not have any influence on) in the following aggregation to ecosystem accounting areas (EAA).
+At the municipality level (i.e. the EAA level) the three municipalities show some differentiation.
+Nordre Follo had the highest (the best) indicator values for ADSV, but the lowest for Trenching, which was also the only instance of an indicator crossing the threshold from good to deteriorated condition (@fig-EEA-ridgePlot; Table S1).
 
 ```{r fig-workflowExample}
 #| eval: true
@@ -1964,7 +1968,7 @@ knitr::include_graphics("../images/aggregation-workflow.jpg")
 #| fig.cap:
 #| - "Proportion of localities with different indicator values for three 
 #| ecosystem condition indicators along a gradient of infrastructure
-#| densities." 
+#| densities. The data is from a national vegetation type survey in Norway." 
 
 knitr::include_graphics("../images/validation-plot.jpg")
 ```
