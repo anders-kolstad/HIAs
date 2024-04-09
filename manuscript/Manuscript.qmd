@@ -1,5 +1,5 @@
 ---
-title: Horizontal aggregation of spatially biased ecosystem condition indicators – a GIS based workflow
+title: Making use of spatially biased variables in ecosystem condition accounting – a GIS based workflow
 author:
   - name: Anders Lorentzen Kolstad
     email: anders.kolstad@nina.no
@@ -1786,13 +1786,16 @@ The reference condition needs to be defined for each Ecosystem Condition Assessm
 The SEEA EA framework recommends that ecosystem condition indicators give an unbiased representation of the condition [table 1 in @czucz_selection_2021; see also @unitednations2021 §2.87], and that condition indicators are recorded uniquely for each ecosystem asset (EA) so that the condition in the ecosystem accounting area (EAA) can be inferred from an area weighted mean based on the relative sizes of the EAs [@unitednations2021 §5.54].
 Ecosystem assets are defined as "ecological entities" (meaning areas) about which information is sought and about which statistics are ultimately compiled [@unitednations2021].
 This recommendation for representativity in the indicators means that spatially biased data are ill suited, especially if sampling intensity varies along gradient of anthropogenic pressures and hence ecosystem condition.
-This recommendation for spatial resolution also means that when a condition metric is sampled coarsely, for example in an opportunistic and spatially biased field campaign, then it is very likely that you will not have a enough data points to to religably estimate an indicator value for each EA.
+This recommendation for the spatial resolution also means that when a condition metric is sampled coarsely, for example in an opportunistic and spatially biased field campaign, then it is very likely that you will not have a enough data points to to religably estimate an indicator value for each EA.
 This problem does not exist for complete wall-to-wall data like remotely sensed imagery where each EA will get its own unbiased indicator value.
 
-There are at least 2 ways to achieve this same complete areal coverage, that is relatively unbiased, from originally point-based indicator values:
+There are at least 3 ways to achieve this same complete areal coverage (i.e. spatialisation) that is relatively unbiased, from originally point-based indicator values:
 
 a.  Predict (project) values from a statistical model that accounts for the effect of environmental variation on the variables
-b.  Simple projection of some best estimate, for example a central tendency from a stratified selection of area representative data
+b.  Take a central tendency (e.g. the mean) from the sample population and project it to all EAs of a given ecosystem type.
+c.  Take a central tendency from stratified sections of the sample polulation and projection them to the EAs, adhering to the corresponding strata.
+
+This challenge if spatial generalisation is not unique to ecosystem condition accounts, and it is much discussed in the ecosystem service accounting community of practice via the related term *value transfer*[@unitednations2022; @ncaves; @grammatikopoulou2023; @barton2023].
 
 The need for an unbiased estimation of indicator values is unquestionable, but nonetheless, this requirement puts a large limitation on what types of data one can use.
 Ecosystem condition assessments are generally limited by data availability, and the choice of variables and indicators to include in assessments are more often than not a pragmatic and opportunistic one which is unlikely to reflect the full scope of the ecosystem condition characteristics.
@@ -1820,7 +1823,7 @@ In this survey, selected nature types are delineated on a map (over 140 000 poly
 The surveys are commissioned with the goal of producing data relevant for immediate land-use decisions, and are therefore spatially biased, typically towards areas with high human impact or expected impact.
 In addition there is a thematic and size bias in the sampling protocol.
 For example, for the forest ecosystem, rare, endangered or calcareous forest types are delineated, whereas more common or ordinary forest types are not.
-In this study we focused on open mire ecosystems in Norway where the thematic bias is less severe.
+In this study we focused on open mire ecosystems in Norway where the thematic bias is less severe (the spatial bias being presumably equal for all ecosystems).
 The survey maps the following mire types which we use in our analyses:
 
 -   Southern ombrotrophic mires (bogs) \> 2500 m^2^
@@ -1922,18 +1925,19 @@ In an attempt to overcome this issue we divided the area of Norway into four non
 This index is a continuous variable that represents the frequency of different infrastructure types inside 500 m radius circles around each 100×100 m pixel [@erikstad2023].
 We then categorised this continuous variable into four classes (0–3) using the following value ranges: 0 = \<1; 1 ≤ 1 \> 6; 6 ≤ 2 \>12; 3 ≤ 12.
 These ranges were chosen as they produced a sensible and relatively linear area classification when visualised along an urban-wilderness gradient, whilst at the same time delineating sufficient areas for each range across Norway.
+We then aggregated the data to 1×1 km pixels to ease computations, and vectorized it.
 
 The name HIAs is not a perfect representation of the information found in the infrastructure index, but we introduce this name here as a general term which is aligned with the concept of Homogeneous Ecosystem Areas, *sensu* @vallecillo_eu-wide_2022.
-We plotted the HIA map over an area in Norway that we are familiar with and confirmed a sensible separation of areas from areas with no roads of major infrastructure (HIA = 0) to urban areas (HIA = 3).
-We then aggregated the data to 1×1 km pixels to ease computations, and vectorized it.
 
 We then took the nature type polygons with the indicator values and intersected with the HIA map and a map of municipal outlines in Norway.
 The relationship between the HIA classes and indicator values was examined visually.
 For each HIA and municipality combination we then created a probability distribution for the area weighted mean of the indicator values using Bayesian updating of a uniform prior between 0 and 1, informed by the standard deviation (SD) of the indicator values in the national data set [@fig-workflowExample C; Appendix C, line XXX].
+We refer to this step as the first of two *aggregation* steps (Fig. S1).
 The resulting distributions are assumed to be normally distributed, and we therefore simply carried the mean and SD from the posterior distributions over to individual polygons in the ecosystem delineation map, for each HIA class separately.
+This step is referred to as *spreading* the data (Fig. S1).
 For each polygon we then sampled random numbers from a normal distribution with this same mean and SD.
 The number of m^2^ dictated the number of samples for each polygon, thus ensuring that large polygons ended up counting more towards the indicator value in the given municipality.
-We then drew 1000 random values from this vector of possible indicator values and created a probability distribution for the indicators for the entire municipalities (i.e. the ecosystem accounting areas).
+We then drew 1000 random values from this vector of possible indicator values and created a probability distribution for the indicators for each municipality (the second aggregation step; Fig. S1).
 When there were no indicator values for a given HIA class, we ignored that class also in the municipal estimate.
 
 # Results
