@@ -1779,16 +1779,22 @@ These are parameters chosen to reflect the central condition characteristics of 
 Indicators are (data) variables that are normalised (rescaled) against upper and lower reference values to become bound between the values 0 and 1.
 This normalisation ensures that indicators are more comparable because an indicator value of 1 will mean the same for all indicators, i.e. that the variable equals the upper reference value which again reflect the value of the variables under the reference condition.
 Similarly, a value of 0 means that the variable is in the worst possible state.
-The reference condition needs to be defined for each Ecosystem Condition Assessment separately, but SEEA EA gives some suggestion, such as an an ecosystem with no or minimal anthropogenic disturbance.
+This could mean that the species or ecosystem function in question is completely lost fro the ecosystem.
+The reference condition needs to be defined for each Ecosystem Condition Assessment separately, but SEEA EA gives some suggestions, such as an an ecosystem with no or minimal anthropogenic disturbance.
 
-A general requirement for indicators in the SEEA EA framework is that they should give an unbiased representation of the condition inside the ecosystem assets [@czucz_selection_2021, table 1 <!--# refering to table 1 in Czucz 2021? -->; see also @unitednations2021 §2.87] Ecosystem assets are defined as "ecological entities \[meaning areas\] about which information is sought and about which statistics are ultimately compiled [@unitednations2021]. This requirement for indicator validity means that spatially biased data are ill suited, especially if sampling intensity varies along gradient of anthropogenic pressures and hence ecosystem condition. SEEA EA is spatially explicit, which in practice means that indicators that are in some way sampled (i.e. not complete wall-to-wall data like remotely sensed imagery), the values are projected on to areas on the map, so that all areas inside the ecosystem accounting area get assigned a value for that indicator. There are at least 3 general ways to achieve this complete areal coverage of indicator values:
+The SEEA EA framework recommends that ecosystem condition indicators give an unbiased representation of the condition [table 1 in @czucz_selection_2021; see also @unitednations2021 §2.87], and that condition indicators are recorded uniquely for each ecosystem asset (EA) so that the condition in the ecosystem accounting area (EAA) can be inferred from an area weighted mean based on the relative sizes of the EAs [@unitednations2021 §5.54].
+Ecosystem assets are defined as "ecological entities" (meaning areas) about which information is sought and about which statistics are ultimately compiled [@unitednations2021].
+This recommendation for representativity in the indicators means that spatially biased data are ill suited, especially if sampling intensity varies along gradient of anthropogenic pressures and hence ecosystem condition.
+This recommendation for spatial resolution also means that when a condition metric is sampled coarsely, for example in an opportunistic and spatially biased field campaign, then it is very likely that you will not have a enough data points to to religably estimate an indicator value for each EA.
+This problem does not exist for complete wall-to-wall data like remotely sensed imagery where each EA will get its own unbiased indicator value.
 
-a.  Using wall-to-wall data (e.g. remotely sensed data)
-b.  Predict values using a model (e.g. by accounting for environmental variation)
-c.  Simple projection of some best estimate, typically a central tendency from area representative data
+There are at least 2 ways to achieve this same complete areal coverage, that is relatively unbiased, from originally point-based indicator values:
+
+a.  Predict (project) values from a statistical model that accounts for the effect of environmental variation on the variables
+b.  Simple projection of some best estimate, for example a central tendency from a stratified selection of area representative data
 
 The need for an unbiased estimation of indicator values is unquestionable, but nonetheless, this requirement puts a large limitation on what types of data one can use.
-Ecosystem condition assessments are generally limited by data availability, and the choice of variables and indicators to include in assessments are more often or not a pragmatic and opportunistic one which is unlikely to reflect the full scope of the ecosystem condition characteristics.
+Ecosystem condition assessments are generally limited by data availability, and the choice of variables and indicators to include in assessments are more often than not a pragmatic and opportunistic one which is unlikely to reflect the full scope of the ecosystem condition characteristics.
 Note that the same is true for thematic biases.
 For example reflected in the scarcity of data included on insects or soil biota, even though most will agree they represent key ecosystem characteristics.
 Also having data from only one or a subset of nature types inside what is defined as the ecosystem in the assessment, is a typical thematic bias in ecosystem accounting.
@@ -1859,7 +1865,7 @@ See Figure S1 and @fig-workflowExample for a schematic workflow for the indicato
 According to the SEEA ECT, *Alien species* can be attributed to ECT class B1 - Compositional state characteristics and *ADSV* and *Trenching* attributed to ECT class A1 - Physical state characteristics [@czucz_common_2021].
 
 We used an ecosystem delineation map for open mires in southern Norway, produced using remotely sensed data and a deep learning model [@bakkestuen_delineation_2023].
-This model, which has a 90.9% precision when tested against independent field data, estimates 12.7% of the area in southern Norway is mire [@bakkestuen_delineation_2023].
+This model estimates 12.7% of the area in southern Norway is mire [@bakkestuen_delineation_2023].
 Mires are ecologically and socially important in Norway simply due to their large extent, and due to their role in climate mitigation as mires store a large amount of carbon.
 There has not been a national assessment of the ecosystem condition of mires in Norway, but the authors recently contributed to a report which presented several new indicators that can be used in future national assessments for this ecosystem [@nybo_indikatorer_2023; see also @kolstad2023]).
 The current study builds on the work in that report.
@@ -1914,6 +1920,7 @@ Because the nature type survey data are spatially biased, we cannot assume that 
 In an attempt to overcome this issue we divided the area of Norway into four non-overlapping Homogeneous Impact Areas (HIAs) based on an infrastructure index for the year 2022 (@tbl-variables).
 This index is a continuous variable that represents the frequency of different infrastructure types inside 500 m radius circles around each 100×100 m pixel [@erikstad2023].
 We then categorised this continuous variable into four classes (0–3) using the following value ranges: 0 = \<1; 1 ≤ 1 \> 6; 6 ≤ 2 \>12; 3 ≤ 12.
+These ranges were chosen as they produced a sensible and relatively linear area classification when visualised along an urban-wilderness gradient, whilst at the same time delineating sufficient areas for each range across Norway.
 
 The name HIAs is not a perfect representation of the information found in the infrastructure index, but we introduce this name here as a general term which is aligned with the concept of Homogeneous Ecosystem Areas, *sensu* @vallecillo_eu-wide_2022.
 We plotted the HIA map over an area in Norway that we are familiar with and confirmed a sensible separation of areas from areas with no roads of major infrastructure (HIA = 0) to urban areas (HIA = 3).
