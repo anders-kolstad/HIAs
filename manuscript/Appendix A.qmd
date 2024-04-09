@@ -1,6 +1,6 @@
 ---
 title: Appendix A
-subtitle: For the article 'Horizontal aggregation of spatially biased ecosystem condition indicators – a GIS based workflow'
+subtitle: For the article 'Making use of spatially biased variables in ecosystem condition accounting – a GIS based workflow'
 author:
   - name: Anders Lorentzen Kolstad
     email: anders.kolstad@nina.no
