@@ -1357,9 +1357,10 @@ stats_tbl
 
 # #define colours for dots and bars
 dotCOLS = c("grey90","grey70", "grey50", "grey40")
-barCOLS <- tmaptools::get_brewer_pal("Set1", n = 4)
+#barCOLS <- tmaptools::get_brewer_pal("Set1", n = 4)
+barCOLS <- c("#fff7bd", "#fecf66", "#f88b22", "#cc4c02")
 
-  
+
 (forest_plot <- stats_tbl |>
   mutate(
     indicator = case_when(
@@ -1377,12 +1378,13 @@ barCOLS <- tmaptools::get_brewer_pal("Set1", n = 4)
   ggplot(aes(x=infrastructureIndex, 
              y=mean, 
              ymin=low,
-             ymax=high,
-             col=factor(infrastructureIndex),
-             fill=factor(infrastructureIndex))) + 
+             ymax=high
+             )) + 
   geom_linerange(
+    aes(colour=factor(infrastructureIndex)),
     size=10) +
   geom_point(
+    aes(fill=factor(infrastructureIndex)),
     size=3, 
     shape=21, 
     colour="white", 
@@ -1393,7 +1395,7 @@ barCOLS <- tmaptools::get_brewer_pal("Set1", n = 4)
     nudge_y = -0.1,
     show.legend = F
   ) +
-  scale_fill_manual(values=dotCOLS)+
+  scale_fill_manual(values=rev(dotCOLS))+
   scale_color_manual(values=barCOLS)+
   scale_x_discrete(name="") +
   scale_y_continuous(name="Indicator values", limits = c(-0.1, 1)) +
@@ -1404,10 +1406,10 @@ barCOLS <- tmaptools::get_brewer_pal("Set1", n = 4)
   facet_grid(indicator ~ Municipality)
 )
 
-ggsave("../images/forest-plot.jpg",
-       plot=forest_plot,
-       width = 8,
-       height = 6)
+#ggsave("../images/forest-plot.jpg",
+#       plot=forest_plot,
+#       width = 8,
+#       height = 6)
 ```
 
 ```{r forest_plotExample}
@@ -1415,11 +1417,6 @@ ggsave("../images/forest-plot.jpg",
 #| cache: true
 
 # Here is the same plot but only for trenching
-
-# #define colours for dots and bars
-dotCOLS = c("grey90","grey70", "grey50", "grey40")
-barCOLS <- tmaptools::get_brewer_pal("Set1", n = 4)
-
   
 (forest_plot_ex <- stats_tbl |>
   filter(indicator == "i_ditch",
@@ -1438,13 +1435,17 @@ barCOLS <- tmaptools::get_brewer_pal("Set1", n = 4)
              fill=factor(infrastructureIndex))) + 
   geom_linerange(
     size=10) +
+  geom_linerange(
+    size=10,
+    lwd=1,
+    colour="black") +
   geom_point(
     size=3, 
     shape=21, 
     colour="white", 
     stroke = 0.5,
     ) +
-  scale_fill_manual(values=dotCOLS)+
+  scale_fill_manual(values=rev(dotCOLS))+
   scale_color_manual(values=barCOLS)+
   scale_x_discrete(name="") +
   scale_y_continuous(name="Indicator values", limits = c(.7, 1)) +
@@ -1454,10 +1455,10 @@ barCOLS <- tmaptools::get_brewer_pal("Set1", n = 4)
        col = "HIA")
 )
 
-#ggsave(plot = forest_plot_ex,
-#       "../images/forest-plot-ex.jpg",
-#       width=3,
-#       height = 3)
+ggsave(plot = forest_plot_ex,
+       "../images/forest-plot-ex.jpg",
+       width=3,
+       height = 3)
 ```
 
 ```{r notes}
