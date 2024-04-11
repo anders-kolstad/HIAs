@@ -1898,7 +1898,7 @@ knitr::include_graphics("../images/studyLocations.jpg")
 {{< pagebreak >}}
 
 | id  | Variable code        | Variable name                                    | Measurement unit                                                                         | Description                                                                                                                                                       | Reference            |
-|------------|------------|------------|------------|------------|------------|
+|----------|----------|----------|----------|------------------------|----------|
 | 1   | 7FA                  | Prevalence of alien species                      | Unit-less, ordinal, non-linear scale from 1 (no alien species) to 7 (only alien species) | The fraction of the species composition made up from alien species                                                                                                | @runehalvorsen2019   |
 | 2   | 7SE                  | Human caused abration or abration-caused erosion | Unit-less, ordinal, non-linear scale from 1 to 4.                                        | Measures the frequency of imagined 4 m^2^ quadrats laid over the area that has some sign of abration                                                              | @runehalvorsen2019   |
 | 3   | PRSL                 | *as above*                                       | Unit-less, ordinal, non-linear scale from 0 to 7.                                        | Same as 7SE, but recorded at a higher resolution                                                                                                                  | @miljødirektoratet   |
@@ -2029,6 +2029,27 @@ knitr::include_graphics("../images/ridgePlot.jpg")
 ```
 
 # Discussion
+
+In this paper we have demonstrated a GIS-based workflow for making use of spatially biased field data to produce representative ecosystem condition indicators at a local municipal scale.
+This approach is valuable especially for local assessments were we do not want to data from outside the EAA inform or influence our estimates for condition indicators inside the EAA.
+The method relies on stratifying the field data by Homogeneous Impact Areas (HIAs).
+Our HIA was an ordinal gradient from low to high prevalence of infrastructure, and we found a relationship between increasing infrastructure and indicator values ranging from weak in the case of the Alien species indicator, to strong, for the indicator for Trenching in mires (the ADSV indicator falling somewhere in the middle).
+This implies that the stratification was warranted in the latter case (Trenching), since field data from urban or sub-urban mires could not be said to represent the status of mires in more remote wilderness areas.
+In the case for Alien species, stratifying the data can be predicted to have less directional effect on average, but we did find a difference between HIAs 1 and 2 in Nord-Aurdal municipality, indicating that the impact from alien species in these two strata of varying infrastructure differs (@fig-forest).
+The drawback that we see from using this stratification technique when the HIA variable is not a good predictor for variation in the indicator metric, is that we end up with less data points, and therefore higher uncertainties around our indicator estimates, than we otherwise would.
+However, we do not see this as a major problem.
+Also, since our HIA areas are somewhat cohesive, forming a clumped or aggregated pattern, stratifying by it will on average lead to more local data being used for each local indicator estimate, with less geographic extrapolation.
+Therefor, we see little risk in using the stratification process also on indicators where the relationship between the indicators and the HIA are weak, although we stress that not accounting for potentially other, more relevant predictors of indicator values, would leave the indicator as spatially biased as the original variable.
+
+We have also demonstrated how Bayesian updating and resampling can be used instead of traditional arithmetic aggregation of indicators, from EAs to EAAs, to produce probability density functions for indicator values.
+A major benefit of this approach in our example was that it allowed us to present reliable uncertainty ranges for our indicator estimates even with very low sampling sizes, thus making it possible to estimate indicator values for a much greater area than if we were forced to set a minimum sample size threshold.
+An indicator estimate is of little value unless it is accompanied by a measure of uncertainty.
+The variance is commonly used, usually calcualated from the variation between spatially distant sampling points.
+However, the variance is not reliable for low sample sizes.
+For example, even if the true numerical population has a large variance, it is not impossible to sample two or three numbers that are very close to each other, and this sample would then display a low variance which is not reflective of the true variance.
+Knowing this, an often used approach is to set a sample size limit, and refrain from estimating indicator values unless there are more that a given number of data points.
+In our test municipality Nordre Follo, we had only 1-3 data points for each HIA strata, yet we were able to use these data regardless because the Bayesian updating produces a reliable, and relatively broad, unceratinty range for the estimate.
+This is an advantage, especially for local ecosystem condition assessments where data scarcity is likely to be more of an issue than in for example national assessments.
 
 # Conclusion
 
