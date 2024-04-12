@@ -1898,7 +1898,7 @@ knitr::include_graphics("../images/studyLocations.jpg")
 {{< pagebreak >}}
 
 | id  | Variable code        | Variable name                                    | Measurement unit                                                                         | Description                                                                                                                                                       | Reference            |
-|-----|----------------------|--------------------------------------------------|------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------|
+|-----------|-----------|-----------|-----------|----------------|-----------|
 | 1   | 7FA                  | Prevalence of alien species                      | Unit-less, ordinal, non-linear scale from 1 (no alien species) to 7 (only alien species) | The fraction of the species composition made up from alien species                                                                                                | @runehalvorsen2019   |
 | 2   | 7SE                  | Human caused abration or abration-caused erosion | Unit-less, ordinal, non-linear scale from 1 to 4.                                        | Measures the frequency of imagined 4 m^2^ quadrats laid over the area that has some sign of abration                                                              | @runehalvorsen2019   |
 | 3   | PRSL                 | *as above*                                       | Unit-less, ordinal, non-linear scale from 0 to 7.                                        | Same as 7SE, but recorded at a higher resolution                                                                                                                  | @miljødirektoratet   |
@@ -1913,7 +1913,7 @@ knitr::include_graphics("../images/studyLocations.jpg")
 {{< pagebreak >}}
 
 | Municipality  | Total terrestrial area (km^2^)                                            | \% of terrestrial area surveyed                                            | \% open mires in relation to total terrestrial area                         | Total mire area (km^2^)                                                  | %of mire area inside survey area                                                      | Number of mire polygons in survey                                 | Mean Infrastructure Index value                                         |
-|---------------|---------------------------------------------------------------------------|----------------------------------------------------------------------------|-----------------------------------------------------------------------------|--------------------------------------------------------------------------|---------------------------------------------------------------------------------------|-------------------------------------------------------------------|-------------------------------------------------------------------------|
+|---------|---------|---------|---------|---------|---------|---------|---------|
 | Nordre Follo  | `r muni_tbl |> filter(Municipality == "Nordre Follo") |> pull(t_area_km)` | `r muni_tbl |> filter(Municipality == "Nordre Follo") |> pull(dk_percent)` | `r muni_tbl |> filter(Municipality == "Nordre Follo") |> pull(mirePercent)` | `r muni_tbl |> filter(Municipality == "Nordre Follo") |> pull(mire_km2)` | `r muni_tbl |> filter(Municipality == "Nordre Follo") |> pull(mireInSurvery_percent)` | `r muni_tbl |> filter(Municipality == "Nordre Follo") |> pull(n)` | `r muni_tbl |> filter(Municipality == "Nordre Follo") |> pull(meanHIA)` |
 | `Gran`        | `r muni_tbl |> filter(Municipality == "Gran") |> pull(t_area_km)`         | `r muni_tbl |> filter(Municipality == "Gran") |> pull(dk_percent)`         | `r muni_tbl |> filter(Municipality == "Gran") |> pull(mirePercent)`         | `r muni_tbl |> filter(Municipality == "Gran") |> pull(mire_km2)`         | `r muni_tbl |> filter(Municipality == "Gran") |> pull(mireInSurvery_percent)`         | `r muni_tbl |> filter(Municipality == "Gran") |> pull(n)`         | `r muni_tbl |> filter(Municipality == "Gran") |> pull(meanHIA)`         |
 | `Nord-Aurdal` | `r muni_tbl |> filter(Municipality == "Nord-Aurdal") |> pull(t_area_km)`  | `r muni_tbl |> filter(Municipality == "Nord-Aurdal") |> pull(dk_percent)`  | `r muni_tbl |> filter(Municipality == "Nord-Aurdal") |> pull(mirePercent)`  | `r muni_tbl |> filter(Municipality == "Nord-Aurdal") |> pull(mire_km2)`  | `r muni_tbl |> filter(Municipality == "Nord-Aurdal") |> pull(mireInSurvery_percent)`  | `r muni_tbl |> filter(Municipality == "Nord-Aurdal") |> pull(n)`  | `r muni_tbl |> filter(Municipality == "Nord-Aurdal") |> pull(meanHIA)`  |
@@ -1956,9 +1956,9 @@ Only in Gran municipality was there a significant difference in the Trenching in
 Conversely, the ADSV indicator in Gran showed worse condition in HIA-1 compared to HIA-2.
 Nordre-Follo had considerably fewer data points compared to Gran, and especially to Nord-Aurdal who had the most data points, and this paucity of data is reflected in the wide credible intervals for all three indicators in Nordre Follo.
 The credible intervals are widest for the Trenching indicator, and this is because the national data set showed more variation in the underlying variable 7GR-GI compared to the other variables 1-5 (@tbl-variables), and this information is informing the Bayesian updating process (see @sec-methods).
-Besides Nordre Follo, which do not contain any HIA-0 areas (i.e. relatovely wild areas), the three municipalities had areas in all HIA classes.
+Besides Nordre Follo, which do not contain any HIA-0 areas (i.e. relatively wild areas), the three municipalities had areas in all HIA classes.
 Yet, none of the three municipalities had survey data from all HIAs.
-Therefore, when we transferred the mean and SD for each HIA (@fig-forest) over to the ecosystem delineation map (@fig-spread-example), some mire polygons in the ecosystem delineation map did not get assigned any data, and were therefore not included (i.e. did not have any influence on) in the following aggregation to ecosystem accounting areas (EAA).
+Therefore, when we transferred the mean and SD for each HIA (@fig-forest) over to the ecosystem delineation map (@fig-spread-example), some mire polygons in the ecosystem delineation map did not get assigned any data, and were therefore not included (i.e. did not have any influence on) the following aggregation to ecosystem accounting areas (EAA).
 At the municipality level (i.e. the EAA level) the three municipalities show some differentiation.
 Nordre Follo had the highest (the best) indicator values for ADSV, but the lowest for Trenching, which was also the only instance of an indicator crossing the threshold from good to deteriorated condition (@fig-EEA-ridgePlot; Table S1).
 
@@ -2030,49 +2030,85 @@ knitr::include_graphics("../images/ridgePlot.jpg")
 
 # Discussion
 
-In this paper we have demonstrated a GIS-based workflow for making use of spatially biased field data to produce representative ecosystem condition indicators at a local municipal scale.
-This approach is valuable especially for local assessments were we do not want to data from outside the EAA inform or influence our estimates for condition indicators inside the EAA.
+## The stratified GIS-based approach using HIAs
+
+In this paper we have demonstrated a generalisable GIS-based workflow for making use of spatially biased field data to produce representative ecosystem condition indicators at a local municipal scale (@fig-workflowExample).
+This approach is valuable especially for local assessments were we do not want to use data from outside the EAA inform or influence our estimates for condition indicators inside the EAA.
 The method relies on stratifying the field data by Homogeneous Impact Areas (HIAs).
 Our HIA was an ordinal gradient from low to high prevalence of infrastructure, and we found a relationship between increasing infrastructure and indicator values ranging from weak in the case of the Alien species indicator, to strong, for the indicator for Trenching in mires (the ADSV indicator falling somewhere in the middle).
-This implies that the stratification was warranted in the latter case (Trenching), since field data from urban or sub-urban mires could not be said to represent the status of mires in more remote wilderness areas.
-In the case for Alien species, stratifying the data can be predicted to have less directional effect on average, but we did find a difference between HIAs 1 and 2 in Nord-Aurdal municipality, indicating that the impact from alien species in these two strata of varying infrastructure differs (@fig-forest).
+This implies that the stratification was warranted in the latter case (Trenching), i.e that field data from urban or sub-urban mires could not be said to represent the status of mires in more remote wilderness areas.
+In the case for Alien species, stratifying the variable by the HIAs can be predicted to have had a less directional effect on average, but we did find a difference between HIAs 1 and 2 in Nord-Aurdal municipality, indicating that the impact from alien species differs between these two strata of varying infrastructure (@fig-forest).
 The drawback that we see from using this stratification technique when the HIA variable is not a good predictor for variation in the indicator metric, is that we end up with less data points, and therefore higher uncertainties around our indicator estimates, than we otherwise would.
 However, we do not see this as a major problem.
 Also, since our HIA areas are somewhat cohesive, forming a clumped or aggregated pattern, stratifying by it will on average lead to more local data being used for each local indicator estimate, with less geographic extrapolation.
-Therefor, we see little risk in using the stratification process also on indicators where the relationship between the indicators and the HIA are weak, although we stress that not accounting for potentially other, more relevant predictors of indicator values, would leave the indicator as spatially biased as the original variable.
+Therefor, we see little risk in using the stratification process also on indicators where the relationship between the indicators and the HIA are weak, although we stress that not accounting for other, potentially more relevant predictors of indicator values, would leave the indicator as spatially biased as the original variable.
 
-We have also demonstrated how Bayesian updating and resampling can be used instead of traditional arithmetic aggregation of indicators, from EAs to EAAs, to produce probability density functions for indicator values.
-A major benefit of this approach in our example was that it allowed us to present reliable uncertainty ranges for our indicator estimates even with very low sampling sizes, thus making it possible to estimate indicator values for a much greater area than if we were forced to set a minimum sample size threshold.
+## The benefits of using Bayesian updating
+
+We have also demonstrated how Bayesian updating and re-sampling can be used instead of traditional arithmetic aggregation of indicators, from EAs to EAAs, to produce probability density distributions for indicator values.
+A major benefit of this approach in our example was that it allowed us to present reliable uncertainty ranges for our indicator estimates even with very low sampling sizes, thus making it possible to estimate indicator values for a much greater areas than if we were forced to set a minimum sample size threshold.
 An indicator estimate is of little value unless it is accompanied by a measure of uncertainty.
-The variance is commonly used, usually calcualated from the variation between spatially distant sampling points.
+The variance is commonly used, usually calculated from the variation between spatially distant sampling points.
 However, the variance is not reliable for low sample sizes.
-For example, even if the true numerical population has a large variance, it is not impossible to sample two or three numbers that are very close to each other, and this sample would then display a low variance which is not reflective of the true variance.
-Knowing this, an often used approach is to set a sample size limit, and refrain from estimating indicator values unless there are more that a given number of data points.
-In our test municipality Nordre Follo, we had only 1-3 data points for each HIA strata, yet we were able to use these data regardless because the Bayesian updating produces a reliable, and relatively broad, unceratinty range for the estimate.
+For example, even if a numerical population has a large variance, it is possible to sample, by chance alone, two or three numbers that are very close to each other, and this sample would then display a low variance which is not reflective of the true variance.
+Knowing this, an often used approach is to set a sample size limit, and refrain from estimating indicator values unless there are more than a given number of data points.
+In our test municipality Nordre Follo, we had only 1-3 data points for each HIA strata, yet we were able to use these data regardless because the Bayesian updating produces a reliable, and relatively broad, uncertainty range for the estimate.
 This is an advantage, especially for local ecosystem condition assessments where data scarcity is likely to be more of an issue than in for example national assessments.
 
-The UN standard for ecosystem accounting has been tailed towards national accounts.
-Similarly, reporting of Ecosystem Accounts to Eurostat, mandatory for all EU and EEA countries from 2026, is required for each major ecosystem type, but with to requirements for sub-national resolution.
+## How to get more data for local Ecosystem Condition Accounts
+
+The UN standard for ecosystem accounting has been tailed towards national accounts [@unitednations2021].
+Similarly, reporting of Ecosystem Accounts to Eurostat, expected to become mandatory for all EU and EEA countries from 2026, is unlikely to require sub-national resolution.
 Assessments at national scales can make use of data sets, and hence indicators, that local assessments can not.
 For example national forest inventories or other national area representative field-based nature monitoring provide enough data points for a reliable estimates of indicator values only at large spatial scales.
-Local ecosystem accounts istead rely more on remote sensing or field measurements.
-Remote sensing holds great promise for delivering valuable information to ecosystem accounts across all scales, yet there are some ecosystem characteristics that can not easily be sensed remotes.
+Local ecosystem accounts instead rely more on remote sensing or field measurements.
+Remote sensing holds great promise for delivering valuable information to ecosystem accounts across all scales, yet there are some ecosystem characteristics that can not easily be sensed remotey.
 This include for example species identities, and hence indicators on topics such as alien species or occurrence of threatened or certain keystone species.
 Fieldwork will therefore still be vital for collection information for ecosystem accounts also in the future.
 To reduce costs, municipalities can stratify their field sampling according to the HIAs for efficient field efforts at local scales.
-For example, Gran ad Nord-Aurdal have not recorded any field data from their most urban areas (HIA 3), and could make these areas a priority in upcoming field campaigns in order to get more complete spatial indicator coverage.
+For example, Gran and Nord-Aurdal have not recorded any field data from their most urban areas (HIA 3), and could make these areas a priority in upcoming field campaigns in order to get more complete spatial indicator coverage.
 
 We used a national data set of nature type surveys that follow a shared protocol.
 There can be other data set, that may not be compiled nationally, but which could be relevant.
 In some cases, a local ecosystem condition account is mostly interested in describing and monitoring the status within its own EAA, but great benefits may be had if accounts can also be compared between EAA, say between municipalities.
-This kind of information can give grounds for a more regional assessment, for example looking at the effectys of policies on ecosystem condition trajectories.
-One way to accomplish level of synthesis is to design and use indicators that are common across EAAs, or to compile and publish existing data in a standardised format.
-In Norway, EIAs are frequently being produced at scales, and with information that is highly relevant for local ECAs, yet the data is not standardised or available as a common resource.
-In contrast, the Biodiversity Net Gain program in England enforces developers to record and compile data on ecosystem extent and condition at very fine resolution in order to document they effect on nature and ensure a positive net gain from their activities.
-The data is made publicly available in a national data base (?) and could be used to design indicators that are informative at a municipal scale, larger than the project level scale at which they were recorded.
-The other major difference between Biodiversity Net Gain and the Norwegian EIA is the way the BNG and the work to estimate the biodiversity metric, is initiated with a wall-to-wall delineation of nature types, and relevnt ecosystem condition variables are then recorded explicitly in these, whereas
+This kind of information can give grounds for a more regional assessment, for example looking at the effects of policies on ecosystem condition trajectories.
+To accomplish this level of synthesis it helps to be able to use indicators that are common across EAAs.
+This all depends on the right variables being collected in a similar way, for example across different projects or monitoring frameworks.
+In Norway, ecosystem impact assessments (EIA) are frequently being produced in conjunction with planned development projects.
+This data could be made very valuable for local ecosystem condition accounts, but currently there are several think stopping this.
+Firstly, the data collection is mainly on the occurrence of specific nature type or species of interest, and true condition parameters are not part of the information required by the authorities.
+In contrast, other nations have implemented EIA or EIA equivalent systems that have much greater synergistic properties towards ecosystem accounting, such as the Biodiversity Net Gain program in England\[\^1\].
+This program enforces developers to record and compile data on ecosystem extent and condition at very fine resolution in order to document they effect on nature and ensure a positive net gain from their activities.
+Relevant ecosystem condition variables are recorded for each delineated ecosytsen areas, providing an explicit link between ecosystem type and condition.
+Second, there is no standardised reporting for EIA in Norway, and no mandatory publication pathway, and therefore no way to obtain a unified data set of variables recorded across different EIAs.
+If data is made publicly available in a national data base they could be used to design indicators that are informative at a multiple scales, also larger than the project level scale at which they were recorded.
+
+\[\^1\]: <https://www.gov.uk/guidance/understanding-biodiversity-net-gain> \[accessed 12.04.2024\]
+
+## Indicator values in the three pilot municipalities
+
+The indicator values for our three indicators across the three municipalities showed in general a good condition in the mire ecosystems (@fig-EEA-ridgePlot).
+The exception was for variable Trenching in Nordre Follo, where the indicator value was 0.25 which is well below the threshold for good ecosystem condition (0.6).
+This estimate is based on just 4–5 data points (i.e. mires), and this is also reflected in the wide credible intervals \[0.04 – 0.50\].
+Nordre Follo has surveyed more of its total land area, but has less mire area to begin with (@tbl-munis) , and that is the reason for this low sample size.
+We believe this estimate is correct, in light of the wide credible intervals, and that it could reflect the true prevalence of trenching in Nordre Follo.
+Future work could test this assumption by simulating the effect of varying the sample size for an EAA where all the mires are sampled.
+
+Mire condition in Norway has not been assessed at a national scale.
+Still, we know that they are subject to multiple threats, especially land conversion into agriculture, forestry or development, and we see this reflected in the Norwegian Red List for Nature types where many ombrotrophic bog types, and rich southern minerotrophic fens are listed [@artsdatabanken2018].
+Land conversion of mires is often initiated with trenching to lower the water table, but note that our Trenching indicator doen not document the effect of trenching on old mires that are today transitioned into another ecosystem.
+This is in line with the UN standard for ecosystem accounting, where these effects should be captured by the extent accounts [@unitednations2021].
+Therefore, the negative consequences of trenching on all Norwegian mires, old and current, must be higher than what our indicator is made to show, most likely considerably higher.
+
+Alien species risk is not considered a threat to any of the Norwegian mire types , and our results confirm this, at least for the present [@fig-EEA-ridgePlot].
+Motorised vehicle traffic and other form of human transportation are also threats listed for some mire types in the red list assessment, and we see some reduction in the ADSV indicator, most so in Gran and in areas closer to infrastructure [@fig-forest].
+Still, the indicator values are consistently above the threshold value [@fig-EEA-ridgePlot].
 
 # Conclusion
+
+In conclusion, we have demonstrated a new GIS based workflow for constructing ecosystem condition indicators from spatially biased variables using a method of stratified aggregation by an ordinal gradient of Homogeneous Impact Areas (HIA).
+In addition, we show how Bayesian updating can help produce reliable uncertainty estimates for condition indicators that suffer from low sampling sizes where traditional variances would be impossible.
+Our workflow can also help guide local field efforts to in the future get better and less resource demanding local ecosystem condition accounts.
 
 # CRediT authorship contribution statement {.unnumbered}
 
