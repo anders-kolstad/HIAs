@@ -1898,7 +1898,7 @@ knitr::include_graphics("../images/studyLocations.jpg")
 {{< pagebreak >}}
 
 | id  | Variable code        | Variable name                                    | Measurement unit                                                                         | Description                                                                                                                                                       | Reference            |
-|----------|----------|----------|----------|------------------------|----------|
+|-----|----------------------|--------------------------------------------------|------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------|
 | 1   | 7FA                  | Prevalence of alien species                      | Unit-less, ordinal, non-linear scale from 1 (no alien species) to 7 (only alien species) | The fraction of the species composition made up from alien species                                                                                                | @runehalvorsen2019   |
 | 2   | 7SE                  | Human caused abration or abration-caused erosion | Unit-less, ordinal, non-linear scale from 1 to 4.                                        | Measures the frequency of imagined 4 m^2^ quadrats laid over the area that has some sign of abration                                                              | @runehalvorsen2019   |
 | 3   | PRSL                 | *as above*                                       | Unit-less, ordinal, non-linear scale from 0 to 7.                                        | Same as 7SE, but recorded at a higher resolution                                                                                                                  | @miljødirektoratet   |
@@ -1913,7 +1913,7 @@ knitr::include_graphics("../images/studyLocations.jpg")
 {{< pagebreak >}}
 
 | Municipality  | Total terrestrial area (km^2^)                                            | \% of terrestrial area surveyed                                            | \% open mires in relation to total terrestrial area                         | Total mire area (km^2^)                                                  | %of mire area inside survey area                                                      | Number of mire polygons in survey                                 | Mean Infrastructure Index value                                         |
-|---------|---------|---------|---------|---------|---------|---------|---------|
+|---------------|---------------------------------------------------------------------------|----------------------------------------------------------------------------|-----------------------------------------------------------------------------|--------------------------------------------------------------------------|---------------------------------------------------------------------------------------|-------------------------------------------------------------------|-------------------------------------------------------------------------|
 | Nordre Follo  | `r muni_tbl |> filter(Municipality == "Nordre Follo") |> pull(t_area_km)` | `r muni_tbl |> filter(Municipality == "Nordre Follo") |> pull(dk_percent)` | `r muni_tbl |> filter(Municipality == "Nordre Follo") |> pull(mirePercent)` | `r muni_tbl |> filter(Municipality == "Nordre Follo") |> pull(mire_km2)` | `r muni_tbl |> filter(Municipality == "Nordre Follo") |> pull(mireInSurvery_percent)` | `r muni_tbl |> filter(Municipality == "Nordre Follo") |> pull(n)` | `r muni_tbl |> filter(Municipality == "Nordre Follo") |> pull(meanHIA)` |
 | `Gran`        | `r muni_tbl |> filter(Municipality == "Gran") |> pull(t_area_km)`         | `r muni_tbl |> filter(Municipality == "Gran") |> pull(dk_percent)`         | `r muni_tbl |> filter(Municipality == "Gran") |> pull(mirePercent)`         | `r muni_tbl |> filter(Municipality == "Gran") |> pull(mire_km2)`         | `r muni_tbl |> filter(Municipality == "Gran") |> pull(mireInSurvery_percent)`         | `r muni_tbl |> filter(Municipality == "Gran") |> pull(n)`         | `r muni_tbl |> filter(Municipality == "Gran") |> pull(meanHIA)`         |
 | `Nord-Aurdal` | `r muni_tbl |> filter(Municipality == "Nord-Aurdal") |> pull(t_area_km)`  | `r muni_tbl |> filter(Municipality == "Nord-Aurdal") |> pull(dk_percent)`  | `r muni_tbl |> filter(Municipality == "Nord-Aurdal") |> pull(mirePercent)`  | `r muni_tbl |> filter(Municipality == "Nord-Aurdal") |> pull(mire_km2)`  | `r muni_tbl |> filter(Municipality == "Nord-Aurdal") |> pull(mireInSurvery_percent)`  | `r muni_tbl |> filter(Municipality == "Nord-Aurdal") |> pull(n)`  | `r muni_tbl |> filter(Municipality == "Nord-Aurdal") |> pull(meanHIA)`  |
@@ -2050,6 +2050,27 @@ For example, even if the true numerical population has a large variance, it is n
 Knowing this, an often used approach is to set a sample size limit, and refrain from estimating indicator values unless there are more that a given number of data points.
 In our test municipality Nordre Follo, we had only 1-3 data points for each HIA strata, yet we were able to use these data regardless because the Bayesian updating produces a reliable, and relatively broad, unceratinty range for the estimate.
 This is an advantage, especially for local ecosystem condition assessments where data scarcity is likely to be more of an issue than in for example national assessments.
+
+The UN standard for ecosystem accounting has been tailed towards national accounts.
+Similarly, reporting of Ecosystem Accounts to Eurostat, mandatory for all EU and EEA countries from 2026, is required for each major ecosystem type, but with to requirements for sub-national resolution.
+Assessments at national scales can make use of data sets, and hence indicators, that local assessments can not.
+For example national forest inventories or other national area representative field-based nature monitoring provide enough data points for a reliable estimates of indicator values only at large spatial scales.
+Local ecosystem accounts istead rely more on remote sensing or field measurements.
+Remote sensing holds great promise for delivering valuable information to ecosystem accounts across all scales, yet there are some ecosystem characteristics that can not easily be sensed remotes.
+This include for example species identities, and hence indicators on topics such as alien species or occurrence of threatened or certain keystone species.
+Fieldwork will therefore still be vital for collection information for ecosystem accounts also in the future.
+To reduce costs, municipalities can stratify their field sampling according to the HIAs for efficient field efforts at local scales.
+For example, Gran ad Nord-Aurdal have not recorded any field data from their most urban areas (HIA 3), and could make these areas a priority in upcoming field campaigns in order to get more complete spatial indicator coverage.
+
+We used a national data set of nature type surveys that follow a shared protocol.
+There can be other data set, that may not be compiled nationally, but which could be relevant.
+In some cases, a local ecosystem condition account is mostly interested in describing and monitoring the status within its own EAA, but great benefits may be had if accounts can also be compared between EAA, say between municipalities.
+This kind of information can give grounds for a more regional assessment, for example looking at the effectys of policies on ecosystem condition trajectories.
+One way to accomplish level of synthesis is to design and use indicators that are common across EAAs, or to compile and publish existing data in a standardised format.
+In Norway, EIAs are frequently being produced at scales, and with information that is highly relevant for local ECAs, yet the data is not standardised or available as a common resource.
+In contrast, the Biodiversity Net Gain program in England enforces developers to record and compile data on ecosystem extent and condition at very fine resolution in order to document they effect on nature and ensure a positive net gain from their activities.
+The data is made publicly available in a national data base (?) and could be used to design indicators that are informative at a municipal scale, larger than the project level scale at which they were recorded.
+The other major difference between Biodiversity Net Gain and the Norwegian EIA is the way the BNG and the work to estimate the biodiversity metric, is initiated with a wall-to-wall delineation of nature types, and relevnt ecosystem condition variables are then recorded explicitly in these, whereas
 
 # Conclusion
 
