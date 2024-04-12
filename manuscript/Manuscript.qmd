@@ -29,7 +29,7 @@ author:
           city: Oslo
           postal-code: NO-0855
 abstract: |
-  This is the abstract. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vestibulum augue turpis, dictum non malesuada a, volutpat eget velit. Nam placerat turpis purus, eu tristique ex tincidunt et. Mauris sed augue eget turpis ultrices tincidunt. Sed et mi in leo porta egestas. Aliquam non laoreet velit. Nunc quis ex vitae eros aliquet auctor nec ac libero. Duis laoreet sapien eu mi luctus, in bibendum leo molestie. Sed hendrerit diam diam, ac dapibus nisl volutpat vitae. Aliquam bibendum varius libero, eu efficitur justo rutrum at. Sed at tempus elit.
+  Coming soon...
 keywords: 
   - alien species
   - disturbance
@@ -2118,9 +2118,11 @@ Our workflow can also help guide local field efforts to in the future get better
 
 # Declaration of Competing Interest {.unnumbered}
 
+We have no competing interests to declare.
+
 # Acknowledgements {.unnumbered}
 
-Kwaku Peprah Adjei Hanno Sandvik
+We wich to thank Kwaku Peprah Adjei for statistical help, and Hanno Sandvik for code review.
 
 # Data availability {.unnumbered}
 
