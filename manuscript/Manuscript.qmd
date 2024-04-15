@@ -29,7 +29,7 @@ author:
           city: Oslo
           postal-code: NO-0855
 abstract: |
-  Coming soon...
+  Ecosystem Condition Accounts (ECA) rely on spatially representative indicators for condition. All ECAs are subject to data constraints in some way. Therefore, being able to make use of spatially biased data sets would be very valuable. For national ECAs, modelling aproaches can in some cases be used to control for sampling bias. For local ECAs however, this is often not an option as it involved spatial extrapolation using data from outside the ecosystem accounting area. In this study we develop three ecosystem condition indicators from the same spatially biased data set from nature type mapping of Norwegian mires. These indicators are Alien species, Trenching and Antropogenic Disturbance to Soil and Vegetation (ADSV). We test our approach in three municipalities in south Norway. A spatial variable was created with four steps of increasing of infrastructure prevalence that we refer to as Homogeneous Impact Areas (HIAs). The spatially aggregated indicator values were calculated explicity for each HIA (ie. a stratification). To facilitate religable estimation of indicator uncertainties, even in cases with very low sample sizes, we use a Bayesian updating method and produce probability distributions for the area-weighted mean indicator values in each HIA seperately. Then we use area-weighted resampling and produce similar propabiliy distributions for each municipality. With this Bayesian updating and resampling approach, small sample sizes can be compensated for by correspondingly large uncertainty ranges, as long as the full dataset is large enough to estimate the true population standard deviation. This paper demonstrates the use of a GIS-based workflow to control for some of the most problematic biases in an oppurtunistic field survey. The workflow can be used at any scale. By calculating indicator values for unique spatial strata, local governemnts or others can target their data aquisition towards strata with low sample sizes, and thus achieve higher cost effectiveness and ultuimately better spatial indicator coverage.
 keywords: 
   - alien species
   - disturbance
@@ -1767,54 +1767,49 @@ myCols <- c(
 
 # Introduction
 
-Ecosystem condition accounting is the process of compiling relevant data on the status, trends and qualities of ecosystems (i.e. nature) and communicating this in a structured format.
+Ecosystem condition accounting is the process of compiling relevant data on the status, trends and qualities of ecosystems (i.e. nature) and communicating this in a structured format [@comte2022].
 Its purpose is to make it easier to account for nature in policy by making the environmental costs of certain policies and practices visible to decision makers.
-As natural capital keeps declining all over the world, it is becoming increasingly urgent to make the message clear to decision makers about.
-<!--# About what? -->
-
 A statistical standard for ecosystem accounting, including ecosystem condition accounting, was developed by the UN and adopted by the UN Statistical Commission in 2021 and is called SEEA EA (@unitednations2021; System of Environmental-Economic Accounting - Ecosystem Accounting).
 The standard, or framework, is a set of rules, principles and best practices for compiling Ecosystem accounts, mainly aimed at national accounts.
 
 Central to ecosystem condition accounts are *variables* and *indicators*.
-These are parameters chosen to reflect the central condition characteristics of the ecosystems, and that can be quantified and ideally monitored over time to reflect the status and trends in condition.
-Indicators are (data) variables that are normalised (rescaled) against upper and lower reference values to become bound between the values 0 and 1.
+These are metrics chosen to reflect the central condition characteristics of the ecosystems.
+These metrics are quantified and ideally monitored over time to reflect the status and trends in condition.
+Indicators are variables that are normalised (rescaled) against upper and lower reference values to become bound between the values 0 and 1.
 This normalisation ensures that indicators are more comparable because an indicator value of 1 will mean the same for all indicators, i.e. that the variable equals the upper reference value which again reflect the value of the variables under the reference condition.
-Similarly, a value of 0 means that the variable is in the worst possible state.
-This could mean that the species or ecosystem function in question is completely lost fro the ecosystem.
-The reference condition needs to be defined for each Ecosystem Condition Assessment separately, but SEEA EA gives some suggestions, such as an an ecosystem with no or minimal anthropogenic disturbance.
+Similarly, a value of 0 means that the variable is in the worst possible state, for example that the species or ecosystem function in question is completely lost from the ecosystem.
+The reference condition needs to be defined for each ecosystem condition assessment separately, but SEEA EA gives some suggestions, such as an an ecosystem with no or minimal anthropogenic disturbance.
 
-The SEEA EA framework recommends that ecosystem condition indicators give an unbiased representation of the condition [table 1 in @czucz_selection_2021; see also @unitednations2021 §2.87], and that condition indicators are recorded uniquely for each ecosystem asset (EA) so that the condition in the ecosystem accounting area (EAA) can be inferred from an area weighted mean based on the relative sizes of the EAs [@unitednations2021 §5.54].
-Ecosystem assets are defined as "ecological entities" (meaning areas) about which information is sought and about which statistics are ultimately compiled [@unitednations2021].
-This recommendation for representativity in the indicators means that spatially biased data are ill suited, especially if sampling intensity varies along gradient of anthropogenic pressures and hence ecosystem condition.
-This recommendation for the spatial resolution also means that when a condition metric is sampled coarsely, for example in an opportunistic and spatially biased field campaign, then it is very likely that you will not have a enough data points to to religably estimate an indicator value for each EA.
-This problem does not exist for complete wall-to-wall data like remotely sensed imagery where each EA will get its own unbiased indicator value.
+The SEEA EA framework recommends that ecosystem condition indicators give an unbiased representation of the condition for a given area [table 1 in @czucz_selection_2021; see also @unitednations2021 §2.87], and that condition indicators are recorded uniquely for each ecosystem asset (EA) so that the condition in the ecosystem accounting area (EAA) can be inferred from an area weighted mean based on the relative sizes of the EAs [@unitednations2021 §5.54].
+Ecosystem assets are defined as "ecological entities" (meaning areas) about which information is sought and about which statistics are compiled [@unitednations2021].
+This recommendation for representativity in the indicators means that spatially biased data are ill suited, especially if sampling intensity varies along gradients of anthropogenic pressures and hence ecosystem condition.
+This recommendation for the spatial resolution also means that when a condition metric is sampled coarsely, for example in an opportunistic and spatially biased field campaign, then it is very likely that you will not have a enough data points to to reliably estimate an indicator value for each EA.
+This problem does not exist for complete wall-to-wall data, like remotely sensed imagery, where each EA will get its own unbiased indicator value.
+There are at least 3 ways to achieve this same complete areal coverage from what is originally point-based indicator values:
 
-There are at least 3 ways to achieve this same complete areal coverage (i.e. spatialisation) that is relatively unbiased, from originally point-based indicator values:
-
-a.  Predict (project) values from a statistical model that accounts for the effect of environmental variation on the variables
+a.  Predict (project) indicator values from a statistical model that accounts for the effect of environmental variation on the variables
 b.  Take a central tendency (e.g. the mean) from the sample population and project it to all EAs of a given ecosystem type.
-c.  Take a central tendency from stratified sections of the sample polulation and projection them to the EAs, adhering to the corresponding strata.
+c.  Take a central tendency from a stratified sections of the sample population and projection them to the EAs, adhering to the corresponding strata.
 
 This challenge if spatial generalisation is not unique to ecosystem condition accounts, and it is much discussed in the ecosystem service accounting community of practice via the related term *value transfer*[@unitednations2022; @ncaves; @grammatikopoulou2023; @barton2023].
 
 The need for an unbiased estimation of indicator values is unquestionable, but nonetheless, this requirement puts a large limitation on what types of data one can use.
-Ecosystem condition assessments are generally limited by data availability, and the choice of variables and indicators to include in assessments are more often than not a pragmatic and opportunistic one which is unlikely to reflect the full scope of the ecosystem condition characteristics.
+Ecosystem condition assessments are generally limited by data availability, and the choice of variables and indicators to include in assessments are more often than not a pragmatic and opportunistic one, which is unlikely to reflect the full scope of the ecosystem condition characteristics.
 Note that the same is true for thematic biases.
-For example reflected in the scarcity of data included on insects or soil biota, even though most will agree they represent key ecosystem characteristics.
+This is for example reflected in the scarcity of data commonly included on insects or soil biota, even though most will agree they represent key ecosystem characteristics.
 Also having data from only one or a subset of nature types inside what is defined as the ecosystem in the assessment, is a typical thematic bias in ecosystem accounting.
 However, in this paper we chose to focus on spatial bias.
 
 Being able to make use of spatially biased data would greatly alleviate data shortage problems in ecosystem condition accounts.
-One way to achieve this is modelling (option b in the list above).
+One way to achieve this is modelling (option *a* in the list above).
 Models can describe the general associations between the spatially sampled data and the context (e.g. the set of environmental variables) where it was sampled, and use these relationships to predict and project indicator values to areas that where not originally sampled.
-Depending on the data that goes into these models, they can be very reliable and make good indicators.
-This is especially true when the ecosystem assets are large (e.g. regions or nations).
-But when they are small, like the scale of a municipality, and when the indicator is more likely to be used as the evidence base in concrete physical land use planning, then the inherent level of uncertainty from such models becomes unacceptable.
+Depending on the data that goes into these models, they can make very precice and good indicators.
+This is especially true when the EAAs are large (e.g. regions or nations).
+But when they are small, like the scale of a municipality, and when the indicator is more likely to be used as the evidence base in concrete physical land use planning, then the inherent level of uncertainty from the spatial extrapolation of such models becomes unacceptable.
 
 In this study we explore the potential for using a stratified aggregation technique to make use of spatially biased field data in ecosystem condition accounting.
-We demonstrate this technique using a generic GIS-based workflow for compiling ecosystem condition accounts that can be applied at any spatial scale, and we highlight the opportunities for local use-cases of this workflow by contrasting our findings across three neighbouring municipalities in Norway.
-The main question is how much generalisation can we perform on the data we have before the resulting indicator looses its practical value in local governance processes.
-We end by interviewing end-users from the relevant municipalities about the perceived benefits and shortcomings of our condition indicators.
+We demonstrate this technique on three indicators from the same spatially biased nature type mapping data set from Norwegian mires.
+We highlight the opportunities for local use-cases of this GIS-based workflow by contrasting our findings across three neighboring municipalities in Norway.
 
 # Material and Methods {#sec-methods}
 
@@ -1898,7 +1893,7 @@ knitr::include_graphics("../images/studyLocations.jpg")
 {{< pagebreak >}}
 
 | id  | Variable code        | Variable name                                    | Measurement unit                                                                         | Description                                                                                                                                                       | Reference            |
-|-----------|-----------|-----------|-----------|----------------|-----------|
+|----------|----------|----------|----------|------------------------|----------|
 | 1   | 7FA                  | Prevalence of alien species                      | Unit-less, ordinal, non-linear scale from 1 (no alien species) to 7 (only alien species) | The fraction of the species composition made up from alien species                                                                                                | @runehalvorsen2019   |
 | 2   | 7SE                  | Human caused abration or abration-caused erosion | Unit-less, ordinal, non-linear scale from 1 to 4.                                        | Measures the frequency of imagined 4 m^2^ quadrats laid over the area that has some sign of abration                                                              | @runehalvorsen2019   |
 | 3   | PRSL                 | *as above*                                       | Unit-less, ordinal, non-linear scale from 0 to 7.                                        | Same as 7SE, but recorded at a higher resolution                                                                                                                  | @miljødirektoratet   |
@@ -2107,7 +2102,7 @@ Still, the indicator values are consistently above the threshold value [@fig-EEA
 # Conclusion
 
 In conclusion, we have demonstrated a new GIS based workflow for constructing ecosystem condition indicators from spatially biased variables using a method of stratified aggregation by an ordinal gradient of Homogeneous Impact Areas (HIA).
-In addition, we show how Bayesian updating can help produce reliable uncertainty estimates for condition indicators that suffer from low sampling sizes where traditional variances would be impossible.
+In addition, we show how Bayesian updating can help produce uncertainty estimates for condition indicators that suffer from low sampling sizes where traditional variances would be unreliable.
 Our workflow can also help guide local field efforts to in the future get better and less resource demanding local ecosystem condition accounts.
 
 # CRediT authorship contribution statement {.unnumbered}
@@ -2122,7 +2117,7 @@ We have no competing interests to declare.
 
 # Acknowledgements {.unnumbered}
 
-We wich to thank Kwaku Peprah Adjei for statistical help, and Hanno Sandvik for code review.
+We wish to thank Kwaku Peprah Adjei for statistical help, and Hanno Sandvik for code review.
 
 # Data availability {.unnumbered}
 
