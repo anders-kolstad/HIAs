@@ -28,6 +28,7 @@ author:
           city: Oslo
           postal-code: NO-0855
 date: last-modified
+bibliography: bibliography.bib
 format:
   pdf
 editor: 
@@ -74,7 +75,6 @@ knitr::include_graphics("../images/scaling-plot.jpg")
 knitr::include_graphics("../images/positionMap.jpg")
 ```
 
-
 ```{r fig-muniHIAs}
 #| fig.cap: "Barplot showing the total area from each homogeneous impact area 
 #| in three Norwegian municipalities"
@@ -86,12 +86,28 @@ knitr::include_graphics("../images/infra-dist-plot.jpg")
 
 
 
+
+| HIA class | Lower limit | Upper limit |
+|-----------|-------------|-------------|
+| 0         | 0           | \<1         |
+| 1         | 1           | \<6         |
+| 2         | 6           | \<12        |
+| 3         | 12          | 15.44       |
+: Data ranges used to categorise the Norwegian Land Use Intensity Index (the Infrastructure Index) [@erikstad2023] in the new categorical variable Homogeneous Impact Areas (HIA). {#tbl-ranges}
+
 {{< pagebreak >}}
+
 ```{r tbl-EEA}
 #| tbl-cap: "Indicator values for three ecosystem condition indicators in three 
 #| Norwegian municipalities. Values are medians with 2.5 and 97.5 percentiles
 #| for the distribution of possible values."
 
 (tbl <- readRDS("../output/EEA-tbl.RDS"))
+
 ```
 
+
+# References {.unnumbered}
+
+::: {#refs}
+:::
