@@ -47,7 +47,7 @@ format:
   elsevier-pdf:
     keep-tex: true
     journal:
-      name: Ecological Indicators
+      name: EcoEvoRxiv
       formatting: preprint
       model: 3p
       cite-style: authoryear
@@ -1781,17 +1781,17 @@ This normalisation ensures that indicators are more comparable because an indica
 Similarly, a value of 0 means that the variable is in the worst possible state, for example that the species or ecosystem function in question is completely lost from the ecosystem.
 The reference condition needs to be defined for each ecosystem condition assessment separately, but SEEA EA gives some suggestions, such as an an ecosystem with no or minimal anthropogenic disturbance.
 
-The SEEA EA framework recommends that ecosystem condition indicators give an unbiased representation of the condition for a given area [table 1 in @czucz_selection_2021; see also @unitednations2021 §2.87], and that condition indicators are recorded uniquely for each ecosystem asset (EA) so that the condition in the ecosystem accounting area (EAA) can be inferred from an area weighted mean based on the relative extents of the ecosystem assets [@unitednations2021 §5.54].
-Ecosystem assets (EAs) are defined as "ecological entities" (meaning areas) about which information is sought and about which statistics are compiled [@unitednations2021].
+The SEEA EA framework recommends that ecosystem condition indicators give an unbiased representation of the condition for a given area [table 1 in @czucz_selection_2021; see also @unitednations2021 §2.87], and that condition indicators are recorded uniquely for each ecosystem asset so that the condition in the ecosystem accounting area (EAA) can be inferred from an area weighted mean based on the relative extents of the ecosystem assets [@unitednations2021 §5.54].
+Ecosystem assets are defined as "ecological entities" (meaning areas) about which information is sought and about which statistics are compiled [@unitednations2021].
 This recommendation for representativity in the indicators means that spatially biased data are ill suited, especially if sampling intensity varies systematically along gradients of anthropogenic pressures and hence ecosystem condition.
-The recommendation for spatial resolution also means that when a condition metric is sampled coarsely, for example in an opportunistic and spatially biased field campaign, then it is very likely that you will not have a enough data points to reliably estimate an indicator value for each EA.
-This problem does not exist for complete wall-to-wall data, like remotely sensed imagery, where each EA will have ebough data to estaimte its unique indicator value.
+The recommendation for spatial resolution also means that when a condition metric is sampled coarsely, for example in an opportunistic and spatially biased field campaign, then it is very likely that you will not have a enough data points to reliably estimate an indicator value for each ecosystem asset.
+This problem does not exist for complete wall-to-wall data, like remotely sensed imagery, where each ecosystem asset will have enough data to estimate its unique indicator value.
 This challenge if spatial generalisation is not unique to ecosystem condition accounts, and it is much discussed in the ecosystem service accounting community of practice via the related term *value transfer* [@unitednations2022; @ncaves; @grammatikopoulou2023; @barton2023].
 There are at least three ways to achieve this same complete areal coverage from indicator values that originally are spatially incomplete:
 
 a.  Predict (project) indicator values from a statistical model that accounts for the effect of environmental variation on the variables
-b.  Take a central tendency (e.g. the mean) from the sample population and project it to all EAs of a given ecosystem type.
-c.  Take a central tendency from stratified sections of the sample population and projection them to the EAs, adhering to the corresponding strata.
+b.  Take a central tendency (e.g. the mean) from the sample population and project it to all ecosystem assets of a given ecosystem type.
+c.  Take a central tendency from stratified sections of the sample population and projection them to the ecosystem assets, adhering to the corresponding strata.
 
 The need for an unbiased estimation of indicator values is unquestionable, but nonetheless, this requirement puts a large limitation on what types of data one can use in ecosystem condition accounts.
 Ecosystem condition assessments are generally limited by data availability, and the choice of variables and indicators to include in assessments is more often than not a pragmatic and opportunistic one, which is unlikely to reflect the full scope of the ecosystem condition characteristics.
@@ -1803,7 +1803,7 @@ However, in this paper we chose to focus on spatial bias.
 Being able to make use of spatially biased data would greatly alleviate data shortage problems in ecosystem condition accounts.
 One way to achieve this is modelling (option *a* in the list above).
 Statistical models can describe the general associations between the sampled data and the context where it was sampled (e.g. a set of environmental variables), and use these relationships to predict and project indicator values to areas that where not originally sampled.
-Depending on the data that goes into these models, they can make very precice and good indicators (REF).
+Depending on the data that goes into these models, they can make very precice and good indicators.
 This is especially true when the EAAs are large (e.g. regions or nations).
 But when they are small, like the scale of a municipality, and when the indicator is more likely to be used as the evidence base in concrete physical land use planning, then the inherent level of uncertainty from the spatial extrapolation of such models becomes unacceptable.
 
@@ -2043,7 +2043,7 @@ Therefore, we see little risk in using the stratification process also on indica
 
 ## The benefits of using Bayesian updating
 
-We have also demonstrated how Bayesian updating and re-sampling can be used instead of traditional arithmetic aggregation of indicators, from EAs to EAAs, to produce probability density distributions for indicator values.
+We have also demonstrated how Bayesian updating and re-sampling can be used instead of traditional arithmetic aggregation of indicators, from ecosystem assets to EAAs, to produce probability density distributions for indicator values.
 A major benefit of this approach in our example was that it allowed us to present reliable uncertainty ranges for our indicator estimates even with very low sampling sizes, thus making it possible to estimate indicator values for a much greater area than if we were forced to set a minimum sample size threshold.
 An indicator estimate is of little value unless it is accompanied by a measure of uncertainty.
 The variance is commonly used, usually calculated from the variation between spatially distant sampling points.
@@ -2067,9 +2067,9 @@ Fieldwork will therefore still be vital for collection of information for ecosys
 To increase efficacy of fieldwork at local scales - and hence, reduce costs - our results demonstrate that municipalities can stratify their field sampling according to the HIAs.
 For example, Gran and Nord-Aurdal have not recorded any field data from their most urban areas (HIA 3), and could make these areas a priority in upcoming field campaigns in order to get more complete spatial indicator coverage.
 
-We used a national data set of nature type surveys that follow a shared protocol (REF).
-There can be other data sets, that may not be compiled nationally, but which could be relevant to XXX.
-In some cases, a local ecosystem condition account is mostly interested in describing and monitoring the status within its own EAA, but great benefits may be had if accounts can also be compared between EAA, say between municipalities.
+We used a national data set of nature type surveys that follow a shared protocol [@miljødirektoratet].
+There can be other data sets, that may not be compiled nationally, but which could be relevant to local ECAs.
+In some cases, a local ECA is mostly interested in describing and monitoring the status within its own EAA, but great benefits may be had if accounts can also be compared between EAA, say between municipalities.
 This kind of information can give grounds for a more regional assessment, for example looking at the effects of policies on ecosystem condition trajectories.
 To accomplish this level of synthesis it helps to be able to use indicators that are common across EAAs.
 This all depends on the right variables being collected in a similar way, for example across different projects or monitoring frameworks.
@@ -2085,7 +2085,7 @@ Relevant ecosystem condition variables are recorded for each delineated ecosyste
 ## Indicator values in the three pilot municipalities
 
 The indicator values for our three indicators across the three municipalities showed in general a good condition in the mire ecosystems (@fig-EEA-ridgePlot).
-The exception was for variable *Trenching* in Nordre Follo, where the indicator value was 0.25; well below the threshold for good ecosystem condition (0.6) (REF Jakobsson 2020, 2021).
+The exception was for variable *Trenching* in Nordre Follo, where the indicator value was 0.25; well below the threshold for good ecosystem condition (0.6).
 This estimate is based on just 4–5 data points (i.e. mires), and this is also reflected in the wide credible intervals \[0.04 – 0.50\].
 Nordre Follo has surveyed more of its total land area compared to the other two municipalities, but has less mire area to begin with (@tbl-munis), which is the reason for this low sample size.
 We believe this indicator estimate is trustworthy, in light of the wide credible intervals, and that it could reflect the true prevalence of trenching in Nordre Follo.
