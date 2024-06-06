@@ -29,7 +29,7 @@ author:
           city: Oslo
           postal-code: NO-0855
 abstract: |
-  Ecosystem Condition Accounts (ECA) should reflect the integrity or quality of all nature inside the scope of the account, and therefore rely on spatially representative indicators for condition. All ECAs are subject to data constraints in some way. Therefore, being able to make use of spatially biased data sets would be very valuable. For national ECAs, modelling aproaches can in some cases be used to control for sampling biases. For local ECAs however, like at the scale of individual municipalities of developement projects, this is often not an option as it involved spatial extrapolation using data from outside the ecosystem accounting area. In this study we develop three ecosystem condition indicators from the same spatially biased data set based on nature type mapping of Norwegian mires. The indicators are Alien species, Trenching and Anthropogenic Disturbance to Soil and Vegetation. We test our approach in three municipalities in south Norway. A spatial variable was created with four steps of increasing of infrastructure prevalence that we refer to as Homogeneous Impact Areas (HIAs). To facilitate reliable estimation of indicator uncertainties, even in cases with very low sample sizes, we use a Bayesian updating method and produce probability distributions for the area-weighted mean indicator values in each HIA seperately. Then we use area-weighted resampling and produce indicator propabiliy distributions for each municipality. With this Bayesian updating and resampling approach, small sample sizes can be compensated by correspondingly large uncertainty ranges, as long as the full dataset is large enough to estimate the true population standard deviation. This paper demonstrates the use of a GIS-based workflow to control for some of the most problematic biases in an oppurtunistic field survey so that the data can be used for indicators in ECAs. The workflow can be used at any scale, including national scale. Because indicator values are calculatind for unique spatial strata, local governments or others can target their data aquisition towards strata with low sample sizes, and thus achieve higher cost effectiveness and ultimately better spatial indicator coverage.
+  Ecosystem Condition Accounts (ECA) should reflect the integrity or quality of all nature inside the scope of the account, and therefore rely on spatially representative indicators for condition. All ECAs are subject to data constraints in some way. Therefore, being able to make use of spatially biased data sets would be very valuable. For national ECAs, modelling approaches can in some cases be used to control for sampling biases. For local ECAs however, like at the scale of individual municipalities of development projects, this is often not an option as it involves spatial extrapolation using data from outside the ecosystem accounting area. In this study we develop three ecosystem condition indicators from the same spatially biased data set based on nature type mapping of Norwegian mires. The indicators are Alien species, Trenching and Anthropogenic Disturbance to Soil and Vegetation. We test our approach in three municipalities in south Norway. We discretised a spatial variable representing infrastructure prevalence, and we refer to this new map as Homogeneous Impact Areas (HIAs). To facilitate reliable estimation of indicator uncertainties, even in cases with very low sample sizes, we use a Bayesian updating method and produce probability distributions for the area-weighted mean indicator values in each HIA separately. Then we use area-weighted resampling and produce indicator probability distributions for each municipality. With this Bayesian updating and resampling approach, small sample sizes can be compensated by correspondingly large uncertainty ranges, as long as the full dataset is large enough to estimate the true population standard deviation. This paper demonstrates the use of a GIS-based workflow to control for some of the most problematic biases in an opportunistic field survey so that the data can be used for indicators in ECAs. The workflow can be used at any scale, including national scale. Because indicator values are calculated for unique spatial strata, local governments or others can target their data acquisition towards strata with low sample sizes, and thus achieve higher cost effectiveness and ultimately better spatial indicator coverage.
 keywords: 
   - alien species
   - disturbance
@@ -62,6 +62,11 @@ execute:
   eval: false
   warning: false
   message: false
+header-includes:
+- |
+  \usepackage{pdflscape}
+  \newcommand{\blandscape}{\begin{landscape}}
+  \newcommand{\elandscape}{\end{landscape}}
 ---
 
 ```{r setup}
@@ -1789,7 +1794,7 @@ This problem does not exist for complete wall-to-wall data, like remotely sensed
 This challenge if spatial generalisation is not unique to ecosystem condition accounts, and it is much discussed in the ecosystem service accounting community of practice via the related term *value transfer* [@unitednations2022; @ncaves; @grammatikopoulou2023; @barton2023].
 There are at least three ways to achieve this same complete areal coverage from indicator values that originally are spatially incomplete:
 
-a.  Predict (project) indicator values from a statistical model that accounts for the effect of environmental variation on the variables
+a.  Predict (project) indicator values from a statistical model that accounts for the effect of environmental variation on the variables.
 b.  Take a central tendency (e.g. the mean) from the sample population and project it to all ecosystem assets of a given ecosystem type.
 c.  Take a central tendency from stratified sections of the sample population and projection them to the ecosystem assets, adhering to the corresponding strata.
 
@@ -1802,8 +1807,8 @@ However, in this paper we chose to focus on spatial bias.
 
 Being able to make use of spatially biased data would greatly alleviate data shortage problems in ecosystem condition accounts.
 One way to achieve this is modelling (option *a* in the list above).
-Statistical models can describe the general associations between the sampled data and the context where it was sampled (e.g. a set of environmental variables), and use these relationships to predict and project indicator values to areas that where not originally sampled.
-Depending on the data that goes into these models, they can make very precice and good indicators.
+Statistical models can describe the general associations between the sampled data and the context where it was sampled (e.g. a set of environmental variables) and use these relationships to predict and project indicator values to areas that where not originally sampled.
+Depending on the data that goes into these models, they can make very precise and good indicators.
 This is especially true when the EAAs are large (e.g. regions or nations).
 But when they are small, like the scale of a municipality, and when the indicator is more likely to be used as the evidence base in concrete physical land use planning, then the inherent level of uncertainty from the spatial extrapolation of such models becomes unacceptable.
 
@@ -1816,7 +1821,7 @@ We highlight the opportunities for local use-cases of this GIS-based workflow by
 This study makes use of a data set from from a standardised field survey of nature types in Norway that started in 2018 and which is still ongoing [@norwegian_environmental_agency_naturtyper_2024].
 In this survey, selected nature types are delineated on a map (over 140 000 polygons at the end of 2023), and each locality is scored on a range of variables relevant for describing the state and quality of nature [@norwegian_environmental_agency_protocol].
 The surveys are commissioned with the goal of producing data relevant for immediate land-use decisions, and are therefore spatially biased, typically towards areas with high human impact or expected impact.
-In addition there is a thematic and size bias in the sampling protocol.
+In addition, there is a thematic and size bias in the sampling protocol.
 For example, for the forest ecosystem, rare, endangered or calcareous forest types are delineated, whereas more common or ordinary forest types are not.
 In this study we focused on open mire ecosystems in Norway where the thematic bias is less severe (the spatial bias being presumably equal for all ecosystems).
 The survey maps the following mire types which we use in our analyses:
@@ -1842,11 +1847,11 @@ The other variables are recorded in all delineated mires.
 From the survey data set we identified six relevant variables (variable 1-6 in @tbl-variables) which we attribute to three different ecosystem condition characteristics that describe the typical behavior of open mire ecosystems in the reference condition (Figure S1).
 Variable 1, 7FA, represents the abundance of alien species, mainly plants.
 Variables 2-5 (7SE, PRSL, 7TK and PRTK) describe very related aspects, and are attributed to the same ecosystem condition characteristic (vegetation intactness) and so they were combined into a single indicator called anthropogenic disturbance to soil and vegetation (ADSV; Figure S1).
-These variables were were originally recorded along binned frequency ranges @norwegian_environmental_agency_protocol .
-Because the data was strongly right skewed we used the lower limit for each frequency range to convert them into percentages.
+These variables were were originally recorded along binned frequency ranges [@norwegian_environmental_agency_protocol].
+Because the data was strongly right skewed, we used the lower limit for each frequency range to convert them into percentages.
 This was done by summing the four variables after they had been converted to percentages.
-This was not a perfect solution, especially since some localities only had one of the variables recorded, but we chose this, rather than for example using a *worst rule* principle, in order to better separate the localities in terms of their indicator values.
-Variable 6, 7GR-GI, is different from the preceding variables in @tbl-variables in that it includes an estimation of future effects that the observed trenches are projected to have on mire vegetation, function or structure over time.
+This was not a perfect solution, especially since some localities only had one of the variables recorded, but we chose this, rather than for example using a *worst rule* principle, to better separate the localities in terms of their indicator values.
+Variable 6, 7GR-GI, is different from the preceding variables in @tbl-variables in that it includes an estimation of future effects that the observed trenches are projected to have on mire vegetation, function, or structure over time.
 This is not a favourable trait in a metric used to evaluate the ecosystem condition as it is today, yet we include it here nonetheless because there is a general shortage of data on mire hydrology, which is a fundamental part of mire integrity.
 
 To turn variables into indicators we scaled them using three normative reference values each: an upper (best possible condition), a lower (worst possible condition), and a threshold value that defines the breaking point between good and poor condition [@jakobsson2020].
@@ -1862,12 +1867,6 @@ A value of 2 indicates observable change within the range expected for the same 
 See @fig-workflowExample and S1 for schematic workflows for the indicator development.
 *Alien species* was attributed to Ecosystem Condition Typology (ECT) class B1 - Compositional state characteristics and *ADSV,* and *Trenching* were attributed to ECT class A1 - Physical state characteristics [@czucz_common_2021].
 
-We used an ecosystem delineation map for open mires in southern Norway, produced using remotely sensed data and a deep learning model [@bakkestuen_delineation_2023].
-This model estimates 12.7% of the area in southern Norway is mire [@bakkestuen_delineation_2023].
-Mires are ecologically and socially important in Norway simply due to their large extent, and due to their role in climate mitigation as mires store a large amount of carbon.
-There has not been a national assessment of the ecosystem condition of mires in Norway, but the authors recently contributed to a report which presented several new indicators that can be used in future national assessments for this ecosystem [@nybo_indikatorer_2023; see also @kolstad2023]).
-The current study builds on the work in that report.
-
 ```{r fig-studyLocation2}
 #| eval: true
 #| include: true
@@ -1876,49 +1875,32 @@ The current study builds on the work in that report.
 #| - "Map of the three focal municipalities. For each municipality the maps
 #| in the top row show ocean in blue and non-ocean in green. 
 #| The survey coverage maps are in grey, and the mapped mires are
-#| in red, with polygon borders made extra thich to make them visible,
+#| in red, with polygon borders made extra thick to make them visible,
 #| but then also exaggerating their size.
 #| The bottom row shows the delineation for homogeneous impact areas which
 #| is an ordinal gradient from 0–3 with increasing presence of human 
-#| instrastructure."
+#| infrastructure."
 
 knitr::include_graphics("../images/studyLocations.jpg")
 ```
 
-{{< pagebreak >}}
+\pagebreak
 
-| id  | Variable code        | Variable name                                    | Measurement unit                                                                         | Description                                                                                                                                                       | Reference            |
-|------------|------------|------------|------------|------------|------------|
-| 1   | 7FA                  | Prevalence of alien species                      | Unit-less, ordinal, non-linear scale from 1 (no alien species) to 7 (only alien species) | The fraction of the species composition made up from alien species                                                                                                | @runehalvorsen2019   |
-| 2   | 7SE                  | Human caused abration or abration-caused erosion | Unit-less, ordinal, non-linear scale from 1 to 4.                                        | Measures the frequency of imagined 4 m^2^ quadrats laid over the area that has some sign of abration                                                              | @runehalvorsen2019   |
-| 3   | PRSL                 | *as above*                                       | Unit-less, ordinal, non-linear scale from 0 to 7.                                        | Same as 7SE, but recorded at a higher resolution                                                                                                                  | @miljødirektoratet   |
-| 4   | 7TK                  | Tracks from large vehicles                       | Unit-less, ordinal, non-linear scale from 1 to 4.                                        | Measures the frequency of imagined 100 m^2^ quadrats laid over the area that has some signs of vehicle tracks                                                     | @runehalvorsen2019   |
-| 5   | PRTK                 | *as above*                                       | Unit-less, ordinal, non-linear scale from 0 to 7.                                        | Same as 7TK, but recorded at a higher resolution                                                                                                                  | @miljødirektoratet   |
-| 6   | 7GR-GI               | Trenching intensity                              | Unit-less, ordinal scale from 1 to 5                                                     | Describes the effect that drainage ditches is estimate to have on the species composition and environmental variables ones the system reached its new equilibrium | @miljødirektoratet   |
-| 7   | Infrastructure Index | Infrastructure Index                             | Unit-less linear scale from 0 to 13.2                                                    | Unit-less index ranging from from 0 to 13.2                                                                                                                       | @erikstad_index_2023 |
-| 8   | HIA                  | Homogeneous Impact Area                          | Ordinal, non-linear scale from 1 to 4                                                    | A categorical representation of the infrastructure index                                                                                                          | this paper           |
-
-: Variables used in this study {#tbl-variables}
-
-{{< pagebreak >}}
-
-| Municipality  | Total terrestrial area (km^2^)                                            | \% of terrestrial area surveyed                                            | \% open mires in relation to total terrestrial area                         | Total mire area (km^2^)                                                  | %of mire area inside survey area                                                      | Number of mire polygons in survey                                 | Mean Infrastructure Index value                                         |
-|---------|---------|---------|---------|---------|---------|---------|---------|
-| Nordre Follo  | `r muni_tbl |> filter(Municipality == "Nordre Follo") |> pull(t_area_km)` | `r muni_tbl |> filter(Municipality == "Nordre Follo") |> pull(dk_percent)` | `r muni_tbl |> filter(Municipality == "Nordre Follo") |> pull(mirePercent)` | `r muni_tbl |> filter(Municipality == "Nordre Follo") |> pull(mire_km2)` | `r muni_tbl |> filter(Municipality == "Nordre Follo") |> pull(mireInSurvery_percent)` | `r muni_tbl |> filter(Municipality == "Nordre Follo") |> pull(n)` | `r muni_tbl |> filter(Municipality == "Nordre Follo") |> pull(meanHIA)` |
-| `Gran`        | `r muni_tbl |> filter(Municipality == "Gran") |> pull(t_area_km)`         | `r muni_tbl |> filter(Municipality == "Gran") |> pull(dk_percent)`         | `r muni_tbl |> filter(Municipality == "Gran") |> pull(mirePercent)`         | `r muni_tbl |> filter(Municipality == "Gran") |> pull(mire_km2)`         | `r muni_tbl |> filter(Municipality == "Gran") |> pull(mireInSurvery_percent)`         | `r muni_tbl |> filter(Municipality == "Gran") |> pull(n)`         | `r muni_tbl |> filter(Municipality == "Gran") |> pull(meanHIA)`         |
-| `Nord-Aurdal` | `r muni_tbl |> filter(Municipality == "Nord-Aurdal") |> pull(t_area_km)`  | `r muni_tbl |> filter(Municipality == "Nord-Aurdal") |> pull(dk_percent)`  | `r muni_tbl |> filter(Municipality == "Nord-Aurdal") |> pull(mirePercent)`  | `r muni_tbl |> filter(Municipality == "Nord-Aurdal") |> pull(mire_km2)`  | `r muni_tbl |> filter(Municipality == "Nord-Aurdal") |> pull(mireInSurvery_percent)`  | `r muni_tbl |> filter(Municipality == "Nord-Aurdal") |> pull(n)`  | `r muni_tbl |> filter(Municipality == "Nord-Aurdal") |> pull(meanHIA)`  |
-
-: Information for the three target municipalities in Norway {#tbl-munis}
+We used an ecosystem delineation map for open mires in southern Norway, produced using remotely sensed data and a deep learning model [@bakkestuen_delineation_2023].
+This model estimates 12.7% of the area in southern Norway is mire [@bakkestuen_delineation_2023].
+Mires are ecologically and socially important in Norway simply due to their large extent, and due to their role in climate mitigation as mires store a large amount of carbon.
+There has not been a national assessment of the ecosystem condition of mires in Norway, but the authors recently contributed to a report which presented several new indicators that can be used in future national assessments for this ecosystem [@nybo_indikatorer_2023; see also @kolstad2023]).
+The current study builds on the work in that report.
 
 Because the nature type survey data are spatially biased, we cannot assume that they are area-representative.
-In an attempt to overcome this issue we divided the area of Norway into four non-overlapping Homogeneous Impact Areas (HIAs) based on an infrastructure index for the year 2022 (@tbl-variables).
+In an attempt to overcome this issue, we divided the area of Norway into four non-overlapping Homogeneous Impact Areas (HIAs) based on an infrastructure index for the year 2022 (@tbl-variables).
 This index is a continuous variable that represents the frequency of different infrastructure types inside 500 m radius circles around each 100×100 m pixel [@erikstad2023].
-We then categorised this continuous variable into four classes (0–3) using ranges chosen to produce a sensible and relatively linear area classification when visualised along an urban-wilderness gradient, whilst at the same time delineating sufficient areas for each strata across Norway (Table S1).
-We then aggregated the data to 1×1 km pixels to ease computations, and vectorised it.
+We then categorised this continuous variable into four classes (0–3) using ranges chosen to produce a sensible and relatively linear area classification when visualised along an urban-wilderness gradient, whilst at the same time delineating sufficient areas for each stratum across Norway (Table S1).
+We then aggregated the data to 1×1 km pixels to ease computations and vectorised it.
 The name HIAs is not a perfect representation of the information found in the infrastructure index, but we introduce this name here as a general term which is aligned with the concept of Homogeneous Ecosystem Areas, *sensu* @vallecillo_eu-wide_2022.
 
 We used the entire national data set for assessing the relationship between the HIA levels and the indicator values.
-We then sub-setted the national data set and chose three municipalities in south Norway to test out the indicators.
+We then subsetted the national data set and chose three municipalities in south Norway to test out the indicators.
 The municipalities differ in several aspects, such as the amount of mire area, the total area surveyed, and the prevalence of infrastructure (@tbl-munis, @fig-studyLocation2, S3, S4).
 The nature type polygons with the indicator values were intersected with the HIA map and a map of municipal outlines in Norway.
 The relationship between the HIA classes and indicator values was examined visually.
@@ -1931,7 +1913,36 @@ The number of m^2^ dictated the number of samples for each polygon, thus ensurin
 We then drew 1000 random values from this vector of possible indicator values and created a probability distribution for the indicators for each municipality (the second aggregation step; Figure S1).
 When there were no indicator values for a given HIA class, we ignored that class also in the municipal estimate.
 
-All the data preparation and analyses were done in RStudio [@positteam2024] and R version 4.3.0 [@rcoreteam2023], relying heavily on the packages tidyverse [@wickham2019] , sf [@pebesma2018] and stars [@pebesma2023].
+All the data preparation and analyses were done in RStudio [@positteam2024] and R version 4.3.0 [@rcoreteam2023], relying heavily on the packages tidyverse [@wickham2019], sf [@pebesma2018], and stars [@pebesma2023].
+
+\pagebreak
+
+\blandscape
+
+| id  | Variable code         | Variable name                                    | Measurement unit                                                                         | Description                                                                                                                                                       | Reference                                |
+|------------|------------|------------|------------|--------------|------------|
+| 1   | 7FA                   | Prevalence of alien species                      | Unit-less, ordinal, non-linear scale from 1 (no alien species) to 7 (only alien species) | The fraction of the species composition made up from alien species                                                                                                | @runehalvorsen2019                       |
+| 2   | 7SE                   | Human caused abrasion or abrasion-caused erosion | Unit-less, ordinal, non-linear scale from 1 to 4.                                        | Measures the frequency of imagined 4 m^2^ quadrats laid over the area that has some sign of abrasion                                                              | @runehalvorsen2019                       |
+| 3   | PRSL                  | *as above*                                       | Unit-less, ordinal, non-linear scale from 0 to 7.                                        | Same as 7SE, but recorded at a higher resolution                                                                                                                  | @norwegian_environmental_agency_protocol |
+| 4   | 7TK                   | Tracks from large vehicles                       | Unit-less, ordinal, non-linear scale from 1 to 4.                                        | Measures the frequency of imagined 100 m^2^ quadrats laid over the area that has some signs of vehicle tracks                                                     | @runehalvorsen2019                       |
+| 5   | PRTK                  | *as above*                                       | Unit-less, ordinal, non-linear scale from 0 to 7.                                        | Same as 7TK, but recorded at a higher resolution                                                                                                                  | @norwegian_environmental_agency_protocol |
+| 6   | 7GR-GI                | Trenching intensity                              | Unit-less, ordinal scale from 1 to 5                                                     | Describes the effect that drainage ditches is estimate to have on the species composition and environmental variables ones the system reached its new equilibrium | @norwegian_environmental_agency_protocol |
+| 7   | Infra-structure Index | Infrastructure Index                             | Unit-less linear scale from 0 to 13.2                                                    | Unit-less index ranging from from 0 to 13.2                                                                                                                       | @erikstad_index_2023                     |
+| 8   | HIA                   | Homogeneous Impact Area                          | Ordinal, non-linear scale from 1 to 4                                                    | A categorical representation of the infrastructure index                                                                                                          | this paper                               |
+
+: Variables used in this study {#tbl-variables} {tbl-colwidths="\[5,10,15,25,25,20\]"}
+
+{{< pagebreak >}}
+
+| Municipality  | Total terrestrial area (km^2^)                                            | \% of terrestrial area surveyed                                            | \% open mires in relation to total terrestrial area                         | Total mire area (km^2^)                                                  | %of mire area inside survey area                                                      | Number of mire polygons in survey                                 | Mean Infrastructure Index value                                         |
+|---------|---------|---------|---------|---------|---------|---------|---------|
+| Nordre Follo  | `r muni_tbl |> filter(Municipality == "Nordre Follo") |> pull(t_area_km)` | `r muni_tbl |> filter(Municipality == "Nordre Follo") |> pull(dk_percent)` | `r muni_tbl |> filter(Municipality == "Nordre Follo") |> pull(mirePercent)` | `r muni_tbl |> filter(Municipality == "Nordre Follo") |> pull(mire_km2)` | `r muni_tbl |> filter(Municipality == "Nordre Follo") |> pull(mireInSurvery_percent)` | `r muni_tbl |> filter(Municipality == "Nordre Follo") |> pull(n)` | `r muni_tbl |> filter(Municipality == "Nordre Follo") |> pull(meanHIA)` |
+| `Gran`        | `r muni_tbl |> filter(Municipality == "Gran") |> pull(t_area_km)`         | `r muni_tbl |> filter(Municipality == "Gran") |> pull(dk_percent)`         | `r muni_tbl |> filter(Municipality == "Gran") |> pull(mirePercent)`         | `r muni_tbl |> filter(Municipality == "Gran") |> pull(mire_km2)`         | `r muni_tbl |> filter(Municipality == "Gran") |> pull(mireInSurvery_percent)`         | `r muni_tbl |> filter(Municipality == "Gran") |> pull(n)`         | `r muni_tbl |> filter(Municipality == "Gran") |> pull(meanHIA)`         |
+| `Nord-Aurdal` | `r muni_tbl |> filter(Municipality == "Nord-Aurdal") |> pull(t_area_km)`  | `r muni_tbl |> filter(Municipality == "Nord-Aurdal") |> pull(dk_percent)`  | `r muni_tbl |> filter(Municipality == "Nord-Aurdal") |> pull(mirePercent)`  | `r muni_tbl |> filter(Municipality == "Nord-Aurdal") |> pull(mire_km2)`  | `r muni_tbl |> filter(Municipality == "Nord-Aurdal") |> pull(mireInSurvery_percent)`  | `r muni_tbl |> filter(Municipality == "Nord-Aurdal") |> pull(n)`  | `r muni_tbl |> filter(Municipality == "Nord-Aurdal") |> pull(meanHIA)`  |
+
+: Information for the three target municipalities in Norway {#tbl-munis}
+
+\elandscape
 
 # Results
 
@@ -1960,7 +1971,7 @@ Nordre Follo had the highest (the best) indicator values for ADSV, but the lowes
 #| include: true
 #| out.width: '100%'
 #| fig.cap:
-#| - "Simplified schematic showing the workflow (Panes A-E) for spatial generalisation of a spatially biased ecosystem condition indicator. Pane A shows a spatially explicit, patchy and spatially biased indicator. The outline is the ecosystem accounting area (EEA). Pane B shows the location of four homogeneous impact areas (HIAs) inside the EEA. The indicator values in Pane A are used, in combination with the HIA map in Pane B, to update a uniform prior and produce a posterior probability distribution for the mean area weighted indicator value for each HIA (Pane C; here simplified to only show the mean (circles) and 95% credible intervals (colored bands)). The Bayesian updating is informed by the standard deviation for the indicator in a much bigger national data set. The width of the posterior distribution responds both to variation in the data and to the sample size, giving  a realistic measure for the uncertainty around the indicator even with a single observation. The distributions in Pane C are assumed normally distributed. Note that because in this example there were no indicator data for HIA-3, indicator values are only aggregated for HIAs 0–2. In Pane D the mean and SD from the posterior distributions are transferred to individual polygons in an ecosystem delineation map, for each HIA seperately. The colors indicate different indicator values (highlighted in the inset). For each ecosystem occurence (i.e. ecosystem assets) in Pane D, we draw one random value for each square meter of area from a normal distribution with the mean and SD that is associated with that polygon. In Pane E we have randomly sampled 1000 values from the entire vector of samples in the previous step, and we get an area weighted probability distribution for the mean indicator value for the EEA."
+#| - "Simplified schematic showing the workflow (Panes A-E) for spatial generalisation of a spatially biased ecosystem condition indicator. Pane A shows a spatially explicit, patchy and spatially biased indicator. The outline is the ecosystem accounting area (EEA). Pane B shows the location of four homogeneous impact areas (HIAs) inside the EEA. The indicator values in Pane A are used, in combination with the HIA map in Pane B, to update a uniform prior and produce a posterior probability distribution for the mean area weighted indicator value for each HIA (Pane C; here simplified to only show the mean (circles) and 95% credible intervals (coloured bands)). The Bayesian updating is informed by the standard deviation for the indicator in a much bigger national data set. The width of the posterior distribution responds both to variation in the data and to the sample size, giving  a realistic measure for the uncertainty around the indicator even with a single observation. The distributions in Pane C are assumed normally distributed. Note that because in this example there were no indicator data for HIA-3, indicator values are only aggregated for HIAs 0–2. In Pane D the mean and SD from the posterior distributions are transferred to individual polygons in an ecosystem delineation map, for each HIA separately. The colours indicate different indicator values (highlighted in the inset). For each ecosystem occurrence (i.e. ecosystem assets) in Pane D, we draw one random value for each square meter of area from a normal distribution with the mean and SD that is associated with that polygon. In Pane E we have randomly sampled 1000 values from the entire vector of samples in the previous step, and we get an area weighted probability distribution for the mean indicator value for the EEA."
 
 knitr::include_graphics("../images/aggregation-workflow.jpg")
 
@@ -2001,8 +2012,8 @@ knitr::include_graphics("../images/forest-plot.jpg")
 #| out.width: '80%'
 #| fig.cap:
 #| - "An indicator for mire trenching shown for Nord-Aurdal municipality. 
-#| Individual mire polygons are colored by the mean indicator values for the
-#| homogenous impact area where it lies. Colors are chosen to best reflect 
+#| Individual mire polygons are coloured by the mean indicator values for the
+#| homogenous impact area where it lies. Colours are chosen to best reflect 
 #| categorical differences and exaggerates the absolute difference between 
 #| areas. The inset it just a visual aid. Coordinate reference system is 
 #| EPSG 25832. Axis are in meters."
@@ -2016,12 +2027,12 @@ knitr::include_graphics("../images/spread-na-small.jpg")
 #| out.width: '80%'
 #| fig.cap:
 #| - "Distributions for three ecosystem condition indicators in the Norwegian 
-#| municipalities. The color gradient reflects the value of the x-axis. 
+#| municipalities. The colour gradient reflects the value of the x-axis. 
 #| The dotted vertical line represents the threshold for what is considered 
 #| reduced ecosystem condtion (< 0.6). Vertical lines under the density curves
 #| are 2.5%, 50% (the median) and 97.5% percentiles."
 
-# Histogram smoothing makes it look like there are more data points beyong the lower and upper percentiles than there really is. The 2.5% percentile sometimes looks like the 25% percentile. 
+# Histogram smoothing makes it look like there are more data points beyond the lower and upper percentiles than there really is. The 2.5% percentile sometimes looks like the 25% percentile. 
 
 knitr::include_graphics("../images/ridgePlot.jpg")
 ```
@@ -2031,10 +2042,10 @@ knitr::include_graphics("../images/ridgePlot.jpg")
 ## The stratified GIS-based approach using HIAs
 
 In this paper we have demonstrated a generalisable GIS-based workflow for making use of spatially biased field data to produce representative ecosystem condition indicators at a local municipal scale (@fig-workflowExample).
-This approach is useful especially for local assessments were we do not want to use data from outside the EAA to inform or influence our estimates for condition indicators inside the EAA.
+This approach is useful especially for local assessments where we do not want to use data from outside the EAA to inform or influence our estimates for condition indicators inside the EAA.
 The method relies on stratifying the field data by Homogeneous Impact Areas (HIAs).
 Our HIA was an ordinal gradient from low to high prevalence of infrastructure, and we found a relationship of increasing infrastructure and decreasing indicator values ranging from weak, in the case of the *Alien species* indicator, to strong, for the indicator for *Trenching* in mires (the *ADSV* indicator falling somewhere in the middle) (@fig-validation) .
-This implies that the stratification was warranted in the latter case (*Trenching*), i.e that field data from urban or sub-urban mires could not be said to represent the status of mires in more remote wilderness areas.
+This implies that the stratification was warranted in the latter case (*Trenching*), i.e. that field data from urban or sub-urban mires could not be said to represent the status of mires in more remote wilderness areas.
 In the case for *Alien species*, stratifying the variable by the HIAs can be predicted to have had a less directional effect on average, but we did find a difference between HIA-1 and 2 in Nord-Aurdal municipality, indicating that the impact from alien species differs between these two strata of varying infrastructure (@fig-forest).
 The drawback that we see from using this stratification technique when the HIA variable is not a good predictor for variation in the indicator, is that we end up with less data points, and therefore higher uncertainties around our indicator estimates, than we otherwise would.
 However, we do not see this as a major problem.
@@ -2049,7 +2060,7 @@ An indicator estimate is of little value unless it is accompanied by a measure o
 The variance is commonly used, usually calculated from the variation between spatially distant sampling points.
 However, the variance is not reliable for low sample sizes.
 For example, even if a numerical population has a large variance, it is still possible to sample, by chance alone, two or three numbers that are very close to each other, and this sample would then display a low variance which is not reflective of the true variance.
-Knowing this, an often used approach is to set a sample size limit, and refrain from estimating indicator values unless there are more than a given number of data points.
+Knowing this, one approach is to set a sample size limit, and refrain from estimating indicator values unless there are more than a given number of data points.
 In our test municipality Nordre Follo, we had only 1-3 data points for each HIA strata, yet we were able to use these data regardless because the Bayesian updating produces a reliable, and relatively broad, uncertainty range for the estimate.
 This is an advantage, especially for local ecosystem condition assessments where data scarcity is likely to be more of an issue than in for example national assessments.
 
@@ -2057,17 +2068,17 @@ This is an advantage, especially for local ecosystem condition assessments where
 
 The UN standard for ecosystem accounting has been tailed towards national accounts [@unitednations2021].
 Similarly, reporting of Ecosystem Accounts to Eurostat, expected to become mandatory for all EU and EEA countries from 2026, is unlikely to require sub-national resolution.
-Assessments at national scales can make use of data sets, and hence indicators, that local assessments can not.
-For example national forest inventories or other national area representative field-based nature monitoring provide enough data points for reliable estimates of indicator values only at relatively large spatial scales.
+Assessments at national scales can make use of data sets, and hence indicators, that local assessments cannot.
+For example, national forest inventories or other national area representative field-based nature monitoring provide enough data points for reliable estimates of indicator values only at relatively large spatial scales.
 Local ecosystem accounts instead rely more on remote sensing or field measurements.
-Remote sensing holds great promise for delivering valuable information to ecosystem accounts across all scales, yet there are some ecosystem characteristics that can not easily be sensed remotely.
+Remote sensing holds great promise for delivering valuable information to ecosystem accounts across all scales, yet there are some ecosystem characteristics that cannot easily be sensed remotely.
 This includes for example species identities, and hence indicators on topics such as alien species or occurrence of threatened or certain keystone species.
 Fieldwork will therefore still be vital for collection of information for ecosystem accounts also in the future.
 
 To increase efficacy of fieldwork at local scales - and hence, reduce costs - our results demonstrate that municipalities can stratify their field sampling according to the HIAs.
-For example, Gran and Nord-Aurdal have not recorded any field data from their most urban areas (HIA 3), and could make these areas a priority in upcoming field campaigns in order to get more complete spatial indicator coverage.
+For example, Gran and Nord-Aurdal have not recorded any field data from their most urban areas (HIA 3) and could make these areas a priority in upcoming field campaigns in order to get more complete spatial indicator coverage.
 
-We used a national data set of nature type surveys that follow a shared protocol [@miljødirektoratet].
+We used a national data set of nature type surveys that follow a shared protocol [@norwegian_environmental_agency_protocol].
 There can be other data sets, that may not be compiled nationally, but which could be relevant to local ECAs.
 In some cases, a local ECA is mostly interested in describing and monitoring the status within its own EAA, but great benefits may be had if accounts can also be compared between EAA, say between municipalities.
 This kind of information can give grounds for a more regional assessment, for example looking at the effects of policies on ecosystem condition trajectories.
@@ -2076,7 +2087,7 @@ This all depends on the right variables being collected in a similar way, for ex
 In Norway, ecosystem impact assessments (EIA) are frequently being produced in conjunction with planned development projects.
 This data could be made very valuable for local ecosystem condition accounts, but currently there are several things stopping this.
 Firstly, there is no standardised reporting for EIA in Norway, and no mandatory publication pathway, and therefore no way to obtain a unified data set of variables recorded across different EIAs.
-If data is made publicly available in a national data base they could be used to design indicators that are informative at multiple scales, also larger than the project level scale at which they were recorded.
+If data is made publicly available in a national data base, they could be used to design indicators that are informative at multiple scales, also larger than the project level scale at which they were recorded.
 Second, the data collection is mainly on the occurrence of specific nature type or species of interest, and true condition parameters are not part of the information required by the authorities.
 In contrast, other nations have implemented EIA or EIA equivalent systems that have much greater synergistic properties towards ecosystem accounting, such as the Biodiversity Net Gain program in England [@departmentforenvironmentfoodruralaffairs].
 This program enforces developers to record and compile data on ecosystem extent and condition at very fine resolution in order to document their effect on nature and ensure a positive net gain from their activities.
@@ -2088,12 +2099,12 @@ The indicator values for our three indicators across the three municipalities sh
 The exception was for variable *Trenching* in Nordre Follo, where the indicator value was 0.25; well below the threshold for good ecosystem condition (0.6).
 This estimate is based on just 4–5 data points (i.e. mires), and this is also reflected in the wide credible intervals \[0.04 – 0.50\].
 Nordre Follo has surveyed more of its total land area compared to the other two municipalities, but has less mire area to begin with (@tbl-munis), which is the reason for this low sample size.
-We believe this indicator estimate is trustworthy, in light of the wide credible intervals, and that it could reflect the true prevalence of trenching in Nordre Follo.
+We believe this indicator estimate is trustworthy, considering the wide credible intervals, and that it could reflect the true prevalence of trenching in Nordre Follo.
 Future work could test this assumption by simulating the effect of varying the sample size for an EAA where all the mires are sampled.
 
 Mire condition in Norway has not been assessed at a national scale.
-Still, we know that they are subject to multiple threats, especially land conversion into agriculture, forestry or development, and we see this reflected in the Norwegian Red List for Nature types where many ombrotrophic bog types, and rich southern minerotrophic fens are listed [@artsdatabanken2018].
-Land conversion of mires is often initiated with trenching to lower the water table, but note that our *Trenching* indicator does not document the effect of trenching on old mires that are today transitioned into another ecosystem.
+Still, we know that they are subject to multiple threats, especially land conversion into agriculture, forestry, or development, and we see this reflected in the Norwegian Red List for Nature types where many ombrotrophic bog types, and rich southern minerotrophic fens are listed [@artsdatabanken2018].
+Land conversion of mires is often initiated with trenching to lower the water table but note that our *Trenching* indicator does not document the effect of trenching on old mires that are today transitioned into another ecosystem.
 This is in line with the UN standard for ecosystem accounting, where these effects should be captured by the extent accounts [@unitednations2021].
 Therefore, the negative consequences of trenching on all Norwegian mires, old and current, must be higher than what our indicator is made to show, most likely considerably higher.
 
@@ -2110,8 +2121,8 @@ Our workflow can also help guide local field efforts to in the future get better
 # CRediT authorship contribution statement {.unnumbered}
 
 **Anders L. Kolstad**: Conceptualization, Methodology, Software, Validation, Formal analysis, Data Curation, Writing - Original Draft, Visualization, Project administration, Funding acquisition.
-**Matthew Grainger**: ...
-**Marianne Evju**: Conceptualization, Writing - Review & Editing
+**Matthew Grainger**: Validation, Writing - Review & Editing.
+**Marianne Evju**: Conceptualization, Writing - Review & Editing.
 
 # Declaration of Competing Interest {.unnumbered}
 
@@ -2125,7 +2136,7 @@ We wish to thank Kwaku Peprah Adjei for statistical help, and Hanno Sandvik for 
 
 This manuscript is written in Quarto, and the source file (Appendix B) also contains code for all the analyses underlying this study, including data exploration and cleaning.
 For a rendered version of the source file, with all code and calculation visible, see Appendix C. The source files and the data are also located on GitHub (https://github.com/anders-kolstad/HIAs) and will be archived on Zenodo with a stable doi at time of submission.
-The exception is the large nature type survey data which was downloaded locally, but which is freely available (see @norwegian_environmental_agency_naturtyper_2024).
+The exception is the large nature type survey data, which was downloaded locally, but which is freely available (see @norwegian_environmental_agency_naturtyper_2024).
 
 {{< pagebreak >}}
 
