@@ -1920,7 +1920,7 @@ All the data preparation and analyses were done in RStudio [@positteam2024] and 
 \blandscape
 
 | id  | Variable code         | Variable name                                    | Measurement unit                                                                         | Description                                                                                                                                                       | Reference                                |
-|------------|------------|------------|------------|--------------|------------|
+|------------|------------|------------|------------|------------|------------|
 | 1   | 7FA                   | Prevalence of alien species                      | Unit-less, ordinal, non-linear scale from 1 (no alien species) to 7 (only alien species) | The fraction of the species composition made up from alien species                                                                                                | @runehalvorsen2019                       |
 | 2   | 7SE                   | Human caused abrasion or abrasion-caused erosion | Unit-less, ordinal, non-linear scale from 1 to 4.                                        | Measures the frequency of imagined 4 m^2^ quadrats laid over the area that has some sign of abrasion                                                              | @runehalvorsen2019                       |
 | 3   | PRSL                  | *as above*                                       | Unit-less, ordinal, non-linear scale from 0 to 7.                                        | Same as 7SE, but recorded at a higher resolution                                                                                                                  | @norwegian_environmental_agency_protocol |
@@ -2135,7 +2135,7 @@ We wish to thank Kwaku Peprah Adjei for statistical help, and Hanno Sandvik for 
 # Data availability {.unnumbered}
 
 This manuscript is written in Quarto, and the source file (Appendix B) also contains code for all the analyses underlying this study, including data exploration and cleaning.
-For a rendered version of the source file, with all code and calculation visible, see Appendix C. The source files and the data are also located on GitHub (https://github.com/anders-kolstad/HIAs) and will be archived on Zenodo with a stable doi at time of submission.
+For a rendered version of the source file, with all code and calculation visible, see Appendix C. The source files and the data are also located on GitHub (https://github.com/anders-kolstad/HIAs) with an archived stable version on Zenodo (doi:10.5281/zenodo.11504703).
 The exception is the large nature type survey data, which was downloaded locally, but which is freely available (see @norwegian_environmental_agency_naturtyper_2024).
 
 {{< pagebreak >}}
