@@ -1,5 +1,7 @@
 # Source files for the manuscript titled: Making use of spatially biased variables in ecosystem condition accounting – a GIS based workflow
 
+[![DOI](https://zenodo.org/badge/718768356.svg)](https://zenodo.org/badge/latestdoi/718768356)
+
 On this repository you can find the material to recreate the analyses and the manuscript titled "Making use of spatially biased variables in ecosystem condition accounting – a GIS based workflow"
 The exeption is the large nature type survey data which was downloaded from [here](https://kartkatalog.miljodirektoratet.no/Dataset/Details/2031).
 
