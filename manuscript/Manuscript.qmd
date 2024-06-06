@@ -1904,7 +1904,7 @@ We then subsetted the national data set and chose three municipalities in south 
 The municipalities differ in several aspects, such as the amount of mire area, the total area surveyed, and the prevalence of infrastructure (@tbl-munis, @fig-studyLocation2, S3, S4).
 The nature type polygons with the indicator values were intersected with the HIA map and a map of municipal outlines in Norway.
 The relationship between the HIA classes and indicator values was examined visually.
-For each HIA and municipality combination we then created a probability distribution for the area weighted mean of the indicator values using Bayesian updating of a uniform prior between 0 and 1, informed by the standard deviation (SD) of the indicator values in the national data set (@fig-workflowExample C; Appendix C, line 138 <!--# update line number manually when re-rendering appendix C -->).
+For each HIA and municipality combination we then created a probability distribution for the area weighted mean of the indicator values using Bayesian updating of a uniform prior between 0 and 1, informed by the standard deviation (SD) of the indicator values in the national data set (@fig-workflowExample C; Appendix C, line 134 <!--# update line number manually when re-rendering appendix C -->).
 We refer to this step as the first of two *aggregation* steps (Figure S1).
 The resulting distributions are assumed to be normally distributed, and we therefore simply carried the mean and SD from the posterior distributions over to individual polygons in the ecosystem delineation map, for each HIA class separately.
 This step is referred to as *spreading* the data (Figure S1).
