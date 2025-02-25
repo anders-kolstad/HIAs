@@ -37,3 +37,7 @@ HIAs.Rproj
 data/*gdb
 manuscript/HIAs_files
 manuscript/manual_cache
+manuscript/Manuscript_files
+*.spl
+*.bst
+*.tex
