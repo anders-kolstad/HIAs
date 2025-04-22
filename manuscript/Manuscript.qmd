@@ -90,6 +90,7 @@ library(ggridges)
 library(eaTools) #https://ninanor.github.io/eaTools/ version 0.0.0.9000
 library(ggpubr)
 library(kableExtra)
+library(here)
 
 myCRS <- 25832
 ```
@@ -113,10 +114,10 @@ path_infrastructure <- ifelse(dir == "C:",
 
 # field survey
 # # downloaded from https://kartkatalog.geonorge.no/metadata/naturtyper-miljoedirektoratets-instruks/eb48dd19-03da-41e1-afd9-7ebc3079265c
-path_naturetypes <- "../data/survey.gdb"
+path_naturetypes <- "P:/41001581_egenutvikling_anders_kolstad/data/Naturtyper_nin_0000_norge_25833_FILEGDB.gdb"
 
 # municipality outline
-path_muni <- "../data/Basisdata_0000_Norge_25833_Kommuner_FGDB.gdb"
+path_muni <- here("data/Basisdata_0000_Norge_25833_Kommuner_FGDB.gdb")
 
 # path to local caching folder
 path_temp <- ifelse(dir == "C:",
@@ -131,12 +132,13 @@ path_temp <- ifelse(dir == "C:",
 
 # I already did some work to identify the relevant nature types
 # summary file (https://github.com/NINAnor/ecosystemCondition/blob/main/data/naturetypes/natureType_summary.rds)
-naturetypes_summary <- readRDS("../data/natureType_summary.rds")
+naturetypes_summary <- readRDS(here("data/natureType_summary.rds"))
 
 # Survey data
 # The data is too big to be stored on GitHub
 # Import polygon data set
 st_layers(path_naturetypes)
+Sys.setlocale("LC_ALL","Norwegian")
 naturetypes <- sf::st_read(dsn = path_naturetypes, layer = "naturtyper_nin_omr")
 # 142k polygons (2023)
 
@@ -145,7 +147,7 @@ coverage <- sf::st_read(dsn = path_naturetypes, layer = "naturtyper_nin_dekning"
   st_transform(myCRS)
 
 # Outline of norway (coastline)
-outline <- sf::read_sf("../data/outlineOfNorway_EPSG25833.shp") |>
+outline <- sf::read_sf(here("data/outlineOfNorway_EPSG25833.shp")) |>
   st_transform(myCRS)
 
 # Municipalities
@@ -563,19 +565,19 @@ muni <- ensure_multipolygons(muni)
 # subset of the three target municipalities
 muni3 <- muni |>
   filter(kommunenummer %in% c(
-    "3020", # Nordre Follo
+    "3207", # Nordre Follo
     "3451", # Nord-Aurdal
     "3446" # Gran
   )) |>
   mutate(Municipality = case_when(
-    kommunenummer == "3020" ~ "Nordre Follo",
+    kommunenummer == "3207" ~ "Nordre Follo",
     kommunenummer == "3451" ~ "Nord-Aurdal",
     kommunenummer == "3446" ~ "Gran"
   ))
 
 # To crop EDM, I need the three municipalities seprately.
 nf <- muni3 |>
-  filter(kommunenummer == "3020")
+  filter(kommunenummer == "3207")
 na <- muni3 |>
   filter(kommunenummer == "3451")
 gr <- muni3 |>
@@ -2131,6 +2133,7 @@ We have no competing interests to declare.
 # Acknowledgements {.unnumbered}
 
 We wish to thank Kwaku Peprah Adjei for statistical help, and Hanno Sandvik for code review.
+We acknowledge partial funding from the Research Council of Norway project EcoGaps (contract #320042).
 
 # Data availability {.unnumbered}
 
