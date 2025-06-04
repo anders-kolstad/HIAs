@@ -1265,73 +1265,242 @@ muni_tbl <- muni3 |>
 # more or less, with the two approaches, but with the updating approach I can
 # get a honest measure for the uncertainty even with very small sample sizes.
 # For this I need a 'true' value for the variation in the indicator
-# I will use the entire national data set to determine this number
+# I will use the entire national data set to determine this number.
+# I will use a beat distribution, since the indicator is bound by 0 and 1.
+# I will estimate the two shape parameters using ML.
 
-national_sd_ADSV <- sd(naturetypes$i_ADSV, na.rm=T)
-national_sd_alien <- sd(naturetypes$i_alien, na.rm=T)
-national_sd_ditch <- sd(naturetypes$i_ditch, na.rm=T)
+library(EnvStats)
+i_ADSV <- naturetypes$i_ADSV[!is.na(naturetypes$i_ADSV)]
+i_alien <- naturetypes$i_alien[!is.na(naturetypes$i_alien)]
+i_ditch <- naturetypes$i_ditch[!is.na(naturetypes$i_ditch)]
+  
+params_ADSV <- EnvStats::ebeta(i_ADSV)
+params_alien <- EnvStats::ebeta(i_alien)
+params_ditch <- EnvStats::ebeta(i_ditch)
 
-barplot(c(national_sd_ADSV, national_sd_alien, national_sd_ditch),
-        names.arg = c("ADSV", "Alien", "Trenching"),
-        ylab="SD")
-
-# The figure shows that the Trenching indicator is more spatially variable.
 # It would be ossibel to also get uniqe SDs for each HIA class.
+```
+
+```{r testFit}
+# Check to see that real distributions and estimated beta distributions match up
+
+ADVS_estimated = rbeta(
+      n = 1000, 
+      shape1 = params_ADSV$parameters["shape1"],
+      shape2 = params_ADSV$parameters["shape2"])
+alien_estimated = rbeta(
+      n = 1000, 
+      shape1 = params_alien$parameters["shape1"],
+      shape2 = params_alien$parameters["shape2"])
+ditch_estimated = rbeta(
+      n = 1000, 
+      shape1 = params_ditch$parameters["shape1"],
+      shape2 = params_ditch$parameters["shape2"])
+
+
+# the length of the longest vector is 7628
+max_ln <- 7628
+# create data frame with columns of unequal length
+temp <- tibble(
+  i_ADSV = c(i_ADSV,rep(NA, max_ln - length(i_ADSV))),
+  i_alien = c(i_alien,rep(NA, max_ln - length(i_alien))),
+  i_ditch = c(i_ditch,rep(NA, max_ln - length(i_ditch))),
+  ADVS_estimated = c(ADVS_estimated,rep(NA, max_ln - length(ADVS_estimated))),
+  alien_estimated = c(alien_estimated,rep(NA, max_ln - length(alien_estimated))),
+  ditch_estimated = c(ditch_estimated,rep(NA, max_ln - length(ditch_estimated)))
+  ) |>
+  pivot_longer(cols = everything())
+
+temp |>
+  ggplot()+
+    geom_histogram(
+      aes(x = value),
+      binwidth = .1
+      )+
+    xlim(0,1.1) +
+    facet_wrap(.~name,
+               scales = "free_y")
+# the similated distributions are good approximations
 ```
 
 ```{r wgt-mean-fn}
 #| eval: true
 
-# This function is modified from Bolstad::normdp
-# It updates a flat prior based on a sample of values (indicator values)
+# This function is modified (quite a lot) from Bolstad::normdp
+# It updates a flat uniform prior based on a sample of values (indicator values)
 # and weight (polygon area) and returns a distribution for the weighted mean
-# that has a gaussian distribution. It assumes the sampled population is also
-# Gaussian. The variance is estimated from the full sample of indicator values.
+# that has a beta distribution. The shape parameters are estimated from the full sample of indicator values.
+# The updated mean will always be the sample mean, but the uncertanty is
+# informed also by the national dataset (i.e. we borrow strenght, as a type of
+# small area estimation)
 
 
-wgt_mean <- function(x, weights, 
-                     sigma.x = NULL, 
-                     mu = seq(0, 1, length.out=1000), 
-                     mu.prior = rep(1/length(mu), times=length(mu)), 
-                     stat = "mean",
-                     ...) {
+wgt_mean <- function(
+    x, # indicator values (the sample)
+    weights,  # polygon area
+    shape1, # shape parameter for the beta distribution
+    shape2, # second shape parameter for the beta distribution
+    # sigma.x = NULL, 
+    mu = seq(0, 1, length.out=1000), # discrete grid for estimation of probabilities
+    mu.prior = rep(1/length(mu), times=length(mu)),  # discrete uniform prior
+    ...) {
+    #stat = "mean", # output variable
   
+  # The mean will always be the area weighted mean of the sample,
+  # with no influence from priors
   mx <- weighted.mean(x, weights)
+  
+  # Normalising the prior if needed
   if (round(sum(mu.prior), 7) != 1) {
     warning("The prior probabilities did not sum to 1, therefore the prior has been normalized")
     mu.prior <- mu.prior / sum(mu.prior)
   }
+  
+  # get the lenght of the estimation grid
   n.mu <- length(mu)
+  
+  # sample size
   nx <- length(x)
-  snx <- sigma.x^2 / nx
+  
+  # beta variance
+  snx <- (shape1*shape2)/((shape1+shape2)^2)*((shape1+shape2+1))
+  
+  # the weights are not used in the liklelihood function, just for the weighted mean 
   likelihood <- exp(-0.5 * (mx - mu)^2 / snx)
   posterior <- likelihood * mu.prior / sum(likelihood * mu.prior)
-  mx <- sum(mu * posterior)
-  vx <- sum((mu - mx)^2 * posterior)
+  
+  # the posterior mean
+  mx2 <- sum(mu * posterior)
+  
+  
+  #vx <- sum((mu - mx)^2 * posterior)
   
   # draw 1k samples from the posterior to calculate the quantiles and sd from
   sample <- sample(mu, size = 1000, prob = posterior, replace = T)
-  lower <- quantile(sample, probs = 0.025)
-  upper <- quantile(sample, probs = 0.975)
-  # we can assume that the distrubutin for the mean is gaussian, so we take a 
+  #lower <- quantile(sample, probs = 0.025)
+  #upper <- quantile(sample, probs = 0.975)
+  # we can assume that the distrubution for the mean is gaussian, so we take a 
   # symetrical sd from here and use it, along with the mean, to recreate a
   # normal distribution later which we can sample from
-  sdx <- sd(sample)
-  results <- list(
-    name = "mu", 
-    param.x = mu, 
-    prior = mu.prior,
-    likelihood = likelihood, 
-    posterior = posterior, 
-    weighted_mean = mx,
-    var = vx
-  )
-  if(stat == "mean") return(mx)
-  if(stat == "lower") return(lower)
-  if(stat == "upper") return(upper)
-  if(stat == "sd") return(sdx)
+  #sdx <- sd(sample)
+  #results <- list(
+  #  name = "mu", 
+  #  param.x = mu, 
+  #  prior = mu.prior,
+  #  likelihood = likelihood, 
+  #  posterior = posterior, 
+  #  weighted_mean = mx,
+  #  var = vx
+  #)
+  #if(stat == "mean") return(mx)
+  #if(stat == "lower") return(lower)
+  #if(stat == "upper") return(upper)
+  #if(stat == "sd") return(sdx)
+  #if(stat == "pd") return(sample)
+  return(sample)
 }
 
+```
+
+```{r testFunction}
+# I will simulate som data and test the wgt_mean function
+n <- 1000
+tempDF <- tibble(
+  # first, some population samples with different properties
+  pop_uniform = runif(n, 0, 1),
+  pop_normal_centered = rnorm(n, 0.5, 0.2),
+  pop_normal_high = rnorm(n, 1, .5),
+  pop_beta_2_2 = rbeta(n, 2, 2),
+  pop_beta_05_3 = rbeta(n, .5, 3),
+  pop_beta_3_05 = rbeta(n, 3, .5),
+  
+  # add some area weights
+  wgt = seq(1:n)
+) |>
+  # truncate
+  mutate(across(starts_with("pop"),
+                ~ case_when(
+                  . >1 ~ 1,
+                  . <0 ~ 0,
+                 .default = .
+                ) )) 
+
+# get the shape parameters
+
+pop_uniform_para          <- EnvStats::ebeta(tempDF$pop_uniform)
+pop_normal_centered_para <- EnvStats::ebeta(tempDF$pop_normal_centered)
+pop_normal_high_para      <- EnvStats::ebeta(tempDF$pop_normal_high)
+pop_beta_2_2_para         <- EnvStats::ebeta(tempDF$pop_beta_2_2)
+pop_beta_05_3_para        <- EnvStats::ebeta(tempDF$pop_beta_05_3)
+pop_beta_3_05_para        <- EnvStats::ebeta(tempDF$pop_beta_3_05)
+
+
+# plot the population samples
+tempDF |>
+  select(-wgt) |>
+  pivot_longer(cols = everything(),
+               names_to = "populations_dist",
+               values_to = "population_sample") |>
+  ggplot()+
+  geom_histogram(aes(x = population_sample))+
+  facet_wrap(vars(populations_dist),
+             scales = "free")
+#ggsave("../images/population_samples.png")
+
+# estimate sub popualtion means and errors as posterior distributions
+PDs <-tibble(
+    #pd_uniform_1 = wgt_mean(
+    #  tempDF$pop_uniform[1], 
+    #  tempDF$wgt[1],
+    #  shape1 = pop_uniform_para$parameters["shape1"],
+    #  shape2 = pop_uniform_para$parameters["shape2"])[1:100],
+    pd_normal_centered_1 = wgt_mean(tempDF$pop_normal_centered[1], 
+      tempDF$wgt[1],
+      shape1 = pop_normal_centered_para$parameters["shape1"],
+      shape2 = pop_normal_centered_para$parameters["shape2"])[1:100],
+    pd_normal_centered_5 = wgt_mean(tempDF$pop_normal_centered[1:5], 
+      tempDF$wgt[1:5],
+      shape1 = pop_normal_centered_para$parameters["shape1"],
+      shape2 = pop_normal_centered_para$parameters["shape2"])[1:100],
+    pd_normal_centered_20 = wgt_mean(tempDF$pop_normal_centered[1:20], 
+      tempDF$wgt[1:20],
+      shape1 = pop_normal_centered_para$parameters["shape1"],
+      shape2 = pop_normal_centered_para$parameters["shape2"])[1:100],
+    
+    pd_beta_05_3_1 = wgt_mean(tempDF$pop_beta_05_3[1], 
+      tempDF$wgt[1],
+      shape1 = pop_beta_05_3_para$parameters["shape1"],
+      shape2 = pop_beta_05_3_para$parameters["shape2"])[1:100],
+    pd_beta_05_3_5 = wgt_mean(tempDF$pop_beta_05_3[1:5], 
+      tempDF$wgt[1:5],
+      shape1 = pop_beta_05_3_para$parameters["shape1"],
+      shape2 = pop_beta_05_3_para$parameters["shape2"])[1:100],
+    pd_beta_05_3_20 = wgt_mean(tempDF$pop_beta_05_3[1:20], 
+      tempDF$wgt[1:20],
+      shape1 = pop_beta_05_3_para$parameters["shape1"],
+      shape2 = pop_beta_05_3_para$parameters["shape2"])[1:100]
+  )
+
+PDs |>
+  pivot_longer(cols = everything(),
+               names_to = "populations_dist",
+               values_to = "PD") |>
+  ggplot()+
+  geom_histogram(aes(x = PD))+
+  facet_wrap(vars(populations_dist),
+             scales = "free")
+```
+
+```{r}
+test <- wgt_mean(tempDF$pop_beta_05_3[1], 
+      tempDF$wgt[1],
+      shape1 = pop_beta_05_3_para$parameters["shape1"],
+      shape2 = pop_beta_05_3_para$parameters["shape2"])[1:100]
+
+par(mfrow = c(1,2))
+hist(test) 
+hist(tempDF$pop_beta_05_3)
+# complete nonsense
 ```
 
 ```{r meanPerHIA}
@@ -1349,7 +1518,9 @@ stats_tbl <- nature3 |>
     values_to = "indicatorValue") |>
   filter(!is.na(indicatorValue)) |>
   mutate(area = drop_units(area)) |>
+  # group to indicator and strata
   group_by(indicator, Municipality, infrastructureIndex) |>
+  
   summarise(sd = wgt_mean(indicatorValue,
       weights = area,
       sigma.x = case_when(
@@ -1479,10 +1650,10 @@ barCOLS <- c("#fff7bd", "#fecf66", "#f88b22", "#cc4c02")
        col = "HIA")
 )
 
-ggsave(plot = forest_plot_ex,
-       "../images/forest-plot-ex.jpg",
-       width=3,
-       height = 3)
+#ggsave(plot = forest_plot_ex,
+#       "../images/forest-plot-ex.jpg",
+#       width=3,
+#       height = 3)
 ```
 
 ```{r notes}
