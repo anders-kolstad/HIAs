@@ -1418,75 +1418,76 @@ tempDF <- tibble(
   wgt = seq(1:n)
 ) |>
   # truncate
-  mutate(across(!starts_with("wgt"),
-                ~ case_when(
-                  . >1 ~ 1,
-                  . <0 ~ 0,
-                 .default = .
-                ) )) |>
-  pivot_longer(cols = !starts_with("wgt"),
-               names_to = "distribution",
-               values_to = "population_sample") |>
-  nest(population_sample = population_sample, wgt = wgt)
-
- 
-# get the shape parameters
-tempDF <- tempDF |>
+  mutate(across(
+    !starts_with("wgt"),
+    ~ case_when(
+      . > 1 ~ 1,
+      . < 0 ~ 0,
+      .default = .
+    )
+  )) |>
+  pivot_longer(
+    cols = !starts_with("wgt"),
+    names_to = "distribution",
+    values_to = "population_sample"
+  ) |>
+  nest(population_sample = population_sample, wgt = wgt) |>
+  # get the shape parameters
   rowwise() |>
   mutate(
     shape1 = EnvStats::ebeta(unlist(population_sample))$parameters["shape1"],
-    shape2 = EnvStats::ebeta(unlist(population_sample))$parameters["shape2"]
-  )
-# they are quite close to the original shape parameters
-
-# simulated samples
-tempDF <- tempDF |>
-  mutate(simulated_sample = list(rbeta(n, shape1, shape2)))
-
-# get posterior distributions
-tempDF2 <- tempDF |>
-  mutate(
+    shape2 = EnvStats::ebeta(unlist(population_sample))$parameters["shape2"],
+    # they are quite close to the original shape parameters
+    # simulating samples using a beta distribution, trying to recreate the original population samples
+    simulated_sample = list(rbeta(n, shape1, shape2)),
+    # get posterior distributions
     PD_5 = list(
       wgt_mean(
         x = unlist(population_sample)[1:5],
         weights = unlist(wgt)[1:5],
         shape1 = shape1,
-        shape2 = shape2)),
+        shape2 = shape2
+      )
+    ),
     PD_15 = list(
       wgt_mean(
         x = unlist(population_sample)[1:15],
         weights = unlist(wgt)[1:15],
         shape1 = shape1,
-        shape2 = shape2)),
+        shape2 = shape2
+      )
+    ),
     # and weighted sample means
-    wgt_mean_5 = 
+    wgt_mean_5 =
       wgt_mean(
         x = unlist(population_sample)[1:5],
         weights = unlist(wgt)[1:5],
         shape1 = shape1,
         shape2 = shape2,
-        stat = "mean"),
-    wgt_mean_15 = 
+        stat = "mean"
+      ),
+    wgt_mean_15 =
       wgt_mean(
         x = unlist(population_sample)[1:15],
         weights = unlist(wgt)[1:15],
         shape1 = shape1,
         shape2 = shape2,
-        stat = "mean"),
+        stat = "mean"
+      ),
     # adding the PD means
-    PD_mean_5 = 
+    PD_mean_5 =
       mean(unlist(PD_5)),
-    PD_mean_15 = 
+    PD_mean_15 =
       mean(unlist(PD_15)),
     # adding the samples
-    sample_5 = 
+    sample_5 =
       list(unname(unlist(population_sample)[1:5])),
-    sample_15 = 
+    sample_15 =
       list(unname(unlist(population_sample)[1:15])),
     # adding unweighted sample means
     mean_5 = mean(sample_5),
     mean_15 = mean(sample_15)
-    )
+  )
 
 ```
 
