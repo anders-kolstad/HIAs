@@ -1343,8 +1343,8 @@ wgt_mean <- function(
     # sigma.x = NULL, 
     mu = seq(0, 1, length.out=1000), # discrete grid for estimation of probabilities
     mu.prior = rep(1/length(mu), times=length(mu)),  # discrete uniform prior
+    stat = "pd", # output variable
     ...) {
-    #stat = "mean", # output variable
   
   # The mean will always be the area weighted mean of the sample,
   # with no influence from priors
@@ -1392,101 +1392,187 @@ wgt_mean <- function(
   #  weighted_mean = mx,
   #  var = vx
   #)
-  #if(stat == "mean") return(mx)
+  if(stat == "mean") return(mx)
   #if(stat == "lower") return(lower)
   #if(stat == "upper") return(upper)
   #if(stat == "sd") return(sdx)
-  #if(stat == "pd") return(sample)
+  if(stat == "pd") return(sample)
   return(sample)
 }
 
 ```
 
-```{r testFunction}
+```{r syntheticData}
 # I will simulate som data and test the wgt_mean function
 n <- 1000
+
 tempDF <- tibble(
   # first, some population samples with different properties
-  pop_uniform = runif(n, 0, 1),
-  pop_normal_centered = rnorm(n, 0.5, 0.2),
-  pop_normal_high = rnorm(n, 1, .5),
-  pop_beta_2_2 = rbeta(n, 2, 2),
-  pop_beta_05_3 = rbeta(n, .5, 3),
-  pop_beta_3_05 = rbeta(n, 3, .5),
-  
+  uniform = runif(n, 0, 1),
+  normal_centered = rnorm(n, 0.5, 0.2),
+  normal_high = rnorm(n, 1, .5),
+  beta_2_2 = rbeta(n, 2, 2),
+  beta_05_3 = rbeta(n, .5, 3),
+  beta_3_05 = rbeta(n, 3, .5),
   # add some area weights
   wgt = seq(1:n)
 ) |>
   # truncate
-  mutate(across(starts_with("pop"),
+  mutate(across(!starts_with("wgt"),
                 ~ case_when(
                   . >1 ~ 1,
                   . <0 ~ 0,
                  .default = .
-                ) )) 
-
-# get the shape parameters
-
-pop_uniform_para          <- EnvStats::ebeta(tempDF$pop_uniform)
-pop_normal_centered_para <- EnvStats::ebeta(tempDF$pop_normal_centered)
-pop_normal_high_para      <- EnvStats::ebeta(tempDF$pop_normal_high)
-pop_beta_2_2_para         <- EnvStats::ebeta(tempDF$pop_beta_2_2)
-pop_beta_05_3_para        <- EnvStats::ebeta(tempDF$pop_beta_05_3)
-pop_beta_3_05_para        <- EnvStats::ebeta(tempDF$pop_beta_3_05)
-
-
-# plot the population samples
-tempDF |>
-  select(-wgt) |>
-  pivot_longer(cols = everything(),
-               names_to = "populations_dist",
+                ) )) |>
+  pivot_longer(cols = !starts_with("wgt"),
+               names_to = "distribution",
                values_to = "population_sample") |>
+  nest(population_sample = population_sample, wgt = wgt)
+
+ 
+# get the shape parameters
+tempDF <- tempDF |>
+  rowwise() |>
+  mutate(
+    shape1 = EnvStats::ebeta(unlist(population_sample))$parameters["shape1"],
+    shape2 = EnvStats::ebeta(unlist(population_sample))$parameters["shape2"]
+  )
+# they are quite close to the original shape parameters
+
+# simulated samples
+tempDF <- tempDF |>
+  mutate(simulated_sample = list(rbeta(n, shape1, shape2)))
+
+# get posterior distributions
+tempDF2 <- tempDF |>
+  mutate(
+    PD_5 = list(
+      wgt_mean(
+        x = unlist(population_sample)[1:5],
+        weights = unlist(wgt)[1:5],
+        shape1 = shape1,
+        shape2 = shape2)),
+    PD_15 = list(
+      wgt_mean(
+        x = unlist(population_sample)[1:15],
+        weights = unlist(wgt)[1:15],
+        shape1 = shape1,
+        shape2 = shape2)),
+    # and weighted sample means
+    wgt_mean_5 = 
+      wgt_mean(
+        x = unlist(population_sample)[1:5],
+        weights = unlist(wgt)[1:5],
+        shape1 = shape1,
+        shape2 = shape2,
+        stat = "mean"),
+    wgt_mean_15 = 
+      wgt_mean(
+        x = unlist(population_sample)[1:15],
+        weights = unlist(wgt)[1:15],
+        shape1 = shape1,
+        shape2 = shape2,
+        stat = "mean"),
+    # adding the PD means
+    PD_mean_5 = 
+      mean(unlist(PD_5)),
+    PD_mean_15 = 
+      mean(unlist(PD_15)),
+    # adding the samples
+    sample_5 = 
+      list(unname(unlist(population_sample)[1:5])),
+    sample_15 = 
+      list(unname(unlist(population_sample)[1:15])),
+    # adding unweighted sample means
+    mean_5 = mean(sample_5),
+    mean_15 = mean(sample_15)
+    )
+
+```
+
+```{r}
+# plot the population samples
+tempDF_nest <- tempDF |>
+  #select(-wgt) |>
+  pivot_longer(cols = !starts_with("wgt"),
+               names_to = "distribution",
+               values_to = "population_sample") |>
+  nest(data = population_sample)
+tempDF |>
   ggplot()+
-  geom_histogram(aes(x = population_sample))+
-  facet_wrap(vars(populations_dist),
+  geom_histogram(aes(x = population_sample),
+                 binwidth = 0.1)+
+  facet_wrap(vars(distribution),
              scales = "free")
 #ggsave("../images/population_samples.png")
 
+```
+
+
+```{r testCont}
+
+
+
+tempDF |>
+  ggplot()+
+    geom_histogram(aes(x = simulated_sample),
+      binwidth = 0.1)+
+    facet_wrap(vars(distribution),
+      scales = "free")
+# Very similar, also for the gaussian and uniform population samples
+```
+
+```{r testCont2}
+size <- 1000
 # estimate sub popualtion means and errors as posterior distributions
+
+# sample size = 1
+
 PDs <-tibble(
+    normal_centered = wgt_mean(
+      tempDF$pop_normal_centered[1], 
+      tempDF$wgt[1],
+      shape1 = pop_normal_centered_para$parameters["shape1"],
+      shape2 = pop_normal_centered_para$parameters["shape2"])[1:size],
+
+    pd_beta_05_3_1 = wgt_mean(tempDF$pop_beta_05_3[1], 
+      tempDF$wgt[1],
+      shape1 = pop_beta_05_3_para$parameters["shape1"],
+      shape2 = pop_beta_05_3_para$parameters["shape2"])[1:size],
+    pd_beta_05_3_5 = wgt_mean(tempDF$pop_beta_05_3[1:5], 
+      tempDF$wgt[1:5],
+      shape1 = pop_beta_05_3_para$parameters["shape1"],
+      shape2 = pop_beta_05_3_para$parameters["shape2"])[1:size],
+    pd_beta_05_3_20 = wgt_mean(tempDF$pop_beta_05_3[1:20], 
+      tempDF$wgt[1:20],
+      shape1 = pop_beta_05_3_para$parameters["shape1"],
+      shape2 = pop_beta_05_3_para$parameters["shape2"])[1:size]
+  )
+
     #pd_uniform_1 = wgt_mean(
     #  tempDF$pop_uniform[1], 
     #  tempDF$wgt[1],
     #  shape1 = pop_uniform_para$parameters["shape1"],
     #  shape2 = pop_uniform_para$parameters["shape2"])[1:100],
-    pd_normal_centered_1 = wgt_mean(tempDF$pop_normal_centered[1], 
-      tempDF$wgt[1],
-      shape1 = pop_normal_centered_para$parameters["shape1"],
-      shape2 = pop_normal_centered_para$parameters["shape2"])[1:100],
+
     pd_normal_centered_5 = wgt_mean(tempDF$pop_normal_centered[1:5], 
       tempDF$wgt[1:5],
       shape1 = pop_normal_centered_para$parameters["shape1"],
-      shape2 = pop_normal_centered_para$parameters["shape2"])[1:100],
+      shape2 = pop_normal_centered_para$parameters["shape2"])[1:size],
     pd_normal_centered_20 = wgt_mean(tempDF$pop_normal_centered[1:20], 
       tempDF$wgt[1:20],
       shape1 = pop_normal_centered_para$parameters["shape1"],
-      shape2 = pop_normal_centered_para$parameters["shape2"])[1:100],
+      shape2 = pop_normal_centered_para$parameters["shape2"])[1:size],
     
-    pd_beta_05_3_1 = wgt_mean(tempDF$pop_beta_05_3[1], 
-      tempDF$wgt[1],
-      shape1 = pop_beta_05_3_para$parameters["shape1"],
-      shape2 = pop_beta_05_3_para$parameters["shape2"])[1:100],
-    pd_beta_05_3_5 = wgt_mean(tempDF$pop_beta_05_3[1:5], 
-      tempDF$wgt[1:5],
-      shape1 = pop_beta_05_3_para$parameters["shape1"],
-      shape2 = pop_beta_05_3_para$parameters["shape2"])[1:100],
-    pd_beta_05_3_20 = wgt_mean(tempDF$pop_beta_05_3[1:20], 
-      tempDF$wgt[1:20],
-      shape1 = pop_beta_05_3_para$parameters["shape1"],
-      shape2 = pop_beta_05_3_para$parameters["shape2"])[1:100]
-  )
-
+    
+      
 PDs |>
   pivot_longer(cols = everything(),
                names_to = "populations_dist",
                values_to = "PD") |>
   ggplot()+
-  geom_histogram(aes(x = PD))+
+  geom_histogram(aes(x = PD),
+                 binwidth = 0.1)+
   facet_wrap(vars(populations_dist),
              scales = "free")
 ```
