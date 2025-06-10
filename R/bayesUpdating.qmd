@@ -1,0 +1,220 @@
+---
+title: "bayesUpdating"
+format: html
+editor: visual
+---
+
+## Function to update an estimate of a 1-inflated beta distributed mean
+
+```{r setup}
+library(tidyverse)
+library(MASS)
+library()
+```
+
+```{r syntheticData}
+
+
+# I will simulate som data and test the wgt_mean function
+n <- 1000
+
+tempDF <- tibble(
+  # first, some population samples with different properties
+  uniform = runif(n, 0, 1),
+  normal_centered = rnorm(n, 0.5, 0.2),
+  normal_high = rnorm(n, 1, .5),
+  beta_2_2 = rbeta(n, 2, 2),
+  beta_05_3 = rbeta(n, .5, 3),
+  beta_3_05 = rbeta(n, 3, .5),
+  # add some area weights
+  wgt = seq(1:n)
+) |>
+  # truncate
+  mutate(across(
+    !starts_with("wgt"),
+    ~ case_when(
+      . >= 1 ~ 1 #0.9999,  using pmin and pmax is another option
+      . <= 0 ~ 0 #0.00001,
+      .default = .
+    )
+  )) |>
+  pivot_longer(
+    cols = !starts_with("wgt"),
+    names_to = "distribution",
+    values_to = "population_sample"
+  ) |>
+  nest(population_sample = population_sample, wgt = wgt) |>
+  rowwise() |>
+  mutate(
+  # get the shape parameters
+    # this step has been moved into the function itself.
+  #     shape1 = EnvStats::ebeta(unlist(population_sample))$parameters["shape1"],
+  #     shape2 = EnvStats::ebeta(unlist(population_sample))$parameters["shape2"],
+    # they are quite close to the original shape parameters
+    # simulating samples using a beta distribution, trying to recreate the original population samples
+    #simulated_sample = list(rbeta(n, shape1, shape2)),
+    
+    # creating some test cases of domain samples, 
+    
+    # 1's
+    domain_1a = rep(1,2), # 2 1's in a row
+    domain_1b = rep(1,5), # 5 1's in a row
+    domain_1c = rep(1,10), # 10 1's in a row
+    domain_1d = rep(1,30), # 30 1's in a row
+    
+    #  high values
+    domain_2a = seq.int(0.8, 1, length.out=2),
+    domain_2b = seq.int(0.8, 1, length.out=5),
+    domain_2c = seq.int(0.8, 1, length.out=10),
+    domain_2d = seq.int(0.8, 1, length.out=30),
+    
+    #  low values (further from the population shape)
+    domain_3a = seq.int(0.1, 0.4, length.out=2),
+    domain_3b = seq.int(0.1, 0.4, length.out=5),
+    domain_3c = seq.int(0.1, 0.4, length.out=10),
+    domain_3d = seq.int(0.1, 0.4, length.out=30),
+    
+    # truncated normal
+    domain_4c = rnorm(10, 1, .5) |> pmin(1) |> pmax(0),
+    domain_4d = rnorm(30, 1, .5) |> pmin(1) |> pmax(0),
+    
+    
+    # get posterior distributions
+    PD_1 = list(
+      wgt_mean(
+        x = unlist(population_sample)[1],
+        weights = unlist(wgt)[1],
+        shape1 = shape1,
+        shape2 = shape2
+      )
+    ),
+    PD_2 = list(
+      wgt_mean(
+        x = unlist(population_sample)[1:2],
+        weights = unlist(wgt)[1:2],
+        shape1 = shape1,
+        shape2 = shape2
+      )
+    ),
+    PD_5 = list(
+      wgt_mean(
+        x = unlist(population_sample)[1:5],
+        weights = unlist(wgt)[1:5],
+        shape1 = shape1,
+        shape2 = shape2
+      )
+    ),
+    PD_10 = list(
+      wgt_mean(
+        x = unlist(population_sample)[1:10],
+        weights = unlist(wgt)[1:10],
+        shape1 = shape1,
+        shape2 = shape2
+      )
+    ),
+    # and weighted sample means
+    wgt_mean_1 =
+      wgt_mean(
+        x = unlist(population_sample)[1],
+        weights = unlist(wgt)[1],
+        shape1 = shape1,
+        shape2 = shape2,
+        stat = "mean"
+      ),
+    wgt_mean_2 =
+      wgt_mean(
+        x = unlist(population_sample)[1:2],
+        weights = unlist(wgt)[1:2],
+        shape1 = shape1,
+        shape2 = shape2,
+        stat = "mean"
+      ),
+    wgt_mean_5 =
+      wgt_mean(
+        x = unlist(population_sample)[1:5],
+        weights = unlist(wgt)[1:5],
+        shape1 = shape1,
+        shape2 = shape2,
+        stat = "mean"
+      ),
+    wgt_mean_10 =
+      wgt_mean(
+        x = unlist(population_sample)[1:10],
+        weights = unlist(wgt)[1:10],
+        shape1 = shape1,
+        shape2 = shape2,
+        stat = "mean"
+      ),
+    # adding the PD means
+    posterior_mean_1 =
+      mean(unlist(PD_1)),
+    posterior_mean_2 =
+      mean(unlist(PD_2)),
+    posterior_mean_5 =
+      mean(unlist(PD_5)),
+    posterior_mean_10 =
+      mean(unlist(PD_10)),
+    # adding the samples
+    sample_1 =
+      list(unname(unlist(population_sample)[1])),
+    sample_2 =
+      list(unname(unlist(population_sample)[1:2])),
+    sample_5 =
+      list(unname(unlist(population_sample)[1:5])),
+    sample_10 =
+      list(unname(unlist(population_sample)[1:10])),
+    # adding unweighted sample means
+    mean_1 = mean(sample_1),
+    mean_2 = mean(sample_2),
+    mean_5 = mean(sample_5),
+    mean_10 = mean(sample_10)
+  )
+```
+
+```{}
+```
+
+```{r tbl-showData}
+
+DT::datatable(tempDF)
+```
+
+```{r fig-plotDist}
+
+# plot the population samples
+tempDF |>
+  unnest(population_sample) |>
+  ggplot()+
+  geom_histogram(aes(x = population_sample),
+                 binwidth = 0.1)+
+  facet_wrap(vars(distribution),
+             scales = "free")
+#ggsave("../images/population_samples.png")
+```
+
+```{r }
+set.seed(123)
+national_data <- c(
+  rnorm(1000, mean = 0.8, sd = 0.1) %>% pmax(0) %>% pmin(1), # Truncated normal
+  rep(1, 200) # 1-inflation
+)
+x <- national_data
+x_trunc <- x[x > 0 & x < 1]
+
+#MASS::fitdistr(x_trunc, dbeta, start = list(shape1 = 1, shape2 = 1))$estimate
+#EnvStats::ebeta(x_trunc)$parameters
+
+fit_zoib <- function(x) {
+  prop_1 <- mean(x == 1)
+  prop_0 <- mean(x == 0)
+  x_trunc <- x[x > 0 & x < 1]
+  alpha <- MASS::fitdistr(x_trunc, dbeta, start = list(shape1 = 1, shape2 = 1))$estimate
+  list(alpha = alpha, prop_1 = prop_1, prop_0 = prop_0)
+}
+
+national_fit <- fit_zoib(national_data)
+
+mean(national_data)
+hist(national_data)
+mean(national_data == 1)
+```
