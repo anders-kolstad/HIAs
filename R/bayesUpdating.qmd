@@ -267,7 +267,71 @@ comb_data <- comb_data |>
 ```
 
 ```{r}
+# Prepare data for plotting
+comb_data <- comb_data |>
+  mutate(
+    n = str_sub(sample_ID, -1, -1),
+    n = case_when(
+      n == "a" ~ 1,
+      n == "b" ~ 5, 
+      n == "c" ~ 10,
+      n == "d" ~30
+    ),
+    scenario = str_sub(
+      sample_ID, -2, -2
+    ),
+    scenario = case_when(
+      scenario == "1" ~ "Only 1's",
+      scenario == "2" ~ "High values",
+      scenario == "3" ~ "Low values",
+      scenario == "4" ~ "Truncated normal"
+    )
+  )
 
+# STOPPED HERE
+
+tempDF |>
+  unnest(starts_with("PD")) |>
+  pivot_longer(cols = starts_with("PD"),
+               names_to = "sample_size",
+               values_to = "PD") |>
+  mutate(sample_size = str_remove(sample_size, "PD_")) |>
+  bind_rows(sampleDF) |>
+  bind_rows(wgtMeanDF) |>
+  ggplot()+
+  #geom_density(
+  #  aes(x = PD,
+  #      y = after_stat(scaled)
+  #      ),
+  #  alpha=.8,
+  #  fill = "sienna1")+
+  geom_histogram(
+    aes(x = PD,
+        y = stat(ncount)),
+    binwidth = .05,
+    alpha=.8,
+    fill = "sienna1"
+  )+
+      theme(legend.position = 'none',
+        axis.title.y = element_blank()) +
+  geom_segment(
+    aes(x = sample,
+        xend = sample,
+        y = 0,
+        yend = .1),
+    linewidth = 1,
+    alpha=.5)+
+  geom_segment(
+    aes(x = wgt_mean,
+        xend = wgt_mean,
+        y = 0,
+        yend = 0.3),
+    linewidth = 1.2)+
+  xlim(0,1)+
+  facet_grid(cols = vars(distribution),
+             rows = vars(as.numeric(sample_size)),
+             scales = "free")
+#ggsave("../images/posteriorCheck.png")
 ```
 
 
