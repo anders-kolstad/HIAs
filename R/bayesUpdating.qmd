@@ -9,16 +9,25 @@ editor: visual
 ```{r setup}
 library(tidyverse)
 library(MASS)
-library()
+
 ```
 
-```{r syntheticData}
+```{r nationalData}
 
 
-# I will simulate som data and test the wgt_mean function
+# I will simulate som (national) data and then 
+# test the wgt_mean function using simulated domain data
+# The domain mean will be an area weighted mean of the domain data.
+# The uncertainty around the domain estimate will use information
+# about the shape of the national data distribution. 
+# This information will count the equivalent of five domain spesific values,
+# thus making it possieble to estimate domain distributions even with
+# quite low n.
+
 n <- 1000
 
-tempDF <- tibble(
+
+national_data <- tibble(
   # first, some population samples with different properties
   uniform = runif(n, 0, 1),
   normal_centered = rnorm(n, 0.5, 0.2),
@@ -33,8 +42,8 @@ tempDF <- tibble(
   mutate(across(
     !starts_with("wgt"),
     ~ case_when(
-      . >= 1 ~ 1 #0.9999,  using pmin and pmax is another option
-      . <= 0 ~ 0 #0.00001,
+      . >= 1 ~ 1, #0.9999,  using pmin and pmax is another option
+      . <= 0 ~ 0, #0.00001,
       .default = .
     )
   )) |>
@@ -43,146 +52,80 @@ tempDF <- tibble(
     names_to = "distribution",
     values_to = "population_sample"
   ) |>
-  nest(population_sample = population_sample, wgt = wgt) |>
-  rowwise() |>
-  mutate(
-  # get the shape parameters
-    # this step has been moved into the function itself.
-  #     shape1 = EnvStats::ebeta(unlist(population_sample))$parameters["shape1"],
-  #     shape2 = EnvStats::ebeta(unlist(population_sample))$parameters["shape2"],
-    # they are quite close to the original shape parameters
-    # simulating samples using a beta distribution, trying to recreate the original population samples
-    #simulated_sample = list(rbeta(n, shape1, shape2)),
+  nest(population_sample = population_sample, wgt = wgt)
+
     
-    # creating some test cases of domain samples, 
-    
-    # 1's
-    domain_1a = rep(1,2), # 2 1's in a row
-    domain_1b = rep(1,5), # 5 1's in a row
-    domain_1c = rep(1,10), # 10 1's in a row
-    domain_1d = rep(1,30), # 30 1's in a row
-    
-    #  high values
-    domain_2a = seq.int(0.8, 1, length.out=2),
-    domain_2b = seq.int(0.8, 1, length.out=5),
-    domain_2c = seq.int(0.8, 1, length.out=10),
-    domain_2d = seq.int(0.8, 1, length.out=30),
-    
-    #  low values (further from the population shape)
-    domain_3a = seq.int(0.1, 0.4, length.out=2),
-    domain_3b = seq.int(0.1, 0.4, length.out=5),
-    domain_3c = seq.int(0.1, 0.4, length.out=10),
-    domain_3d = seq.int(0.1, 0.4, length.out=30),
-    
-    # truncated normal
-    domain_4c = rnorm(10, 1, .5) |> pmin(1) |> pmax(0),
-    domain_4d = rnorm(30, 1, .5) |> pmin(1) |> pmax(0),
-    
-    
-    # get posterior distributions
-    PD_1 = list(
-      wgt_mean(
-        x = unlist(population_sample)[1],
-        weights = unlist(wgt)[1],
-        shape1 = shape1,
-        shape2 = shape2
-      )
-    ),
-    PD_2 = list(
-      wgt_mean(
-        x = unlist(population_sample)[1:2],
-        weights = unlist(wgt)[1:2],
-        shape1 = shape1,
-        shape2 = shape2
-      )
-    ),
-    PD_5 = list(
-      wgt_mean(
-        x = unlist(population_sample)[1:5],
-        weights = unlist(wgt)[1:5],
-        shape1 = shape1,
-        shape2 = shape2
-      )
-    ),
-    PD_10 = list(
-      wgt_mean(
-        x = unlist(population_sample)[1:10],
-        weights = unlist(wgt)[1:10],
-        shape1 = shape1,
-        shape2 = shape2
-      )
-    ),
-    # and weighted sample means
-    wgt_mean_1 =
-      wgt_mean(
-        x = unlist(population_sample)[1],
-        weights = unlist(wgt)[1],
-        shape1 = shape1,
-        shape2 = shape2,
-        stat = "mean"
-      ),
-    wgt_mean_2 =
-      wgt_mean(
-        x = unlist(population_sample)[1:2],
-        weights = unlist(wgt)[1:2],
-        shape1 = shape1,
-        shape2 = shape2,
-        stat = "mean"
-      ),
-    wgt_mean_5 =
-      wgt_mean(
-        x = unlist(population_sample)[1:5],
-        weights = unlist(wgt)[1:5],
-        shape1 = shape1,
-        shape2 = shape2,
-        stat = "mean"
-      ),
-    wgt_mean_10 =
-      wgt_mean(
-        x = unlist(population_sample)[1:10],
-        weights = unlist(wgt)[1:10],
-        shape1 = shape1,
-        shape2 = shape2,
-        stat = "mean"
-      ),
-    # adding the PD means
-    posterior_mean_1 =
-      mean(unlist(PD_1)),
-    posterior_mean_2 =
-      mean(unlist(PD_2)),
-    posterior_mean_5 =
-      mean(unlist(PD_5)),
-    posterior_mean_10 =
-      mean(unlist(PD_10)),
-    # adding the samples
-    sample_1 =
-      list(unname(unlist(population_sample)[1])),
-    sample_2 =
-      list(unname(unlist(population_sample)[1:2])),
-    sample_5 =
-      list(unname(unlist(population_sample)[1:5])),
-    sample_10 =
-      list(unname(unlist(population_sample)[1:10])),
-    # adding unweighted sample means
-    mean_1 = mean(sample_1),
-    mean_2 = mean(sample_2),
-    mean_5 = mean(sample_5),
-    mean_10 = mean(sample_10)
-  )
 ```
 
-```{}
+```{r domainData}
+
+
+# pre set some sample sizes
+a <- 2
+b <- 5
+c <- 10
+d <- 30
+
+domain_data <- tibble(
+    sample_ID = c(
+      "domain_1a",
+      "domain_1b",
+      "domain_1c",
+      "domain_1d",
+      "domain_2a",
+      "domain_2b",
+      "domain_2c",
+      "domain_2d",
+      "domain_3a",
+      "domain_3b",
+      "domain_3c",
+      "domain_3d",
+      "domain_4c",
+      "domain_4d"),
+    
+    values = list(
+      # 1's
+      tibble(sample = rep(1,a)), 
+      tibble(sample = rep(1,b)),
+      tibble(sample = rep(1,c)),
+      tibble(sample = rep(1,d)),
+      
+      #  high values
+      tibble(sample = seq.int(0.7, 1, length.out=a)),
+      tibble(sample = seq.int(0.7, 1, length.out=b)),
+      tibble(sample = seq.int(0.7, 1, length.out=c)),
+      tibble(sample = seq.int(0.7, 1, length.out=d)),
+      
+      #  low values (further from the population shape)
+      tibble(sample = seq.int(0.1, 0.4, length.out=a)),
+      tibble(sample = seq.int(0.1, 0.4, length.out=b)),
+      tibble(sample = seq.int(0.1, 0.4, length.out=c)),
+      tibble(sample = seq.int(0.1, 0.4, length.out=d)),
+      
+      # truncated normal, sorted to that we can test the effect of turning
+       # weights on or off
+      tibble(sample = rnorm(c, 1, .5) |> pmin(1) |> pmax(0) |> sort()),
+      tibble(sample = rnorm(d, 1, .5) |> pmin(1) |> pmax(0) |> sort())
+    ))
+
+
+    
 ```
 
 ```{r tbl-showData}
 
-DT::datatable(tempDF)
+DT::datatable(national_data)
+```
+
+```{r tbl-showData}
+
+DT::datatable(domain_data)
 ```
 
 ```{r fig-plotDist}
 
 # plot the population samples
-tempDF |>
+national_data |>
   unnest(population_sample) |>
   ggplot()+
   geom_histogram(aes(x = population_sample),
@@ -192,18 +135,22 @@ tempDF |>
 #ggsave("../images/population_samples.png")
 ```
 
-```{r }
-set.seed(123)
-national_data <- c(
-  rnorm(1000, mean = 0.8, sd = 0.1) %>% pmax(0) %>% pmin(1), # Truncated normal
-  rep(1, 200) # 1-inflation
-)
-x <- national_data
-x_trunc <- x[x > 0 & x < 1]
+```{r fig-plotDist}
 
-#MASS::fitdistr(x_trunc, dbeta, start = list(shape1 = 1, shape2 = 1))$estimate
-#EnvStats::ebeta(x_trunc)$parameters
+# plot the domain samples
+domain_data |>
+  unnest(values) |>
+  ggplot()+
+  geom_histogram(aes(x = sample),
+                 binwidth = 0.1)+
+  xlim(-0.2, 1.2)+
+  facet_wrap(vars(sample_ID),
+             scales = "free_y")
+#ggsave("../images/population_samples.png")
+```
 
+```{r fit_zoib}
+# function to fit zero and one inflated beta distributions
 fit_zoib <- function(x) {
   prop_1 <- mean(x == 1)
   prop_0 <- mean(x == 0)
@@ -212,9 +159,115 @@ fit_zoib <- function(x) {
   list(alpha = alpha, prop_1 = prop_1, prop_0 = prop_0)
 }
 
-national_fit <- fit_zoib(national_data)
 
-mean(national_data)
-hist(national_data)
-mean(national_data == 1)
 ```
+
+```{r}
+# applied on the national dataset
+
+national_data <- national_data |>
+  rowwise() |>
+  mutate(fit = 
+           list(fit_zoib(unlist(population_sample))))
+
+```
+
+
+
+```{r updatingFunction}
+# Empirical bayes
+# Bayesian updating: combine domain data with national shape
+
+update_distribution <- function(domain_data, national_fit, prior_weight = 5) {
+  
+  n <- length(domain_data)
+  prop_1_domain <- mean(domain_data == 1)
+  prop_0_domain <- mean(domain_data == 0)
+  
+  # Update 1-inflation (weighted average)
+  updated_prop_1 <- (n * prop_1_domain + prior_weight * national_fit$prop_1) / (n + prior_weight)
+  updated_prop_0 <- (n * prop_0_domain + prior_weight * national_fit$prop_0) / (n + prior_weight)
+  
+  # Update beta parameters (only for 0 < x < 1 part)
+  x_trunc <- domain_data[domain_data > 0 & domain_data < 1]
+  
+  if (length(x_trunc) > 1) {
+    tryCatch({
+      alpha_domain <- MASS::fitdistr(x_trunc, dbeta, 
+                                    start = list(shape1 = 1, shape2 = 1))$estimate
+      
+      updated_alpha <- (alpha_domain * length(x_trunc) + national_fit$alpha * prior_weight) /
+                          (length(x_trunc) + prior_weight)
+    }, error = function(msg){
+      return(NA)
+    }
+      
+    )
+  } else {
+    updated_alpha <- national_fit$alpha
+  }
+  
+  if(!exists("updated_alpha")) updated_alpha <- NA
+  
+  list(
+    alpha = updated_alpha, 
+    prop_1 = updated_prop_1, 
+    prop_0 = updated_prop_0
+    )
+}
+
+#updated_dist <- update_distribution(domain_data, national_fit)
+```
+
+```{r}
+# applied on the domain samples
+
+comb_data <- domain_data |>
+  cross_join(
+    national_data)
+
+comb_data <- comb_data |>
+  rowwise() |>
+  mutate(updated_fit = 
+           list(
+             update_distribution(
+               domain_data = unlist(values),
+               national_fit = fit
+           )))
+```
+
+```{r simulationFunction}
+
+# Generate uncertainty distribution around domain mean
+simulate_domain <- function(dist, n_sim = 10000) {
+  is_1 <- rbinom(n_sim, 1, dist$prop_1)
+  is_0 <- rbinom(n_sim, 1, dist$prop_0) * (1 - is_1)
+  cont_part <- (1 - is_1 - is_0) * rbeta(n_sim, dist$alpha[1], dist$alpha[2])
+  is_1 * 1 + is_0 * 0 + cont_part
+}
+
+```
+
+```{r}
+# Applied on the test cases
+comb_data <- comb_data |>
+  rowwise() |>
+  mutate(PDs = 
+    list(simulate_domain(updated_fit, n_sim = 1000)))
+
+```
+
+```{r}
+# add sample means (unweighted in this case)
+
+comb_data <- comb_data |>
+  mutate(
+    mean = mean(unlist(values))
+  )
+```
+
+```{r}
+
+```
+
+
