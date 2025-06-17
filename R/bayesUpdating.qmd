@@ -4,7 +4,20 @@ format: html
 editor: visual
 ---
 
-## Function to update an estimate of a 1-inflated beta distributed mean
+## Function to update an estimate of a zero and 1-inflated beta distributed distribution
+
+The goal here is to use a larger dataset (national dataset) to infer about the shape of a smaller domain dataset. The domain mean will always be uninformed by the national data, but I will use empirical bayes to make a better guess at the true variation of the domain data when sample sizes are low. I add a prior weight of 10, meaning the national dataset coundt similarly as ten domain datapoints in describing the distributional shape for the domain data.
+
+Deepseek (free version, may-juni 2025) was used to flesh out some of the ideas and test for logical errors. However, the original idea was by the authors, and all code has been verified and we also added a simulation to test the behaviour of the functions.
+
+I will now simulate som (national) data and some domain data
+and then test the functions for getting updated domain shape and variance.
+
+I tried also with prior weight of 5, and results are qualitativly
+similar. As a rule of thumb, I want the posterior distribution to include
+just about the whole range for the national data when n = 2-3.
+
+This example does not include area weighting. Latyer I want to use area weighting for the domain means, but I will not include it for the updated shape parameters.
 
 ```{r setup}
 library(tidyverse)
@@ -13,20 +26,6 @@ library(ggh4x)
 ```
 
 ```{r nationalData}
-
-
-# I will simulate som (national) data and some domain data
-# and then test the functions for getting updated domain shape and variance.
-# The domain mean will be an area weighted mean of the domain data,
-# unaffected by the national data.
-# The uncertainty around the domain estimate will use information
-# about the shape of the national data distribution. 
-# This information will count the equivalent of 10 domain spesific values,
-# thus making it possible to estimate domain distributions even with
-# quite low n. I tried also with prior weight of 5, and results are qialitatively
-# similar. As a rul of thumb, I want the posterior distribution to include
-# just about the whole range for the national data when n = 2-3.
-
 # set seed
 set.seed(123)
 
@@ -42,8 +41,6 @@ national_data <- tibble(
   beta_2_2 = rbeta(n, 2, 2),
   beta_05_3 = rbeta(n, .5, 3),
   beta_3_05 = rbeta(n, 3, .5),
-  # add some area weights
-  wgt = seq(1:n)
 ) |>
   # truncate
   mutate(across(
@@ -378,7 +375,8 @@ comb_data |>
   xlim(-0.2,1.2)+
   facet_nested(scenario + n ~distribution)
 
-#ggsave("../images/posteriorCheck.png")
+ggsave("../images/posteriorCheck.png",
+       width = 30, height = 30, units = "cm")
 
 ```
 
