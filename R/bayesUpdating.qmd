@@ -9,21 +9,28 @@ editor: visual
 ```{r setup}
 library(tidyverse)
 library(MASS)
-
+library(ggh4x)
 ```
 
 ```{r nationalData}
 
 
-# I will simulate som (national) data and then 
-# test the wgt_mean function using simulated domain data
-# The domain mean will be an area weighted mean of the domain data.
+# I will simulate som (national) data and some domain data
+# and then test the functions for getting updated domain shape and variance.
+# The domain mean will be an area weighted mean of the domain data,
+# unaffected by the national data.
 # The uncertainty around the domain estimate will use information
 # about the shape of the national data distribution. 
-# This information will count the equivalent of five domain spesific values,
-# thus making it possieble to estimate domain distributions even with
-# quite low n.
+# This information will count the equivalent of 10 domain spesific values,
+# thus making it possible to estimate domain distributions even with
+# quite low n. I tried also with prior weight of 5, and results are qialitatively
+# similar. As a rul of thumb, I want the posterior distribution to include
+# just about the whole range for the national data when n = 2-3.
 
+# set seed
+set.seed(123)
+
+# define sample size
 n <- 1000
 
 
@@ -42,8 +49,8 @@ national_data <- tibble(
   mutate(across(
     !starts_with("wgt"),
     ~ case_when(
-      . >= 1 ~ 1, #0.9999,  using pmin and pmax is another option
-      . <= 0 ~ 0, #0.00001,
+      . >= 1 ~ 1, 
+      . <= 0 ~ 0, 
       .default = .
     )
   )) |>
@@ -66,6 +73,9 @@ b <- 5
 c <- 10
 d <- 30
 
+# set seed
+set.seed(123)
+
 domain_data <- tibble(
     sample_ID = c(
       "domain_1a",
@@ -80,8 +90,12 @@ domain_data <- tibble(
       "domain_3b",
       "domain_3c",
       "domain_3d",
+      "domain_4b",
       "domain_4c",
-      "domain_4d"),
+      "domain_4d",
+      "domain_5b",
+      "domain_5c",
+      "domain_5d"),
     
     values = list(
       # 1's
@@ -102,10 +116,16 @@ domain_data <- tibble(
       tibble(sample = seq.int(0.1, 0.4, length.out=c)),
       tibble(sample = seq.int(0.1, 0.4, length.out=d)),
       
-      # truncated normal, sorted to that we can test the effect of turning
-       # weights on or off
+      # truncated normal with sd = .5, which is probably more variation than the natinal data
+      tibble(sample = rnorm(b, 1, .5) |> pmin(1) |> pmax(0) |> sort()),
       tibble(sample = rnorm(c, 1, .5) |> pmin(1) |> pmax(0) |> sort()),
-      tibble(sample = rnorm(d, 1, .5) |> pmin(1) |> pmax(0) |> sort())
+      tibble(sample = rnorm(d, 1, .5) |> pmin(1) |> pmax(0) |> sort()),
+      
+      # truncated normal with sd = .1
+      tibble(sample = rnorm(b, 1, .1) |> pmin(1) |> pmax(0) |> sort()),
+      tibble(sample = rnorm(c, 1, .1) |> pmin(1) |> pmax(0) |> sort()),
+      tibble(sample = rnorm(d, 1, .1) |> pmin(1) |> pmax(0) |> sort())
+      
     ))
 
 
@@ -178,7 +198,7 @@ national_data <- national_data |>
 # Empirical bayes
 # Bayesian updating: combine domain data with national shape
 
-update_distribution <- function(domain_data, national_fit, prior_weight = 5) {
+update_distribution <- function(domain_data, national_fit, prior_weight = 10) {
   
   n <- length(domain_data)
   prop_1_domain <- mean(domain_data == 1)
@@ -262,9 +282,14 @@ comb_data <- comb_data |>
 
 comb_data <- comb_data |>
   mutate(
-    mean = mean(unlist(values))
+    mean = mean(unlist(values)),
+    firstQuartile = quantile(unlist(PDs), 0.25),
+    thirdQuartile = quantile(unlist(PDs), 0.75),
+    lowCI = quantile(unlist(PDs), 0.025),
+    highCI = quantile(unlist(PDs), 0.975)
   )
 ```
+
 
 ```{r}
 # Prepare data for plotting
@@ -272,7 +297,7 @@ comb_data <- comb_data |>
   mutate(
     n = str_sub(sample_ID, -1, -1),
     n = case_when(
-      n == "a" ~ 1,
+      n == "a" ~ 2,
       n == "b" ~ 5, 
       n == "c" ~ 10,
       n == "d" ~30
@@ -284,54 +309,78 @@ comb_data <- comb_data |>
       scenario == "1" ~ "Only 1's",
       scenario == "2" ~ "High values",
       scenario == "3" ~ "Low values",
-      scenario == "4" ~ "Truncated normal"
+      scenario == "4" ~ "Trunc.nor. high SD",
+      scenario == "5" ~ "Trunc.nor. low SD"
     )
   )
+```
 
-# STOPPED HERE
+```{r fig-bigFacet}
+#| fig-height: 12
+#| warning: false
 
-tempDF |>
-  unnest(starts_with("PD")) |>
-  pivot_longer(cols = starts_with("PD"),
-               names_to = "sample_size",
-               values_to = "PD") |>
-  mutate(sample_size = str_remove(sample_size, "PD_")) |>
-  bind_rows(sampleDF) |>
-  bind_rows(wgtMeanDF) |>
+comb_data |>
   ggplot()+
-  #geom_density(
-  #  aes(x = PD,
-  #      y = after_stat(scaled)
-  #      ),
-  #  alpha=.8,
-  #  fill = "sienna1")+
+  geom_density(
+    data = comb_data |>
+      unnest(population_sample),
+    aes(x = population_sample,
+        y = after_stat(scaled)),
+    fill = "sienna1",
+    alpha = .5
+  ) +
+  geom_density(
+    data = comb_data |>
+      unnest(PDs),
+    aes(x = PDs,
+        y = after_stat(scaled)),
+    alpha = .5,
+    fill = "cornflowerblue"
+  ) +
   geom_histogram(
-    aes(x = PD,
+    data = comb_data |>
+      unnest(values),
+    aes(x = sample,
         y = stat(ncount)),
     binwidth = .05,
     alpha=.8,
-    fill = "sienna1"
+    fill = "cornflowerblue"
   )+
       theme(legend.position = 'none',
         axis.title.y = element_blank()) +
   geom_segment(
-    aes(x = sample,
-        xend = sample,
+    aes(x = mean,
+        xend = mean,
         y = 0,
-        yend = .1),
-    linewidth = 1,
-    alpha=.5)+
+        yend = .2),
+    linewidth = 3,
+    alpha=.7,
+    colour = "grey10"    
+  )+
   geom_segment(
-    aes(x = wgt_mean,
-        xend = wgt_mean,
-        y = 0,
-        yend = 0.3),
-    linewidth = 1.2)+
-  xlim(0,1)+
-  facet_grid(cols = vars(distribution),
-             rows = vars(as.numeric(sample_size)),
-             scales = "free")
+    aes(x = lowCI,
+        xend = highCI,
+        y = -0.1,
+        yend = -0.1),
+    linewidth = 1.2,
+    alpha=.7,
+    colour = "grey30"    
+  )+
+  geom_segment(
+    aes(x = firstQuartile,
+        xend = thirdQuartile,
+        y = -0.1,
+        yend = -0.1),
+    linewidth = 3,
+    alpha=.7,
+    colour = "grey30"    
+  )+
+  xlim(-0.2,1.2)+
+  facet_nested(scenario + n ~distribution)
+
 #ggsave("../images/posteriorCheck.png")
+
 ```
+
 
 
