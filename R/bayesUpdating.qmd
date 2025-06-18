@@ -10,12 +10,9 @@ The goal here is to use a larger dataset (national dataset) to infer about the s
 
 Deepseek (free version, may-juni 2025) was used to flesh out some of the ideas and test for logical errors. However, the original idea was by the authors, and all code has been verified and we also added a simulation to test the behaviour of the functions.
 
-I will now simulate som (national) data and some domain data
-and then test the functions for getting updated domain shape and variance.
+I will now simulate som (national) data and some domain data and then test the functions for getting updated domain shape and variance.
 
-I tried also with prior weight of 5, and results are qualitativly
-similar. As a rule of thumb, I want the posterior distribution to include
-just about the whole range for the national data when n = 2-3.
+I tried also with prior weight of 5, and results are qualitativly similar. As a rule of thumb, I want the posterior distribution to include just about the whole range for the national data when n = 2-3.
 
 This example does not include area weighting. Latyer I want to use area weighting for the domain means, but I will not include it for the updated shape parameters.
 
@@ -189,8 +186,6 @@ national_data <- national_data |>
 
 ```
 
-
-
 ```{r updatingFunction}
 # Empirical bayes
 # Bayesian updating: combine domain data with national shape
@@ -287,7 +282,6 @@ comb_data <- comb_data |>
   )
 ```
 
-
 ```{r}
 # Prepare data for plotting
 comb_data <- comb_data |>
@@ -379,6 +373,3 @@ ggsave("../images/posteriorCheck.png",
        width = 30, height = 30, units = "cm")
 
 ```
-
-
-
