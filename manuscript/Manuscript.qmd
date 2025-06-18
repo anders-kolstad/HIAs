@@ -1566,7 +1566,7 @@ comb_data <- domain_data |>
 ```{r simulationFunction}
 
 # Generate uncertainty distribution around domain mean
-simulate_domain <- function(dist, n_sim = 10000) {
+simulate_domain <- function(dist, n_sim = 1000) {
   is_1 <- rbinom(n_sim, 1, dist$prop_1)
   is_0 <- rbinom(n_sim, 1, dist$prop_0) * (1 - is_1)
   cont_part <- (1 - is_1 - is_0) * rbeta(n_sim, dist$alpha[1], dist$alpha[2])
@@ -1919,11 +1919,7 @@ temp |>
 ```{r getNationalShapes}
 #| warning: false
 # Getting the beta shape parameters from the national dataset
-params_ADSV <- fit_zoib(i_ADSV)
-params_alien <- fit_zoib(i_alien)
-params_ditch <- fit_zoib(i_ditch)
 
-#NEW
 fit_df <- corrCheck |>
   as_tibble() |>
   pivot_longer(cols = starts_with("i_"),
@@ -2102,7 +2098,7 @@ barCOLS <- c("#fff7bd", "#fecf66", "#f88b22", "#cc4c02")
 #| eval: true
 #| cache: true
 
-# Copy the weighted means and SDs over to HIA map and then over to the 
+# Copy the weighted means and PDs over to HIA map and then over to the 
 # ecosystem delineation map polygons. 
 spread_na <- mire_stars_na |>
   st_as_sf(merge=T) |>
@@ -2112,8 +2108,13 @@ spread_na <- mire_stars_na |>
   left_join(stats_tbl |> 
               as_tibble() |>
               filter(Municipality == "Nord-Aurdal") |>
-              select(mean, sd, indicator, n, infrastructureIndex, Municipality),
-            by = "infrastructureIndex")
+              select(mean, PDs, indicator, n, infrastructureIndex, Municipality),
+            by = "infrastructureIndex",
+            relationship = "many-to-many")
+# Each polygon (rpw) is repeated for each indicator
+#spread_na |>
+#  select(-PDs) |>
+#  head()
 
 spread_nf <- mire_stars_nf |>
   st_as_sf(merge=T) |>
@@ -2123,8 +2124,9 @@ spread_nf <- mire_stars_nf |>
   left_join(stats_tbl |> 
               as_tibble() |>
               filter(Municipality == "Nordre Follo") |>
-              select(mean, sd, indicator, n, infrastructureIndex, Municipality),
-            by = "infrastructureIndex")
+              select(mean, PDs, indicator, n, infrastructureIndex, Municipality),
+            by = "infrastructureIndex",
+            relationship = "many-to-many")
 
 spread_gr <- mire_stars_gr |>
   st_as_sf(merge=T) |>
@@ -2134,8 +2136,9 @@ spread_gr <- mire_stars_gr |>
   left_join(stats_tbl |> 
               as_tibble() |>
               filter(Municipality == "Gran") |>
-              select(mean, sd, indicator, n, infrastructureIndex, Municipality),
-            by = "infrastructureIndex")
+              select(mean, PDs, indicator, n, infrastructureIndex, Municipality),
+            by = "infrastructureIndex",
+            relationship = "many-to-many")
 
 
 ```
@@ -2189,64 +2192,70 @@ myCols <- c(
 #| eval: true
 #| cache: true
 
-# Now I sample indicator values from the EDM and create a new distribution for 
+# The EAA estimate for the mean indicator value is just an area weighted mean of 
+# the polygons (i.e. no influence fro the national dataset).
+# For the predicted distribution of indicator values we sample indicator values 
+# from the PDs in the EDM and create a new distribution for 
 # indicator values in the EAAs (the municipalities). First I sample the individual
 # distributions for each mire polygon with n defined by the polygon area.
 # The distribution for the polygon areas is strongly right skewed, meaning
 # some polygons will contribute much more to the EAA value than others.
-# I will keep this design, in-line with SEEA EA guidelines for area weighting, 
-# but it's worth noting that this could be solved in other ways.
-# 
+
 combineAll <- rbind(
   spread_nf,
   spread_gr,
-  spread_na
-) |>
+  spread_na) |>
   as_tibble() |>
+  select(-geometry) |>
   drop_na() |>
+  #mutate(weight = drop_units(area/100) |> round()) |>
+  mutate(area = drop_units(area)) |>
+  unnest(PDs) |>
   group_by(Municipality, indicator) |>
+  slice_sample(n = 1000, weight_by = area, replace = T) |>
+  ungroup() |>
+  select(Municipality,
+         indicator,
+         PDs,
+         mean) |>
+  nest(data = c(PDs, mean)) |>
   rowwise() |>
   mutate(
-    # this draws one sample pre m2 from a normal distribution:
-    i_sample = list(sample(rnorm(n, mean, sd)))) |>
-  select(-geometry) |>
-  group_by(Municipality, indicator) |>
-  reframe(i_sample = 
-  # this samples randomly from i_sample, ie large polygons are more likely
-  # to contibute:
-            sample(
-              unlist(i_sample), 
-              size = 1000,
-              replace = TRUE)) |>
-  # truncation, since the tails from the normal distribution can go beyond 0 and 1
-  mutate(i_sample = case_when(
-    i_sample < 0 ~ 0,
-    i_sample >1  ~ 1,
-    .default = i_sample
-  ))
+    low = quantile(data$PDs, 0.025),
+    high = quantile(data$PDs, 0.975),
+    meanWeighted = mean(data$mean),
+    indicator2 = case_when(
+      indicator == "i_ADSV" ~ "ADSV",
+      indicator == "i_alien" ~ "Alien species",
+      indicator == "i_ditch" ~ "Trenching")) |>
+  left_join(
+    stats_tbl |>
+      unnest(data) |>
+      group_by(Municipality, indicator) |>
+      summarise(realSamples = list(indicatorValue))
+    ) |>
+  rowwise() |>
+  mutate(
+    n = length(realSamples)
+  )
+  
 ```
 
 ```{r EEA-plot}
 #| eval: true
 #| cache: true
+
+
 (ridgepPlot <- combineAll |>
-  mutate(
-    indicator = case_when(
-      indicator == "i_ADSV" ~ "ADSV",
-      indicator == "i_alien" ~ "Alien species",
-      indicator == "i_ditch" ~ "Trenching"
-    )) |>
+    unnest(data) |>
   ggplot(
     aes(
-      x = i_sample, 
+      x = PDs, 
       y = Municipality,
       fill = after_stat(x))
   ) +
   geom_density_ridges_gradient(
-    bandwidth=.05,
-    quantile_lines = TRUE, 
-    quantiles = c(0.025, .5, 0.975)
-  ) +
+    bandwidth=.05) +
   #scale_fill_viridis_c(option = "D") +
   scale_fill_distiller(palette = "RdYlGn",
     direction = 1) +
@@ -2265,6 +2274,65 @@ combineAll <- rbind(
 #       "../images/ridgePlot.jpg",
 #       width=10,
 #       height=5)
+```
+```{r}
+combineAll |>
+  ggplot()+
+  geom_density(
+    data = combineAll |>
+      unnest(data),
+    aes(x = PDs,
+        y = after_stat(scaled)),
+    fill = "sienna1",
+    alpha = .5,
+    bounds = c(0, 1)
+  ) +
+  geom_histogram(
+    data = combineAll |>
+      unnest(realSamples),
+    aes(x = realSamples,
+        y = stat(ncount)),
+    binwidth = .05,
+    alpha=.8,
+    fill = "cornflowerblue"
+  )+
+      theme(legend.position = 'none',
+        axis.title.y = element_blank()) +
+  geom_segment(
+    aes(x = meanWeighted,
+        xend = meanWeighted,
+        y = -0.15,
+        yend = -0.05),
+    linewidth = 3,
+    alpha=.7,
+    colour = "grey10"    
+  )+
+  geom_segment(
+    aes(x = low,
+        xend = high,
+        y = -0.1,
+        yend = -0.1),
+    linewidth = 1.2,
+    alpha=.7,
+    colour = "grey30"    
+  )+
+  xlim(-0.1,1.1)+
+  theme_bw(base_size = 16)+
+  scale_y_continuous(breaks = c(0, 0.5, 1))+
+  labs(x = "Indicator value",
+       y = "Proportion")+
+  geom_text(
+    aes(y = 0.7,
+        x = 0.0, 
+        label = paste("n = ", n, "\nmean = ", round(meanWeighted,2))),
+    show.legend = F,
+    hjust = 0) +
+  facet_grid(cols = vars(indicator2),
+             rows = vars(Municipality),
+             scales = "free_y")
+ggsave("../images/results.jpg",
+       width=10,
+       height=8)
 ```
 
 ```{r EEA-plot2}
