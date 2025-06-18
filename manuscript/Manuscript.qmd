@@ -72,8 +72,9 @@ header-includes:
 
 ```{r setup}
 #| eval: true
+library(conflicted)
+conflict_prefer_all("dplyr", quiet =T)
 
-library(tidyverse)
 library(knitr)
 library(sf)
 library(tmap)
@@ -94,7 +95,7 @@ library(kableExtra)
 library(here)
 library(MASS)
 library(ggh4x)
-
+library(tidyverse)
 myCRS <- 25832
 ```
 
@@ -263,16 +264,7 @@ naturetypes |>
 # I will first normalise by converting into % (not for 7GR-GI).
 # Remember the ordinal categories represents frequency ranges
 # The data is strongly right skewed, so simply taking the center value of each
-# bin will not work:
-naturetypes %>%
-  ggplot() +
-  theme_bw() +
-  geom_histogram(aes(x = value),
-    binwidth = 1
-  ) +
-  facet_wrap(. ~ variable,
-    scales = "free"
-  )
+# bin will not work
 
 # I will use the lower bound for each bin instead.
 # The exception in when the variable is 1, because then the lower bound
@@ -1264,7 +1256,7 @@ muni_tbl <- muni3 |>
 ```
 
 ```{r subset}
-#| eval: false
+#| eval: true
 
 library(EnvStats)
 
@@ -2241,41 +2233,10 @@ combineAll <- rbind(
   
 ```
 
+
 ```{r EEA-plot}
 #| eval: true
 #| cache: true
-
-
-(ridgepPlot <- combineAll |>
-    unnest(data) |>
-  ggplot(
-    aes(
-      x = PDs, 
-      y = Municipality,
-      fill = after_stat(x))
-  ) +
-  geom_density_ridges_gradient(
-    bandwidth=.05) +
-  #scale_fill_viridis_c(option = "D") +
-  scale_fill_distiller(palette = "RdYlGn",
-    direction = 1) +
-  theme_bw(base_size = 15) +
-  guides(fill = "none") +
-  geom_vline(xintercept = .6,
-    size=1.2,
-    lty=2) +
-  theme(axis.text.x = element_text(angle=45, hjust=1, vjust=1))+
-  labs(y = "", x = "Indicator values")+
-  xlim(c(0,1)) +
-  facet_wrap(.~indicator)
-)
-
-#ggsave(plot = ridgepPlot,
-#       "../images/ridgePlot.jpg",
-#       width=10,
-#       height=5)
-```
-```{r}
 combineAll |>
   ggplot()+
   geom_density(
@@ -2330,9 +2291,9 @@ combineAll |>
   facet_grid(cols = vars(indicator2),
              rows = vars(Municipality),
              scales = "free_y")
-ggsave("../images/results.jpg",
-       width=10,
-       height=8)
+#ggsave("../images/results.jpg",
+#       width=10,
+#       height=8)
 ```
 
 ```{r EEA-plot2}
@@ -2340,70 +2301,84 @@ ggsave("../images/results.jpg",
 #| cache: true
 
 # Same as above, but for trenching only
-
-(ridgepPlot2 <- combineAll |>
+temp <- combineAll |>
   filter(indicator == "i_ditch",
-     Municipality == "Nord-Aurdal") |>
-  select(indicator, i_sample, Municipality) |>  
-  ggplot(
-    aes(
-      x = i_sample)
-    ) +
-  geom_density(
-    fill = "lightgreen",
-    alpha=.5
-  ) +
-  theme_bw(base_size = 15) +
-  guides(fill = "none") +
-  theme(
-        axis.ticks.y = element_blank(),
-        axis.text.y = element_blank())+
-  labs(y = "", x = "Indicator values")+
-  xlim(c(0.7,1))
-)
+     Municipality == "Nord-Aurdal")
 
-#ggsave(plot = ridgepPlot2,
-#       "../images/ridgePlot-ex.jpg",
+temp |>
+  ggplot()+
+  geom_density(
+    data = temp |>
+      unnest(data),
+    aes(x = PDs,
+        y = after_stat(scaled)),
+    fill = "sienna1",
+    alpha = .5,
+    bounds = c(0, 1)
+  ) +
+  geom_histogram(
+    data = temp |>
+      unnest(realSamples),
+    aes(x = realSamples,
+        y = stat(ncount)),
+    binwidth = .05,
+    alpha=.8,
+    fill = "cornflowerblue"
+  )+
+      theme(legend.position = 'none',
+        axis.title.y = element_blank()) +
+  geom_segment(
+    aes(x = meanWeighted,
+        xend = meanWeighted,
+        y = -0.15,
+        yend = -0.05),
+    linewidth = 3,
+    alpha=.7,
+    colour = "grey10"    
+  )+
+  geom_segment(
+    aes(x = low,
+        xend = high,
+        y = -0.1,
+        yend = -0.1),
+    linewidth = 1.2,
+    alpha=.7,
+    colour = "grey30"    
+  )+
+  xlim(-0.1,1.1)+
+  theme_bw(base_size = 16)+
+  scale_y_continuous(breaks = c(0, 0.5, 1))+
+  labs(x = "Indicator value",
+       y = "Proportion")+
+  geom_text(
+    aes(y = 0.7,
+        x = 0.0, 
+        label = paste("n = ", n, "\nmean = ", round(meanWeighted,2))),
+    show.legend = F,
+    hjust = 0) 
+
+
+#ggsave("../images/results-ex.jpg",
 #       width=6,
 #       height=4)
 ```
 
-```{r EEA-tbl}
-#| eval: true
-(EEA_tbl <- combineAll |>
-  mutate(
-    indicator = case_when(
-      indicator == "i_ADSV" ~ "ADSV",
-      indicator == "i_alien" ~ "Alien species",
-      indicator == "i_ditch" ~ "Trenching"
-    )) |>
-  group_by(Municipality, indicator) |>
-  summarise(mean = round(mean(i_sample), 2),
-            median = round(median(i_sample), 2),
-            percentile_025 = round(quantile(i_sample, probs = 0.025), 2),
-            percentile_975 = round(quantile(i_sample, probs = 0.975), 2))
-)
-# saveRDS(EEA_tbl, "../output/EEA-table.RDS")
-```
+
 
 ```{r}
-(EEA_tbl_out <- EEA_tbl |>
+(EEA_tbl_out <- combineAll |>
   ungroup() |>
   mutate("Indicator value" = 
     paste0(
-      format(median, 2), 
+      round(meanWeighted, 2), 
       " [",
-      format(percentile_025,2),
+      round(low,2),
       " - ",
-      format(percentile_975,2),
+      round(high,2),
       "] ")) |>
-  rename(Indicator = indicator) |>
   select(
-    -mean,
-    -median,
-    -percentile_025,
-    -percentile_975,
-    -Municipality
+    Indicator = indicator2,
+    "Indicator value"
   )|>
   kbl(table.attr = "style = \"color: black;\"",
       align = "lr") |>
