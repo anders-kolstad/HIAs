@@ -1,5 +1,5 @@
 ---
-title: Making use of spatially biased variables in ecosystem condition accounting – a GIS based workflow
+title: Making use of patchy and spatially biased variables in ecosystem condition accounting
 author:
   - name: Anders Lorentzen Kolstad
     email: anders.kolstad@nina.no
@@ -1274,6 +1274,7 @@ params_ditch <- EnvStats::ebeta(i_ditch)
 ```
 
 ```{r testFit}
+#| eval: true
 # Check to see that real distributions and estimated beta distributions match up
 
 ADVS_estimated = rbeta(
@@ -1320,15 +1321,19 @@ temp |>
 <!-- Deepseek (free version, may-juni 2025) was used to flesh out some of the ideas and test for logical errors. However, the original idea was by the authors, and all code has been verified and we also added a simulation to test the behaviour of the functions. -->
 
 <!-- I will now simulate som (national) data and some domain data -->
+
 <!-- and then test the functions for getting updated domain shape and variance. -->
 
 <!-- I tried also with prior weight of 5, and results are qualitativly -->
+
 <!-- similar. As a rule of thumb, I want the posterior distribution to include -->
+
 <!-- just about the whole range for the national data when n = 2-3. -->
 
 <!-- This example does not include area weighting. Latyer I want to use area weighting for the domain means, but I will not include it for the updated shape parameters. -->
 
 ```{r nationalData}
+#| eval: true
 # set seed
 set.seed(123)
 
@@ -1364,7 +1369,7 @@ national_data <- tibble(
 ```
 
 ```{r domainData}
-
+#| eval: true
 
 # pre set some sample sizes
 a <- 2
@@ -1443,9 +1448,8 @@ domain_data <- tibble(
     
 ```
 
-
 ```{r fig-plotDist}
-
+#| eval: true
 # plot the population samples
 national_data |>
   unnest(population_sample) |>
@@ -1456,9 +1460,9 @@ national_data |>
              scales = "free")
 ```
 
-```{r fig-plotDist}
+```{r fig-plotDist2}
 #| warning: false
-
+#| eval: true
 # plot the domain samples
 domain_data |>
   unnest(values) |>
@@ -1471,6 +1475,7 @@ domain_data |>
 ```
 
 ```{r fit_zoib}
+#| eval: true
 # function to fit zero and one inflated beta distributions
 fit_zoib <- function(x) {
   prop_1 <- mean(x == 1)
@@ -1482,6 +1487,7 @@ fit_zoib <- function(x) {
 ```
 
 ```{r}
+#| eval: true
 # applied on the national dataset
 national_data <- national_data |>
   rowwise() |>
@@ -1490,6 +1496,7 @@ national_data <- national_data |>
 ```
 
 ```{r updatingFunction}
+#| eval: true
 # Empirical bayes
 # Bayesian updating: combine domain data with national shape
 
@@ -1542,6 +1549,7 @@ update_distribution <- function(domain_data, national_fit, prior_weight = 10) {
 ```
 
 ```{r}
+#| eval: true
 # applied on the domain samples
 comb_data <- domain_data |>
   cross_join(
@@ -1556,7 +1564,7 @@ comb_data <- domain_data |>
 ```
 
 ```{r simulationFunction}
-
+#| eval: true
 # Generate uncertainty distribution around domain mean
 simulate_domain <- function(dist, n_sim = 1000) {
   is_1 <- rbinom(n_sim, 1, dist$prop_1)
@@ -1567,8 +1575,8 @@ simulate_domain <- function(dist, n_sim = 1000) {
 
 ```
 
-
 ```{r}
+#| eval: true
 # Applied on the test cases
 comb_data <- comb_data |>
   rowwise() |>
@@ -1578,6 +1586,7 @@ comb_data <- comb_data |>
 ```
 
 ```{r}
+#| eval: true
 # add sample means (unweighted in this case)
 
 comb_data <- comb_data |>
@@ -1590,8 +1599,8 @@ comb_data <- comb_data |>
   )
 ```
 
-
 ```{r}
+#| eval: true
 # Prepare data for plotting
 comb_data <- comb_data |>
   mutate(
@@ -1620,6 +1629,7 @@ comb_data <- comb_data |>
 ```{r fig-bigFacet}
 #| fig-height: 12
 #| warning: false
+#| eval: true
 
 comb_data |>
   ggplot()+
@@ -1705,7 +1715,7 @@ comb_data |>
 # highlighting the most interesting part of the large figure
 #| fig-height: 12
 #| warning: false
-
+#| eval: true
 temp <- comb_data |>
   filter(distribution == "normal_high",
          scenario == "Trunc.nor. high SD" | scenario == "Trunc.nor. low SD")
@@ -1774,9 +1784,8 @@ temp |>
 
 ```
 
-
-
 ```{r}
+#| eval: true
 # The behaviour is unexpected for high SD domain data
 # A low n gives a very narrow PD
 # With high n the national and domain data converge, as expected,
@@ -1907,9 +1916,9 @@ temp |>
 # that wont work as the PDs can be truncated as well.
 ```
 
-
 ```{r getNationalShapes}
 #| warning: false
+#| eval: true
 # Getting the beta shape parameters from the national dataset
 
 fit_df <- corrCheck |>
@@ -1921,7 +1930,6 @@ fit_df <- corrCheck |>
   group_by(indicator, infrastructureIndex) |>
   summarise(fit = list(fit_zoib(indicatorValue)))
 ```
-
 
 ```{r meanPerHIA}
 #| eval: true
@@ -2233,7 +2241,6 @@ combineAll <- rbind(
   
 ```
 
-
 ```{r EEA-plot}
 #| eval: true
 #| cache: true
@@ -2363,9 +2370,8 @@ temp |>
 #       height=4)
 ```
 
-
-
 ```{r}
+#| eval: true
 (EEA_tbl_out <- combineAll |>
   ungroup() |>
   mutate("Indicator value" = 
@@ -2455,9 +2461,9 @@ The issue of representativeness extends beyond spatial biases to include themati
 Also, having data from only one or a subset of nature types inside what is defined as the ecosystem in the assessment, is a typical thematic bias in ecosystem accounting.
 However, this paper focuses on spatial (geographic and environmental) bias.
 
-Wall-to-wall raw data, such as satellite imagery, is spatially representative though the property of being spatially exhaustive, although grain size also plays a role [cf. the ecological fallacy; @robinson2009].
+Wall-to-wall raw data, such as satellite imagery, is spatially representative through the property of being spatially exhaustive, although grain size also plays a role [cf. the ecological fallacy; @robinson2009].
 However, many critical ecosystem characteristics - such as species composition, soil properties, or fine-scale habitat features - cannot be derived remotely and still require field surveys.
-These surveys, however, often suffer from sparse or uneven (biased) sampling, leaving gaps in ecosystem asset coverage.
+These surveys, however, often suffer from sparse or biased sampling, leaving gaps in ecosystem asset coverage.
 Field data are especially problematic if sampling intensity correlates with anthopogenic pressures (and thus ecosystem condition) [@aubry2024].
 A poor solution, which don't attempt to control for sampling biases, is to ignore unsampled areas by directly estimating values for the entire EAA via central tendencies (e.g. means).
 Other options include imputing values to unsampled areas using some type of model or spatial generalisation.
@@ -2471,21 +2477,21 @@ Other options include imputing values to unsampled areas using some type of mode
 6.  Machine learning (e.g. random forest)
 
 Depending on the data that goes into them, models can make very accurate estimates, especially when the areas are large (e.g. regions or nations), but their reliability diminishes for smaller areas (e.g., municipalities) due to data scarcity and model uncertainty.
-Small area estimation is separate branch in statistics finding ways to overcome this issue by "borrowing strength" from related areas [@ghosh1994; @guldin2021].
-Ecosystem accounts should ideally reflect local conditions and are arguable more useful when reflecting local management and land use policies, unaffected by the actions of neighboring or ecologically similar administrative units.
+Small area estimation is a branch in statistics aimed at finding ways to overcome this issue by "borrowing strength" from related areas [@ghosh1994; @guldin2021].
+Ecosystem accounts should ideally reflect conditions only inde the accounting area and are arguable more useful when reflecting local management and land use policies, unaffected by the actions of neighboring or ecologically similar administrative units.
 There might therefore be a limit to how much data one should "borrow" across ecosystem assets or EAAs.
 
-Look-up tables, the simplest approach, assign the same value to categorical strata (e.g. ecosystem type within a region), often with no uncertainty estimate (although this is quite possible to include).
+Look-up tables, the simplest approach, assign the same value across categorical strata (e.g. ecosystem type within a region), often with no uncertainty estimate (although this is quite possible to include).
 Values may derive from expert opinion or aggregated data (e.g. straum means).
 If strata align with relevant gradients in pressures or environmental conditions, this method can mitigate sampling bias via post-stratification.
-The level of unwanted extrapolation is subject to the size of the strata, with fine-grained typologies leading to less extrapolation.
+The level of spatial or environmental extrapolation is subject to the size of the strata, with fine-grained typologies leading to less extrapolation.
 Extrapolating non-continuous spatial data (e.g. points) over a surface is a type of spatial generalisation.
 The challenge of spatial generalisation is not unique to ecosystem condition accounts, and it is much discussed in the ecosystem service accounting community of practice via the related term *value transfer* [@unitednations2022; @ncaves; @grammatikopoulou2023; @barton2023].
 Its key advantages are simplicity and the possibility to rely solely on local data.
 A major drawback is the high data requirements, especially for fine-grained strata.
 
 After expotrapolating data, the spatial grain of the data (and thus also the information) is essentially still the same.
-A critical step in ecosystem accounting is upscaling—synthesising fine-grained data to characterise larger areas, effectively reducing grain size or increasing support [@bierkens2002] (**Kolstad *et al.* in prep**).
+However, a critical step in ecosystem accounting is upscaling—synthesising fine-grained data to characterise larger areas, effectively reducing grain size or increasing support [@bierkens2002] (**Kolstad *et al.* in prep**).
 This is typically achieved by aggregation (e.g. arithmetic means), sampling [@brus1997] or resampling techniques [@jakobsson2021].
 For simplicity we also refer to this as aggregation, as the end result is the same - a synthesis of information.
 Upscaling is required to make the information available for decision makers or monitoring frameworks at the appropriate spatial scale [@king2024].
@@ -2497,9 +2503,9 @@ This could potentially undermine the credibility and finally the uptake of knowl
 
 <!--# Central to ecosystem condition accounts are variables and indicators. These are metrics chosen to reflect the central condition characteristics of the ecosystems. These metrics are quantified and ideally monitored over time to reflect the status and trends in condition. Indicators are variables that are normalised (rescaled) against upper and lower reference values to become bound between the values 0 and 1. This normalisation ensures that indicators are more comparable because an indicator value of 1 will mean the same for all indicators, i.e. that the variable equals the upper reference value which again reflect the value of the variables under the reference (e.g. pristine) condition. Similarly, a value of 0 means that the variable is in the worst possible state, for example that the species or ecosystem function in question is completely lost from the ecosystem. The reference condition needs to be defined for each ecosystem condition assessment separately, but SEEA EA gives some suggestions, such as an an ecosystem with no or minimal anthropogenic disturbance.   -->
 
-In this study we present a stratified aggregation technique to leverage spatially biased field data in ecosystem condition accounting.
-Using Bayesian updating, we incorporate uncertainty estimates, whilst accommodating scarce data sets.
-We demonstrate this technique with three indicators from the same spatially biased nature type mapping data set from Norwegian mires, comparing results across three municipalities in Norway to illustrate its potential for local applications
+In this study we present a stratified aggregation technique, using homogeneous impact areas, to leverage spatially biased field data in ecosystem condition accounting.
+Further, we combine a requirement for making indicator point estimates using local data only with an empirical Bayes approach to small area estimation to borrow strength from a larger national dataset and make better prediction about shape and variance in the distribution of possible indicator values.
+We demonstrate these techniques with three indicators from the same spatially biased nature type mapping data set from Norwegian mires, comparing results across three municipalities in Norway to illustrate its potential for local applications.
 
 # Material and Methods {#sec-methods}
 
@@ -2715,7 +2721,7 @@ knitr::include_graphics("../images/spread-na-small.jpg")
 
 # Histogram smoothing makes it look like there are more data points beyond the lower and upper percentiles than there really is. The 2.5% percentile sometimes looks like the 25% percentile. 
 
-knitr::include_graphics("../images/ridgePlot.jpg")
+knitr::include_graphics("../images/results.jpg")
 ```
 
 # Discussion
