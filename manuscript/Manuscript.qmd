@@ -146,15 +146,18 @@ naturetypes_summary <- readRDS(here("data/natureType_summary.rds"))
 
 # Set local to ensure Norwegian letters get imported correctly
 Sys.setlocale("LC_ALL","Norwegian")
-naturetypes <- sf::st_read(dsn = path_naturetypes, layer = "naturtyper_nin_omr")
+naturetypes <- sf::st_read(dsn = path_naturetypes, layer = "naturtyper_nin_omr",
+                           quiet= T)
 # 142k polygons (2023)
 
 # Import survey coverage map
-coverage <- sf::st_read(dsn = path_naturetypes, layer = "naturtyper_nin_dekning") |>
+coverage <- sf::st_read(dsn = path_naturetypes, layer = "naturtyper_nin_dekning",
+                        quiet= T) |>
   st_transform(myCRS)
 
 # Outline of norway (coastline)
-outline <- sf::read_sf(here("data/outlineOfNorway_EPSG25833.shp")) |>
+outline <- sf::read_sf(here("data/outlineOfNorway_EPSG25833.shp"),
+                       quiet= T) |>
   st_transform(myCRS)
 
 # Municipalities
@@ -162,7 +165,8 @@ outline <- sf::read_sf(here("data/outlineOfNorway_EPSG25833.shp")) |>
   # st_layers(path_muni)
 
 # read inn data and transform
-muni <- sf::read_sf(path_muni, layer = "kommune") |>
+muni <- sf::read_sf(path_muni, layer = "kommune",
+                    quiet= T) |>
   st_transform(myCRS)
 
 # Infrastructure index (read proxy)
@@ -195,6 +199,7 @@ nts <- naturetypes_summary %>%
     Ecosystem == "våtmark"
     ) |>
   pull(Nature_type)
+nts
 ```
 
 ```{r natureTypeData}
@@ -236,7 +241,7 @@ naturetypes <- naturetypes |>
     area
   ) |>
   st_transform(myCRS) # Choosing this to match the EDM (se further down)
-# 19k obs.
+# 26k obs.
 ```
 
 ```{r}
@@ -982,7 +987,7 @@ infraMuni3_summary <- infraMuni3_tbl |>
 ```{r corrCheck}
 #| eval: true
 #| cache: true
-# Now I want to see if the indicator values depend on the HIA is a predictable
+# Now I want to see if the indicator values depend on the HIA in a predictable
 # way to justify the stratification
 corrCheck <- st_intersection(naturetypes, infra)
 ```
@@ -1548,9 +1553,7 @@ update_distribution <- function(domain_data, national_fit, prior_weight = 10) {
 # applied on the domain samples
 comb_data <- domain_data |>
   cross_join(
-    national_data)
-
-comb_data <- comb_data |>
+    national_data)|>
   rowwise() |>
   mutate(updated_fit = 
            list(
@@ -1780,6 +1783,7 @@ temp |>
 ```
 
 
+
 ```{r}
 # The behaviour is unexpected for high SD domain data
 # A low n gives a very narrow PD
@@ -1898,6 +1902,19 @@ temp |>
   facet_nested(n ~ scenario)
 ```
 
+```{r}
+# With prior weight set to 20 instead of 10, it takes even more domain samples
+# to override the priors. This is probably sensible for truncated data,
+# where low n can have very high 1-inflation by chance, and thus get very low 
+# PD variance. However, we want to weighted mean, which is calculated independent 
+# of the national data, to always be inside the PD, but when n is low, this might 
+# not be the case. One option is to get more spesific priors, for example not the
+# entire national dataset, but a homogenous area. Another option is to use the PDs 
+# to calculate the distances between the mean and the set percentiles, and transfer
+# this ralative measure of variance over to be centered on the domain mean, but 
+# that wont work as the PDs can be truncated as well.
+```
+
 
 ```{r getNationalShapes}
 #| warning: false
@@ -1905,6 +1922,16 @@ temp |>
 params_ADSV <- fit_zoib(i_ADSV)
 params_alien <- fit_zoib(i_alien)
 params_ditch <- fit_zoib(i_ditch)
+
+#NEW
+fit_df <- corrCheck |>
+  as_tibble() |>
+  pivot_longer(cols = starts_with("i_"),
+               names_to = "indicator",
+               values_to = "indicatorValue") |>
+  drop_na(indicatorValue) |>
+  group_by(indicator, infrastructureIndex) |>
+  summarise(fit = list(fit_zoib(indicatorValue)))
 ```
 
 
@@ -1930,45 +1957,26 @@ stats_tbl <- nature3 |>
   filter(!is.na(indicatorValue)) |>
   as_tibble() |>
   nest(.by = c(Municipality, infrastructureIndex, indicator)) |>
-  mutate(fit = case_when(
-    indicator == "i_ADSV" ~ list(params_ADSV),
-    indicator == "i_alien" ~ list(params_alien),
-    indicator == "i_ditch" ~ list(params_ditch)
-    )) |>
+  left_join(fit_df) |>
   rowwise() |>
   mutate(
     updated_fit = 
            list(
              update_distribution(
                domain_data = unnest(data) |> select(indicatorValue),
-               national_fit = fit
-           ))
+               national_fit = fit,
+               prior_weight = 20
+           )),
+    mean = weighted.mean(
+      x = unnest(data) |> select(indicatorValue),
+      w = unnest(data) |> select(area)
+    ),
+    n = nrow(data),
+    PDs = list(simulate_domain(updated_fit)),
+    low = quantile(unlist(PDs), 0.025),
+    high = quantile(unlist(PDs), 0.975)
   )
 
-
-
-# group to indicator and strata
-  group_by(indicator, Municipality, infrastructureIndex) |>
-  
-  summarise(sd = wgt_mean(indicatorValue,
-      weights = area,
-      sigma.x = case_when(
-        indicator == "i_alien" ~ national_sd_alien,
-        indicator == "i_ditch" ~ national_sd_ditch,
-        indicator == "i_ADSV" ~ national_sd_ADSV,
-        .default = NULL
-      ),
-      stat = "sd"),
-    mean = wgt_mean(indicatorValue,
-      weights = area,
-      sigma.x = case_when(
-        indicator == "i_alien" ~ national_sd_alien,
-        indicator == "i_ditch" ~ national_sd_ditch,
-        indicator == "i_ADSV" ~ national_sd_ADSV,
-        .default = NULL
-      ),
-      stat = "mean"),
-    n = n())
 stats_tbl
 ```
 
@@ -1992,12 +2000,6 @@ barCOLS <- c("#fff7bd", "#fecf66", "#f88b22", "#cc4c02")
       indicator == "i_alien" ~ "Alien species",
       indicator == "i_ditch" ~ "Trenching"
     )
-  ) |>
-  rowwise() |>
-  mutate(
-    low = quantile(rnorm(200, mean, sd), probs = 0.025),
-    high = quantile(rnorm(200, mean, sd), probs = 0.975),
-    high = ifelse(high > 1, 1, high)
   ) |>
   ggplot(aes(x=infrastructureIndex, 
              y=mean, 
@@ -2036,21 +2038,24 @@ barCOLS <- c("#fff7bd", "#fecf66", "#f88b22", "#cc4c02")
 #       height = 6)
 ```
 
+```{r}
+# The means are mostly within the 95%CI, which is good.
+# The bars are the predicted distributions of the domain data, and not 
+# traditinal errors. 
+# The distributions are asymetrical, which is natural for truncated data,
+# but hard to achieve with the more common ways to estimate variation, using
+# SDs and assuming normality.
+```
+
 ```{r forest_plotExample}
 #| eval: true
 #| cache: true
 
-# Here is the same plot but only for trenching
+# Here is the same plot but only for trenching in Nord-Aurdal
   
 (forest_plot_ex <- stats_tbl |>
   filter(indicator == "i_ditch",
          Municipality == "Nord-Aurdal") |>
-  rowwise() |>
-  mutate(
-    low = quantile(rnorm(200, mean, sd), probs = 0.025),
-    high = quantile(rnorm(200, mean, sd), probs = 0.975),
-    high = ifelse(high > 1, 1, high)
-  ) |>
   ggplot(aes(x=infrastructureIndex, 
              y=mean, 
              ymin=low,
@@ -2072,7 +2077,7 @@ barCOLS <- c("#fff7bd", "#fecf66", "#f88b22", "#cc4c02")
   scale_fill_manual(values=rev(dotCOLS))+
   scale_color_manual(values=barCOLS)+
   scale_x_discrete(name="") +
-  scale_y_continuous(name="Indicator values", limits = c(.7, 1)) +
+  scale_y_continuous(name="Indicator values", limits = c(0, 1)) +
   coord_flip() +
   theme_bw() +
   labs(fill = "HIA",
@@ -2087,7 +2092,7 @@ barCOLS <- c("#fff7bd", "#fecf66", "#f88b22", "#cc4c02")
 
 ```{r notes}
 # Next I need to 
-#  - copy the weighted means and SDs over to  HIA map and then over to the 
+#  - copy the weighted means and PDs over to  HIA map and then over to the 
 #    ecosystem delineation map polygons. 
 #  - show intermittent resulting map with ggmagnify
 #  - sample from these distributions (ignore missing HIAs)
