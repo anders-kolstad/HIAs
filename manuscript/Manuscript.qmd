@@ -2763,35 +2763,35 @@ This includes data from certain citizen science initiatives, or as in our case, 
 Being able to include these kinds of data in local ECAs would greatly alleviate data shortages and provide essential field-based data on for example species composition or small scale disturbances.
 
 Or solution to this problem was to identify a candidate spatial variable reflecting the direct negative drivers of the ecosystem characteristics, and thus the indicators themselves.
-With a categoised version of this variable we post-stratified the survey data and calculated indicator values for each strata separately, thus avoiding to extrapolate extensively beyond the geographic and environmental context where the samples where initially taken.
+With a categorised version of this variable we post-stratified the survey data and calculated indicator values for each strata separately, thus avoiding to extrapolate extensively beyond the geographic and environmental context where the samples where initially taken.
 We refer to the strata as homogeneous impact areas, or HIAs.
-A visual check confirmed that our HIAs were indeed associated with indicator values in an expected way.
-A similar concept callad homogeneous ecosystem areas was introduced by @vallecillo_eu-wide_2022 and refer to parts of an ecosystem type that can be allowed to share common reference levels.
+A similar concept called homogeneous ecosystem areas was introduced by @vallecillo_eu-wide_2022 and refer to parts of an ecosystem type that can be allowed to share common reference levels.
 HIAs on the other hand, refer to areas that can be allowed to share common indicator values.
 
-Although we demonstrated the use of HIAs on local ecosystem condition indicators, there is in fact no reason why it cannot be used with larger EAAs.
-When defining the HIAs, the main trade-off is between trying to keep the areas as small and homogeneous as possible, and at the same time ensure there are enough data points to estimate indicator values for each , or most, of the HIAs.
-In our case, only two or three HIA levels had field data recorded in them, depending on the municipality, and the differences between HIAs in each municipality was relatively small.
-This could mean that broader HIA definitions could have been used in our case.
+Our HIA was an ordinal gradient from low to high prevalence of infrastructure.
+We found a relationship of increasing infrastructure and decreasing indicator values ranging from weak, in the case of the *Alien species* indicator, to strong, for the indicator for *Trenching* in mires (the *ADSV* indicator falling somewhere in the middle) (@fig-validation).
+This implies that the stratification was warranted in the latter case (*Trenching*), i.e. that field data from urban or sub-urban mires could not be said to represent the status of mires in more remote wilderness areas.
+In the case for *Alien species*, stratifying the variable by the the prevalence of infrastructure probably made less sense and other HIA definitions could have been explored, for example taking into account latitude as there are gernerally more alien species in the south compared to the north in Norway.
+The drawback that we see from using this stratification technique when the HIA variable is not a good predictor for variation in the indicator (as for *Alien species*), is that we end up with less data points and more stochacity in the indicator point estimate, than we otherwise would.
+However, we do not see this as a major problem.
+Also, since our HIA areas are somewhat cohesive, forming a clumped or aggregated pattern, stratifying by it will on average lead to relatively more local data being used for each local indicator estimate, with less geographic extrapolation.
+Therefore, we see little risk in using the stratification process also on indicators where the relationship between the indicators and the HIA are weak, although we stress that not accounting for other, potentially more relevant predictors of indicator values, would leave the indicator as spatially biased as the original variable.
 
-There are other ways to achieve spatial gerenalisation of data whilst accounting for sampling biases.
-Geostatistical models (e.g. krieging) arguable being the most common.
-However, these approaches are more data demanding, making them less useful for local ECAs where data from outside the relatively small EAAs should not be allowed to influence the indicator values.
-They are also more complicated and thus less transparent to the end users, therefore at a compromise with the ideal for simplicity (@czucz_selection_2021).
-In addition, local area managers may get useful information from seing the indicators values uniquely for each HIA (@fig-forest) and in that way gain an understanding about where problems with ecosystem deterioration are greatest.
+We demonstrated the use of HIAs on local ecosystem condition indicators and we believe this is where the approach has the greatest benefits, such as the ability to work with small sample sizes.
+In addition, local area managers may get useful information from seeing the indicators values uniquely for each HIA (@fig-forest) and in that way gain an understanding about where problems with ecosystem deterioration are greatest.
+However, with larger EAAs and more data points, geostatistical methods such as krieging might be more suitable.
+But these methods are also more complicated and thus less transparent to the end users, therefore at a compromise with the ideal for simplicity (@czucz_selection_2021).
+
+When defining the HIAs, the main trade-off is between trying to keep the areas as small and homogeneous as possible, and at the same time ensure there are enough data points to estimate indicator values for each , or most, of the HIAs.
+In our case, only two or three HIA levels had field data recorded in them, depending on the municipality, and the differences in indicator values between HIAs in each municipality was relatively small.
+This could mean that broader HIA definitions could have been used in our case.
 
 ## Small sample sizes and small area statistics
 
 This approach is useful especially for local assessments where we do not want to use data from outside the EAA to inform or influence our estimates for condition indicators inside the EAA.
 
 The method relies on stratifying the field data by Homogeneous Impact Areas (HIAs).
-Our HIA was an ordinal gradient from low to high prevalence of infrastructure, and we found a relationship of increasing infrastructure and decreasing indicator values ranging from weak, in the case of the *Alien species* indicator, to strong, for the indicator for *Trenching* in mires (the *ADSV* indicator falling somewhere in the middle) (@fig-validation).
-This implies that the stratification was warranted in the latter case (*Trenching*), i.e. that field data from urban or sub-urban mires could not be said to represent the status of mires in more remote wilderness areas.
-In the case for *Alien species*, stratifying the variable by the HIAs can be predicted to have had a less directional effect on average, but we did find a difference between HIA-1 and 2 in Nord-Aurdal municipality, indicating that the impact from alien species differs between these two strata of varying infrastructure (@fig-forest).
-The drawback that we see from using this stratification technique when the HIA variable is not a good predictor for variation in the indicator, is that we end up with less data points, and therefore higher uncertainties around our indicator estimates, than we otherwise would.
-However, we do not see this as a major problem.
-Also, since our HIA areas are somewhat cohesive, forming a clumped or aggregated pattern, stratifying by it will on average lead to relatively more local data being used for each local indicator estimate, with less geographic extrapolation.
-Therefore, we see little risk in using the stratification process also on indicators where the relationship between the indicators and the HIA are weak, although we stress that not accounting for other, potentially more relevant predictors of indicator values, would leave the indicator as spatially biased as the original variable.
+Our HIA was an ordinal gradient from low to high prevalence of infrastructure, and
 
 ## The benefits of using Bayesian updating
 
