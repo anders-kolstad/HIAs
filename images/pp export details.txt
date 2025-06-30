@@ -1,0 +1,4 @@
+https://answers.microsoft.com/en-us/msoffice/forum/all/exporting-a-slide-as-a-high-resolution-image/989b74a3-3033-48c5-b651-ab20f47114d2
+
+
+ActivePresentation.Slides(1).Export "C:\Users\anders.kolstad\github\HIAs\images\aggregation-workflow.png","PNG",3000
