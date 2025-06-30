@@ -2658,23 +2658,22 @@ All the data preparation and analyses were done in RStudio [@positteam2024] and 
 
 ## Indicator validity and trends in Norway
 
-The three indicators showed some association with the HIAs when we looked at data from all of Norway with `r nrow(naturetypes)` individual mires.
-The indicators mostly showed a worsening of condition with increasing presence of human infrastructure (@fig-validation).
+The three indicators generally showed a worsening of condition with increasing presence of human infrastructure when we looked at data from all of Norway with `r nrow(naturetypes)` individual mires (@fig-validation).
 This relationship was much stronger for the indicator *Trenching*, and weakest for the indicator *Alien species*.
 *Alien species* also had the highest indicator values overall, with most mires having no alien species recorded.
 For *Trenching*, 57% of mires in HIA-3 had some trenches, whereas in HIA-0 this number was 10%.
 
 ## The three focal municipalities
 
-Only in Gran municipality was there a significant difference in the *Trenching* indicator between HIAs, with HIA-2 having worse condition than HIA-1 (@fig-forest).
-Conversely, the *ADSV* indicator in Gran showed worse condition in HIA-1 compared to HIA-2.
-Nordre-Follo had considerably fewer data points compared to Gran, and especially to Nord-Aurdal who had the most data points, and this paucity of data is reflected in the wide credible intervals for all three indicators in Nordre Follo.
-The credible intervals are widest for the *Trenching* indicator, and this is because the national data set showed more variation in the underlying variable 7GR-GI compared to the other variables 1-5 (@tbl-variables), and this information is informing the Bayesian updating process (see @sec-methods).
-Besides Nordre Follo, which do not contain any HIA-0 areas (i.e. relatively wild areas), the three municipalities had areas in all HIA classes.
-Yet, none of the three municipalities had survey data from all HIAs.
-Therefore, when we transferred the mean and SD for each HIA (@fig-forest) over to the ecosystem delineation map (@fig-spread-example), some mire polygons in the ecosystem delineation map did not get assigned any data, and were therefore not included (i.e. did not have any influence on) the following aggregation to ecosystem accounting areas (EAA) (@fig-workflowExample, E) .
-At the municipality level (i.e. the EAA level) the three municipalities show some differentiation.
-Nordre Follo had the highest (the best) indicator values for ADSV, but the lowest for Trenching, which was also the only instance of an indicator crossing the threshold from good to deteriorated condition (@fig-EEA-ridgePlot; Table S2).
+The indicator values were comparable across HISs in the three municipalities, although there were some differences, as for the *Trenching* indicator where in Gran, HIA-2 had worse condition than HIA-1 (@fig-forest).
+Conversely, the *ADSV* indicator in Gran showed worse condition in HIA-1 compared to HIA-2, but the predicted indicator values had a wide credible interval (horizontal bars in @fig-forest).
+Nordre-Follo had considerably fewer data points compared to the other two municipalities and the the 95% credible intervals are thereofre mainly reflecting the indicator distribution nationally.
+
+None of the municipalities had survey data from all HIAs.
+Therefore, when we transferred the point rstimates and the predicted indicator values for each HIA (@fig-forest) over to the ecosystem delineation map (@fig-spread-example), some mire polygons in the ecosystem delineation map did not get assigned any data, and were therefore not included (i.e. did not have any influence on) the following aggregation to ecosystem accounting areas (EAA) (@fig-workflowExample, E) .
+
+At the municipality level (i.e. the EAA level) the indicators generally showed good ecological condition (i.e. values \>0.6) and point estimates ranged between 0.79 and 0.98, with the exception of *Trenching* in Nordre Follo which had 0.24 (@fig-EEA-ridgePlot; Table S2).
+Nordre Follo also had the highest (the best) indicator values for one of the indicators (ADSV); probably reflecting stochaticity due to low sample size .
 
 ```{r fig-workflowExample}
 #| eval: true
