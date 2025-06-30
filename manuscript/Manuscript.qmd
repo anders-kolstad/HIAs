@@ -1,5 +1,5 @@
 ---
-title: Making use of patchy and spatially biased variables in ecosystem condition accounting
+title: Local ecosystem condition accounting – leveraging post-stratification and small domain estimation to incorporate scarce and spatially biased data
 author:
   - name: Anders Lorentzen Kolstad
     email: anders.kolstad@nina.no
@@ -2445,29 +2445,34 @@ myCols <- c(
 
 # Introduction
 
-Ecosystem condition accounting is the structured compiling and communication of data on the status, trends and qualities of ecosystems [@comte2022; @edens2022].
+Ecosystem condition accounting (ECA) is the structured compiling and communication of data on the status, trends and qualities of ecosystems [@comte2022; @edens2022].
 Its purpose is to make it easier to account for nature in policy by making the environmental costs of certain policies and practices visible to decision-makers.
+
 The System of Environmental-Economic Accounting - Ecosystem Accounting (SEEA EA) is a statistical standard for ecosystem accounting, including ecosystem condition accounting, that was developed by the UN and adopted by the UN Statistical Commission in 2021 [@unitednations2024].
 This framework provides a set of rules, principles and best practices for compiling ecosystem accounts, primarily at a national level [@unitednations2022].
-At its core is the idea that data on ecosystem condition can be summarised in the form of metrics (indicators and variables) presented in gereralised tables that describe the condition of a larger ecosystem accounting area (EAA).
+At its core is the idea that data on ecosystem condition can be summarised in the form of metrics (indicators and variables) presented in generalised tables that describe the condition of a larger ecosystem accounting area (EAA).
+
+With intentional similarities to national accounts, which deal with the economic activity at the scale of nations, SEEA EA accounts have mainly been developed for and used at national scales.
+However, there is a surge of examples of more local accounts appearing, motivated at least partly by the need to match the scale of the information to the scale of decision-making processes.
+Compared to accounts with large EAAs, local accounts face increasing challenges with data resolution and availability.
 
 An important requirement of SEEA EA is that condition metrics must give an unbiased representation of the condition for a given area [table 1 in @czucz_selection_2021; see also @unitednations2024 §2.87].
 These metrics should ideally be recorded (or modeled) uniquely for all contiguous spaces (patches) of a specific ecosystem type (a common definition of an *ecosystem asset*), enabling the calculation of area-weighted means for the EAA [@unitednations2024 §5.54].
 While unbiased estimation is essential, this requirement severely limits the types of usable data.
-Ecosystem condition assessments are often constrained by data availability, leading to pragmatic (and potentially unrepresentative) selections of variables and indicators.
-Being able to make use of spatially biased data would greatly alleviate data shortage problems in ecosystem condition accounts.
+Local ECAs are particularly constrained by data availability, leading to pragmatic (and potentially unrepresentative) selections of variables and indicators.
+Being able to make use of spatially biased data would greatly alleviate data shortage problems in local ECAs.
 
-The issue of representativeness extends beyond spatial biases to include thematic biases—such as the underrepresentation of key ecosystem components like insects or soil biota.
+The issue of representativenes extends beyond spatial biases to include thematic biases—such as the under-representation of key ecosystem components like insects or soil biota.
 Also, having data from only one or a subset of nature types inside what is defined as the ecosystem in the assessment, is a typical thematic bias in ecosystem accounting.
 However, this paper focuses on spatial (geographic and environmental) bias.
 
 Wall-to-wall raw data, such as satellite imagery, is spatially representative through the property of being spatially exhaustive, although grain size also plays a role [cf. the ecological fallacy; @robinson2009].
 However, many critical ecosystem characteristics - such as species composition, soil properties, or fine-scale habitat features - cannot be derived remotely and still require field surveys.
 These surveys, however, often suffer from sparse or biased sampling, leaving gaps in ecosystem asset coverage.
-Field data are especially problematic if sampling intensity correlates with anthopogenic pressures (and thus ecosystem condition) [@aubry2024].
+Field data are especially problematic if sampling intensity correlates with anthropogenic pressures (and thus ecosystem condition) [@aubry2024].
 A poor solution, which don't attempt to control for sampling biases, is to ignore unsampled areas by directly estimating values for the entire EAA via central tendencies (e.g. means).
 Other options include imputing values to unsampled areas using some type of model or spatial generalisation.
-@unitednations2022 list six relevant modeling techniques for ecosystem condition metrics that can also be used for projecting metric values to ecosystem assets without field data, and simultaneously control for sampling biases.
+@unitednations2022 list six relevant modeling techniques for ecosystem condition metrics that can also be used for projecting metric values to ecosystem assets without field data, and simultaneously control for sampling biases:
 
 1.  Look-up table
 2.  Spatial interpolation (e.g. inverse distance weighting)
@@ -2478,7 +2483,7 @@ Other options include imputing values to unsampled areas using some type of mode
 
 Depending on the data that goes into them, models can make very accurate estimates, especially when the areas are large (e.g. regions or nations), but their reliability diminishes for smaller areas (e.g., municipalities) due to data scarcity and model uncertainty.
 Small area estimation is a branch in statistics aimed at finding ways to overcome this issue by "borrowing strength" from related areas [@ghosh1994; @guldin2021].
-Ecosystem accounts should ideally reflect conditions only inde the accounting area and are arguable more useful when reflecting local management and land use policies, unaffected by the actions of neighboring or ecologically similar administrative units.
+Ecosystem accounts should ideally reflect conditions only insde the accounting area and are arguable more useful when reflecting local management and land use policies, unaffected by the actions of neighboring or ecologically similar administrative units.
 There might therefore be a limit to how much data one should "borrow" across ecosystem assets or EAAs.
 
 Look-up tables, the simplest approach, assign the same value across categorical strata (e.g. ecosystem type within a region), often with no uncertainty estimate (although this is quite possible to include).
@@ -2500,11 +2505,15 @@ Spatial aggregation allows for the quantification of spatial variance in the est
 In addition, there can be errors, e.g. measurement errors, associated with the raw data that could potentially be propagated and reported alongside the upscaled estimate [e.g. @heris2021].
 Currently, SEEA EA lacks guidelines for estimating or disclosing uncertainties in accounts, whether it be spatial variance or other errors.
 This could potentially undermine the credibility and finally the uptake of knowledge from ecosystem accounting [@bagstad2021, @venter2024].
+Local ECAs face a unique side of this problem because sample sizes are frequently so small that traditional arithmetic estimates of variance are unreliable.
+In addition, calculating variances is even more data demainding when metrics are truncated, such as for indicators bound between zero and one.
+In such cases, a small sample size can contain only or predominantly ones (or zeros), resulting in an artificially small variance which will then paradoxically increase as sample sizes increase due to the inclusion of more data points from the tail of the distribution.
 
 <!--# Central to ecosystem condition accounts are variables and indicators. These are metrics chosen to reflect the central condition characteristics of the ecosystems. These metrics are quantified and ideally monitored over time to reflect the status and trends in condition. Indicators are variables that are normalised (rescaled) against upper and lower reference values to become bound between the values 0 and 1. This normalisation ensures that indicators are more comparable because an indicator value of 1 will mean the same for all indicators, i.e. that the variable equals the upper reference value which again reflect the value of the variables under the reference (e.g. pristine) condition. Similarly, a value of 0 means that the variable is in the worst possible state, for example that the species or ecosystem function in question is completely lost from the ecosystem. The reference condition needs to be defined for each ecosystem condition assessment separately, but SEEA EA gives some suggestions, such as an an ecosystem with no or minimal anthropogenic disturbance.   -->
 
-In this study we present a stratified aggregation technique, using homogeneous impact areas, to leverage spatially biased field data in ecosystem condition accounting.
-Further, we combine a requirement for making indicator point estimates using local data only with an empirical Bayes approach to small area estimation to borrow strength from a larger national dataset and make better prediction about shape and variance in the distribution of possible indicator values.
+In this study we present two techniques for creating local ecosystem condition indicators using scarce and spatially biased data.
+Firstly, we demonstrate a stratified aggregation technique, using homogeneous impact areas, to reduce the negative consequences of spatial and environmental bias in the data.
+Second, we predict indicator distributions and uncertainties using an empirical Bayes approach to small area estimation where we borrow strength from a larger national dataset, and we combine this with a requirement for making indicator point estimates using local data only.
 We demonstrate these techniques with three indicators from the same spatially biased nature type mapping data set from Norwegian mires, comparing results across three municipalities in Norway to illustrate its potential for local applications.
 
 # Material and Methods {#sec-methods}
@@ -2516,9 +2525,9 @@ The current study builds on the work in that report.
 
 ## Data source and survey design
 
-We used a dataset of mapped nature types in Norway [@norwegian_environmental_agency_naturtyper_2024], surveyed following a standardised protocol [@norwegian_environmental_agency_protocol].
+We used a spatial dataset of nature types in Norway [@norwegian_environmental_agency_naturtyper_2024], surveyed in the field following a standardised protocol [@norwegian_environmental_agency_protocol].
 The dataset comprises over 140,000 polygons (as of 2023), each scored on several variables describing ecological condition and qualities.
-Surveys are spatially biased, typically towards areas with high human impact or expected impact, reflecting their primary use in land-use decisions.
+The data collection is spatially biased, typically towards areas with high human impact or expected impact, reflecting their primary use in land-use decisions.
 In addition, the sampling protocol introduces thematic and sizes biases.
 For mires, this implies an elevated focus on calcareous and medium to large mires.
 The survey maps the following mire types which we use in our analyses:
@@ -2538,7 +2547,7 @@ Northern fens require larger size and higher calcareousness to be surveyed.
 Data from 2018 to 2023 were included.
 
 We assume the surveyed mires are representative for the broader mire ecosystem inside the surveyed areas, despite undersampling of smaller and less calcareous mires.
-We posit that our selected variables (see below) are relative unaffacted by this bias, with a possible exception for alien plant occurences, which are probably less common on bogs, but the variable is recorded only in fens.
+We posit that our selected variables (see below) are relatively unaffected by this bias, with a possible exception for alien plant occurrences, which are probably less common on bogs, but the variable is recorded only in fens.
 The other variables are recorded in all delineated mires.
 
 ## Indicator development
@@ -2551,13 +2560,13 @@ Six raw variables (@tbl-variables, variables 1—6) were normalised and turned i
 
 -   *Trenching* (7GR-GI).
 
-Normalisation followed a piecewise linear transformation with three reference levels [@czúcz; \@jakobsson2020]
+Normalisation followed a piece-wise linear transformation with three reference levels [@czúcz; \@jakobsson2020]
 
--   X~100~: Best possible condition (minimal human influence
+-   X~100~: Best possible condition (minimal human influence)
 
 -   X~0~: Worst possible condition
 
--   X~60~: defining the breaking point between good and poor condition .
+-   X~60~: defining the breaking point between good and poor condition.
 
 The reference levels make up a numerical representation of the reference condition.
 We define the reference condition as one where ecosystems are subject to little or no human influence, with a climate as in the period 1961-1990 and a native species pools similar as today [@jakobsson2021].
@@ -2594,11 +2603,25 @@ The nature type polygons with the indicator values were intersected with a vecto
 ### Municipal-level analyses and spatial aggregation
 
 Three municipalities were selected test the indicators, varying in mire area, survey coverage, and infrastructure prevalence (@tbl-munis, @fig-studyLocation2, S3, S4).
-For each HIA — municipality combination we created a probability distribution for the area weighted mean of the indicator values using Bayesian updating of a uniform prior between 0 and 1, informed by national-level standard deviation (SD) (@fig-workflowExample - C; Appendix C, line 134 <!--# update line number manually when re-rendering appendix C -->).
-The mean and SD from the assumed normally distributed posterior distributions were carried over to each mire polygon in the ecosystem delineation map, for each HIA class separately.
-Then for each polygon in a municipality we sampled values from a normal distribution with this same mean and SD with sample size weighted by polygon area, thus ensuring that larger polygons contributed more samples.
-Final indicator probability distributions for each municiality were made up of 1000 random draws from this larger vector distribution.
-HIAs lacking data were ignored excluded from municipal estimates.
+
+For each HIA — municipality (strata) combination we calculated the area weighted arithmetic mean of the indicator and used a look-up table approach to transfer these values to all ecosystem assets in the same strata.
+Ignoring strata with no data, we then took another area-weighted mean across all ecosystem assets inside the municipality to get the point estimate.
+
+The three indicators where all highly left skewed with strong 1-inflation.
+It was therefore essential to describe the indicator uncertainty using non-symmetrical errors.
+It also makes sense for a bound indicator not to have errors exceed the bounds.
+The sample size for each stratum, excluding those with no data, ranged between 1 and 145, yet we wanted a generic approach that allowed us to include reliable uncertainty estimates for all cases.
+Our solution was to use the entire national dataset, divided into the four HIAs, to describe the indicator distributions as zero and one inflated beta distributions.
+We recorded the frequency of zeros and ones in the data as a measure of zero- and one inflation, respectively.
+For values between, but not including, zero and one, we used maximum likelihood estimation to get the two shape parameters for a beta distribution.
+We did the same for the local strata, although the estimation of the shape parameters requires a certain sample size and dispersion of data values to converge, making it impossible for some strata to describe the distribution of the samples.
+Using Bayesian updating we combined prior information about the shape of the national-level data with the local strata data using a prior weight of 20, meaning the national data informed about the shape of the local indicator distribution with similar weight as 20 local data points.
+The prior weight was chosen after some trial and error to find a suitable weight that balanced local autonomy with realistic distributions.
+With less 1-inflation, a smaller prior weight could have been used.
+Still, the prior weight was low enough that all point estimated (calculated independently from the predicted distributions) fell inside the 95% credible intervals.
+The predicted distributions were transferred over to the ecosystem assets with the corresponding strata, and from there, values where sampled proportional to asset area to obtain a distribution for the EAA.
+
+(@fig-workflowExample - C; Appendix C, line 134 <!--# update line number manually when re-rendering appendix C -->).
 
 All the data preparation and analyses were done in RStudio [@positteam2024] and R version 4.3.0 [@rcoreteam2023], relying heavily on the packages tidyverse [@wickham2019], sf [@pebesma2018], terra [@Hijmans23] and stars [@pebesma2023].
 
@@ -2658,9 +2681,9 @@ Nordre Follo had the highest (the best) indicator values for ADSV, but the lowes
 #| include: true
 #| out.width: '100%'
 #| fig.cap:
-#| - "Simplified schematic showing the workflow (Panes A-E) for spatial generalisation of a spatially biased ecosystem condition indicator. Pane A shows a spatially explicit, patchy and spatially biased indicator. The outline is the ecosystem accounting area (EEA). Pane B shows the location of four homogeneous impact areas (HIAs) inside the EEA. The indicator values in Pane A are used, in combination with the HIA map in Pane B, to update a uniform prior and produce a posterior probability distribution for the mean area weighted indicator value for each HIA (Pane C; here simplified to only show the mean (circles) and 95% credible intervals (coloured bands)). The Bayesian updating is informed by the standard deviation for the indicator in a much bigger national data set. The width of the posterior distribution responds both to variation in the data and to the sample size, giving  a realistic measure for the uncertainty around the indicator even with a single observation. The distributions in Pane C are assumed normally distributed. Note that because in this example there were no indicator data for HIA-3, indicator values are only aggregated for HIAs 0–2. In Pane D the mean and SD from the posterior distributions are transferred to individual polygons in an ecosystem delineation map, for each HIA separately. The colours indicate different indicator values (highlighted in the inset). For each ecosystem occurrence (i.e. ecosystem assets) in Pane D, we draw one random value for each square meter of area from a normal distribution with the mean and SD that is associated with that polygon. In Pane E we have randomly sampled 1000 values from the entire vector of samples in the previous step, and we get an area weighted probability distribution for the mean indicator value for the EEA."
+#| - "Simplified schematic showing the workflow (Panes A-E) for spatial generalisation of a spatially biased ecosystem condition indicator. Pane A shows in red the data coverage of a patchy and spatially biased indicator. Surveyed areas are grey and unsurveyed areas are green. Together they make up the ecosystem accounting area (EEA). Pane B shows the location of four homogeneous impact areas (HIAs) inside the EEA, where the prevalence of human infrastructure increases from 0 to 3. The indicator values in Pane A are used, in combination with the HIA map in Pane B, to calculate the area-weighted point estimates shown as grey circles in Pane C.  The errors surrounding the point estimate are calculated independently from the point estimate via an emipircal Bayes approach as predicted distributions (show in Pane C as 95% credible intervals (CI)) informed with prior knowledge about the shape of the distribution of indicator values (a zero- and one-inflated beta distribution in this case) for a larger area, i.e. outside the EAA. Note that because in this example there were no indicator data for HIA-3, indicator values are only aggregated for HIAs 0-2. In Pane D the point estimates and sampled distributions are transferred to individual polygons in an ecosystem delineation map, for each HIA separately. The colours indicate different point estimates (highlighted in the inset). Pane E shows area-weighted indicator values aggregated to the EAA level.  Blue vertical bars show the distribution of real samples values (samples here along an ordinal 5-step scale). The orange density curve show the predicted indicator values informed both by local samples from inside the EAA and from a larger national dataset (indicator weight was 20, meaning the national data had the same influence on the predicted distribution as 20 local samples). The area-weighted mean and 95% CI are shown at the bottom as a thick vertical bar and thin horsontal line, respectively. The mean is informed by the local data only (blue bars) and the 95% CI is a summary of orange distribution."
 
-knitr::include_graphics("../images/aggregation-workflow.jpg")
+knitr::include_graphics("../images/aggregation-workflow.png")
 
 ```
 
@@ -2713,11 +2736,9 @@ knitr::include_graphics("../images/spread-na-small.jpg")
 #| include: true
 #| out.width: '80%'
 #| fig.cap:
-#| - "Distributions for three ecosystem condition indicators in the Norwegian 
-#| municipalities. The colour gradient reflects the value of the x-axis. 
-#| The dotted vertical line represents the threshold for what is considered 
-#| reduced ecosystem condtion (< 0.6). Vertical lines under the density curves
-#| are 2.5%, 50% (the median) and 97.5% percentiles."
+#| - "Distributions for three ecosystem condition indicators in three Norwegian 
+#| municipalities. 
+#| Blue vertical bars show the distribution of real samples values. Orange density curves show the predicted indicator values informed both by local samples from inside the EAA and from a larger national dataset. The area-weighted mean and 95% credible intervals are shown at the bottom as a thick vertical bar and thin horsontal line, respectively. The mean is informed by the local data only (blue bars) and the 95% CI is a summary of orange distribution."
 
 # Histogram smoothing makes it look like there are more data points beyond the lower and upper percentiles than there really is. The 2.5% percentile sometimes looks like the 25% percentile. 
 
