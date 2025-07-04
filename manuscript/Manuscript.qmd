@@ -30,7 +30,7 @@ author:
           city: Oslo
           postal-code: NO-0855
 abstract: |
-  Ecosystem Condition Accounts (ECAs) require spatially representative indicators to accurately reflect ecosystem integrity, yet data constraints—particularly small sample sizes and spatial bias—often hinder robust assessments. While national-scale ECAs can mitigate these issues through modeling, local ECAs face unique challenges, as spatial extrapolation beyond the accounting area risks compromising local relevance. In this study, we address two critical gaps in local-scale ecosystem condition accounting: (1) correcting for spatial bias without external data and (2) uncertainty quantification for small samples. Using three Norwegian municipalities as test cases, we demonstrate a workflow that combines post-stratfication (control bias via Homogenous Impact Areas) and emipirical Bayes variance smoothing (to stabelise uncertainty estimates for 1-inflated beta distributions). Point estimates are derived through direct, area-weighted avergaing within strata, ensuring local fidelity. Our approach enable local ECAs to leverage imperfect datasets while maintaining transparency and local relevance. We provide a scalable solution for small-area ecosystem assessments where traditional modeling is infeasible. This work advances the practical implementation of ecosystem accounting under real-world data constraints.
+  Ecosystem Condition Accounts (ECAs) require spatially representative indicators to accurately reflect ecosystem integrity, yet data constraints—particularly small sample sizes and spatial bias—often hinder robust assessments. While national-scale ECAs can mitigate these issues through modeling, local ECAs face unique challenges, as spatial extrapolation beyond the accounting area risks compromising local relevance. In this study, we address two critical gaps in local-scale ecosystem condition accounting: (1) correcting for spatial bias without external data and (2) uncertainty quantification for small samples. Using three Norwegian municipalities as test cases, we demonstrate a workflow that combines post-stratfication (control bias via Homogenous Impact Areas) and emipirical Bayes variance smoothing (to stabelise uncertainty estimates for 1-inflated beta distributions). Point estimates are derived through direct, area-weighted averaging within strata, ensuring local fidelity. Our approach enable local ECAs to leverage imperfect datasets while maintaining transparency and local relevance. We provide a scalable solution for small-area ecosystem assessments where traditional modeling is infeasible. This work advances the practical implementation of ecosystem accounting under real-world data constraints.
   
 keywords: 
   - alien species
@@ -2449,7 +2449,6 @@ myCols <- c(
 
 Ecosystem condition accounting (ECA) is the structured compiling and communication of data on the status, trends and qualities of ecosystems [@comte2022; @edens2022].
 Its purpose is to make it easier to account for nature in policy by making the environmental costs of certain policies and practices visible to decision-makers.
-
 The System of Environmental-Economic Accounting - Ecosystem Accounting (SEEA EA) is a statistical standard for ecosystem accounting, including ecosystem condition accounting, that was developed by the UN and adopted by the UN Statistical Commission in 2021 [@unitednations2024].
 This framework provides a set of rules, principles and best practices for compiling ecosystem accounts, primarily at a national level [@unitednations2022].
 At its core is the idea that data on ecosystem condition can be summarised in the form of metrics (indicators and variables) presented in generalised tables that describe the condition of a larger ecosystem accounting area (EAA).
@@ -2463,7 +2462,6 @@ These metrics should ideally be recorded (or modeled) uniquely for all contiguou
 While unbiased estimation is essential, this requirement severely limits the types of usable data.
 Local ECAs are particularly constrained by data availability, leading to pragmatic (and potentially unrepresentative) selections of variables and indicators.
 Being able to make use of spatially biased data would greatly alleviate data shortage problems in local ECAs.
-
 The issue of representativenes extends beyond spatial biases to include thematic biases—such as the under-representation of key ecosystem components like insects or soil biota.
 Also, having data from only one or a subset of nature types inside what is defined as the ecosystem in the assessment, is a typical thematic bias in ecosystem accounting.
 However, this paper focuses on spatial (geographic and environmental) bias.
