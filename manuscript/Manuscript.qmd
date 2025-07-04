@@ -2483,11 +2483,11 @@ Other options include imputing values to unsampled areas using some type of mode
 
 Depending on the data that goes into them, models can make very accurate estimates, especially when the areas are large (e.g. regions or nations), but their reliability diminishes for smaller areas (e.g., municipalities) due to data scarcity and model uncertainty.
 Small area estimation is a branch in statistics aimed at finding ways to overcome this issue by "borrowing strength" from related areas [@ghosh1994; @guldin2021].
-Ecosystem accounts should ideally reflect conditions only insde the accounting area and are arguable more useful when reflecting local management and land use policies, unaffected by the actions of neighboring or ecologically similar administrative units.
+Ecosystem accounts should ideally reflect conditions only inside the accounting area and are arguable more useful when reflecting local management and land use policies, unaffected by the actions of neighboring or ecologically similar administrative units (i.e. direct estimation).
 There might therefore be a limit to how much data one should "borrow" across ecosystem assets or EAAs.
 
 Look-up tables, the simplest approach, assign the same value across categorical strata (e.g. ecosystem type within a region), often with no uncertainty estimate (although this is quite possible to include).
-Values may derive from expert opinion or aggregated data (e.g. straum means).
+Values may derive from expert opinion or aggregated data (e.g. stratum means).
 If strata align with relevant gradients in pressures or environmental conditions, this method can mitigate sampling bias via post-stratification.
 The level of spatial or environmental extrapolation is subject to the size of the strata, with fine-grained typologies leading to less extrapolation.
 Extrapolating non-continuous spatial data (e.g. points) over a surface is a type of spatial generalisation.
@@ -2495,25 +2495,27 @@ The challenge of spatial generalisation is not unique to ecosystem condition acc
 Its key advantages are simplicity and the possibility to rely solely on local data.
 A major drawback is the high data requirements, especially for fine-grained strata.
 
-After expotrapolating data, the spatial grain of the data (and thus also the information) is essentially still the same.
+After extrapolating data, the spatial grain of the data (and thus also the information) is essentially still the same.
 However, a critical step in ecosystem accounting is upscaling—synthesising fine-grained data to characterise larger areas, effectively reducing grain size or increasing support [@bierkens2002] (**Kolstad *et al.* in prep**).
 This is typically achieved by aggregation (e.g. arithmetic means), sampling [@brus1997] or resampling techniques [@jakobsson2021].
 For simplicity we also refer to this as aggregation, as the end result is the same - a synthesis of information.
 Upscaling is required to make the information available for decision makers or monitoring frameworks at the appropriate spatial scale [@king2024].
 
 Spatial aggregation allows for the quantification of spatial variance in the estimate.
-In addition, there can be errors, e.g. measurement errors, associated with the raw data that could potentially be propagated and reported alongside the upscaled estimate [e.g. @heris2021].
-Currently, SEEA EA lacks guidelines for estimating or disclosing uncertainties in accounts, whether it be spatial variance or other errors.
+In addition, there can be measurement or modling errors that could potentially also be propagated and reported alongside the upscaled estimate [e.g. @heris2021].
+Currently, SEEA EA lacks guidelines for estimating or disclosing any type of numerical uncertainty.
 This could potentially undermine the credibility and finally the uptake of knowledge from ecosystem accounting [@bagstad2021, @venter2024].
 Local ECAs face a unique side of this problem because sample sizes are frequently so small that traditional arithmetic estimates of variance are unreliable.
-In addition, calculating variances is even more data demainding when metrics are truncated, such as for indicators bound between zero and one.
-In such cases, a small sample size can contain only or predominantly ones (or zeros), resulting in an artificially small variance which will then paradoxically increase as sample sizes increase due to the inclusion of more data points from the tail of the distribution.
+In addition, calculating variances is even more data demanding when metrics are truncated, such as for indicators bound between zero and one.
+In such cases, a small sample size can by chance contain only or predominantly ones (or zeros), resulting in an artificially small variance which will then paradoxically increase as sample sizes increase due to the inclusion of more data points from the tail of the distribution.
 
 <!--# Central to ecosystem condition accounts are variables and indicators. These are metrics chosen to reflect the central condition characteristics of the ecosystems. These metrics are quantified and ideally monitored over time to reflect the status and trends in condition. Indicators are variables that are normalised (rescaled) against upper and lower reference values to become bound between the values 0 and 1. This normalisation ensures that indicators are more comparable because an indicator value of 1 will mean the same for all indicators, i.e. that the variable equals the upper reference value which again reflect the value of the variables under the reference (e.g. pristine) condition. Similarly, a value of 0 means that the variable is in the worst possible state, for example that the species or ecosystem function in question is completely lost from the ecosystem. The reference condition needs to be defined for each ecosystem condition assessment separately, but SEEA EA gives some suggestions, such as an an ecosystem with no or minimal anthropogenic disturbance.   -->
 
-In this study we present two techniques for creating local ecosystem condition indicators using scarce and spatially biased data.
+In this study we present two techniques for direct estimation of local ecosystem condition indicators using scarce and spatially biased data.
 Firstly, we demonstrate a stratified aggregation technique, using homogeneous impact areas, to reduce the negative consequences of spatial and environmental bias in the data.
-Second, we predict indicator distributions and uncertainties using an empirical Bayes approach to small area estimation where we borrow strength from a larger national dataset, and we combine this with a requirement for making indicator point estimates using local data only.
+With this we get direct indicator point estimates using area weighting and local data only.
+Second, we use an empirical Bayes variance smoothing approach to predict indicator uncertainties where we borrow strength from a larger national dataset.
+This allows us to get a realistic picture of indicator uncertainty even sample sizes are very low.
 We demonstrate these techniques with three indicators from the same spatially biased nature type mapping data set from Norwegian mires, comparing results across three municipalities in Norway to illustrate its potential for local applications.
 
 # Material and Methods {#sec-methods}
@@ -2822,10 +2824,10 @@ The solution is therefore generic and can be used on large and small datasets al
 ## Indicator values in the three pilot municipalities
 
 The indicator values for our three indicators across the three municipalities showed in general a good condition in the mire ecosystems (@fig-EEA-ridgePlot).
-The exception was for variable *Trenching* in Nordre Follo, where the indicator value was 0.24; well below the threshold for good ecosystem condition (0.6).
+The exception was for the variable *Trenching* in Nordre Follo, where the indicator value was 0.24; well below the threshold for good ecosystem condition (0.6).
 This estimate is based on just 4 data points (i.e. mires).
 The predicted indicator distribution is higher, meaning that if Nordre Follo is similar to the rest of Norway, then increasing the sampling effort should elevate the indicator value.
-However, Nordre Follo migh be unique, and dissimilar, to the rest of Norway, and for that reason, the point estimate is independent of data from outside the municipality and reflecting only the local condition.
+However, Nordre Follo might be unique, and dissimilar, to the rest of Norway, and for that reason, the point estimate is kept independent of data from outside the municipality and reflecting only the local condition.
 Nordre Follo has surveyed more of its total land area compared to the other two municipalities, but has less mire area to begin with (@tbl-munis), which is the reason for this low sample size.
 We believe this indicator estimate is trustworthy, considering the wide, right skewed credible intervals, and that it could reflect the true prevalence of trenching in Nordre Follo.
 
