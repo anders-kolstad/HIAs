@@ -1,5 +1,6 @@
 ---
-title: Local ecosystem condition accounting – leveraging post-stratification and small domain estimation to incorporate scarce and spatially biased data
+title: Bias Correction and Uncertainty Quantification for Small-Sample Ecosystem Condition Assessments
+
 author:
   - name: Anders Lorentzen Kolstad
     email: anders.kolstad@nina.no
@@ -29,7 +30,8 @@ author:
           city: Oslo
           postal-code: NO-0855
 abstract: |
-  Ecosystem Condition Accounts (ECA) should reflect the integrity or quality of all nature inside the scope of the account, and therefore rely on spatially representative indicators for condition. All ECAs are subject to data constraints in some way. Therefore, being able to make use of spatially biased data sets would be very valuable. For national ECAs, modelling approaches can in some cases be used to control for sampling biases. For local ECAs however, like at the scale of individual municipalities of development projects, this is often not an option as it involves spatial extrapolation using data from outside the ecosystem accounting area. In this study we develop three ecosystem condition indicators from the same spatially biased data set based on nature type mapping of Norwegian mires. The indicators are Alien species, Trenching and Anthropogenic Disturbance to Soil and Vegetation. We test our approach in three municipalities in south Norway. We discretised a spatial variable representing infrastructure prevalence, and we refer to this new map as Homogeneous Impact Areas (HIAs). To facilitate reliable estimation of indicator uncertainties, even in cases with very low sample sizes, we use a Bayesian updating method and produce probability distributions for the area-weighted mean indicator values in each HIA separately. Then we use area-weighted resampling and produce indicator probability distributions for each municipality. With this Bayesian updating and resampling approach, small sample sizes can be compensated by correspondingly large uncertainty ranges, as long as the full dataset is large enough to estimate the true population standard deviation. This paper demonstrates the use of a GIS-based workflow to control for some of the most problematic biases in an opportunistic field survey so that the data can be used for indicators in ECAs. The workflow can be used at any scale, including national scale. Because indicator values are calculated for unique spatial strata, local governments or others can target their data acquisition towards strata with low sample sizes, and thus achieve higher cost effectiveness and ultimately better spatial indicator coverage.
+  Ecosystem Condition Accounts (ECAs) require spatially representative indicators to accurately reflect ecosystem integrity, yet data constraints—particularly small sample sizes and spatial bias—often hinder robust assessments. While national-scale ECAs can mitigate these issues through modeling, local ECAs face unique challenges, as spatial extrapolation beyond the accounting area risks compromising local relevance. In this study, we address two critical gaps in local-scale ecosystem condition accounting: (1) correcting for spatial bias without external data and (2) uncertainty quantification for small samples. Using three Norwegian municipalities as test cases, we demonstrate a workflow that combines post-stratfication (control bias via Homogenous Impact Areas) and emipirical Bayes variance smoothing (to stabelise uncertainty estimates for 1-inflated beta distributions). Point estimates are derived through direct, area-weighted avergaing within strata, ensuring local fidelity. Our approach enable local ECAs to leverage imperfect datasets while maintaining transparency and local relevance. We provide a scalable solution for small-area ecosystem assessments where traditional modeling is infeasible. This work advances the practical implementation of ecosystem accounting under real-world data constraints.
+  
 keywords: 
   - alien species
   - disturbance
@@ -2805,7 +2807,7 @@ Still, the indicator values are consistently above the threshold value for good 
 # Conclusion
 
 By integrating post-stratification and empirical Bayes variance smoothing, we enable local ECAs to leverage imperfect datasets while maintaining transparency and local relevance via direct estimation.
-Our methods address foundational challenges in ecosystem accounting: spatial bias correction and uncertainty quantification for small samples.
+Our methods address fundamental challenges in ecosystem accounting: spatial bias correction and uncertainty quantification for small samples.
 As SEEA EA matures, we urge greater emphasis on uncertainty reporting and robust aggregation techniques.
 We have demonstrated approaches that are new or relatively new to the ECA field of practice but well established in other fields of statistics.
 This work demonstrates that even sparse data can yield actionable insights when paired with statistically principled approaches.
