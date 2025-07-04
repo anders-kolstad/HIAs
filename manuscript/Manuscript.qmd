@@ -2605,7 +2605,6 @@ The nature type polygons with the indicator values were intersected with a vecto
 ### Municipal-level analyses and spatial aggregation
 
 Three municipalities were selected test the indicators, varying in mire area, survey coverage, and infrastructure prevalence (@tbl-munis, @fig-studyLocation2, S3, S4).
-
 For each HIA — municipality (strata) combination we calculated the area weighted arithmetic mean of the indicator and used a look-up table approach to transfer these values to all ecosystem assets in the same strata.
 Ignoring strata with no data, we then took another area-weighted mean across all ecosystem assets inside the municipality to get the point estimate.
 
@@ -2616,14 +2615,12 @@ The sample size for each stratum, excluding those with no data, ranged between 1
 Our solution was to use the entire national dataset, divided into the four HIAs, to describe the indicator distributions as zero and one inflated beta distributions.
 We recorded the frequency of zeros and ones in the data as a measure of zero- and one inflation, respectively.
 For values between, but not including, zero and one, we used maximum likelihood estimation to get the two shape parameters for a beta distribution.
-We did the same for the local strata, although the estimation of the shape parameters requires a certain sample size and dispersion of data values to converge, making it impossible for some strata to describe the distribution of the samples.
-Using Bayesian updating we combined prior information about the shape of the national-level data with the local strata data using a prior weight of 20, meaning the national data informed about the shape of the local indicator distribution with similar weight as 20 local data points.
+We did the same for the local strata, although the estimation of the shape parameters requires a certain sample size and dispersion of data values to converge, making it impossible to describe the samples for some strata as a distribution.
+Using an empirical Bayes variance smoothing technique for small area estimation we combined prior information about the shape of the national-level data with the local strata data using a prior weight of 20, meaning the national data informed about the shape of the local indicator distribution with similar weight as 20 local data points.
 The prior weight was chosen after some trial and error to find a suitable weight that balanced local autonomy with realistic distributions.
 With less 1-inflation, a smaller prior weight could have been used.
-Still, the prior weight was low enough that all point estimated (calculated independently from the predicted distributions) fell inside the 95% credible intervals.
-The predicted distributions were transferred over to the ecosystem assets with the corresponding strata, and from there, values where sampled proportional to asset area to obtain a distribution for the EAA.
-
-(@fig-workflowExample - C; Appendix C, line 134 <!--# update line number manually when re-rendering appendix C -->).
+Still, the prior weight was low enough that all point estimates (calculated independently from the predicted distributions) fell inside the 95% credible intervals.
+The predicted distributions were transferred over to the ecosystem assets of the corresponding strata, and from there, values where sampled proportional to asset area to obtain a probability distribution for the EAA (@fig-workflowExample - C).
 
 All the data preparation and analyses were done in RStudio [@positteam2024] and R version 4.3.0 [@rcoreteam2023], relying heavily on the packages tidyverse [@wickham2019], sf [@pebesma2018], terra [@Hijmans23] and stars [@pebesma2023].
 
@@ -2748,9 +2745,9 @@ knitr::include_graphics("../images/results.jpg")
 
 # Discussion
 
-In this paper we have demonstrated a generalisable workflow for making use of scarce and spatially biased field data to produce representative ecosystem condition indicators, with uncertainty estimates, at a local municipal scale (@fig-workflowExample).
+In this paper we have demonstrated a generalisable workflow for making use of scarce and spatially biased field data to produce representative ecosystem condition indicators at a local municipal scale, combining direct estimation for point estimates with variance smoothing for better predictions of indicator uncertainty (@fig-workflowExample).
 These approaches can provide valuable tools for local ECAs where limited sample sizes and low data availability still are the major limitation.
-We will focus on two novel approaches in turn, describing their virtues and uses: post-stratification for minimising adverse effects of spatial and environmental bias in the data, and empirical Bayes for calculating realistic indicator uncertainties even for small sample sizes.
+We will focus on two novel approaches in turn, describing their virtues and uses: post-stratification for minimising adverse effects of spatial and environmental bias in the data, and empirical Bayes variance smoothing for calculating realistic indicator uncertainties even for small sample sizes.
 The two approaches can also be used independently.
 
 ## Post-stratification approach using HIAs
@@ -2790,7 +2787,7 @@ Alternatively, in case there are no data for a stratum, one might chose to imput
 
 Local ECAs that use field data are often faced with a problem of low sample sizes.
 This affect the religablility of both the indicator point estimate and the variance.
-For the point estimate we do not offer a direct solution, and simply use the area weighted mean of the data that are available for any give strata.
+We think that direct estimation is a critical virtue for local point estimates (i.e. relying only on local data) and simply use the area weighted mean of the data that are available for any give strata.
 This approach ensures that local ECAs are populated with information on local ecosystem characteristics, untainted by neighbouring areas where environmental policies might differ.
 However, our results point to where the data shortages are most pressing (HIAs with little or no data), and this information could be used to guide future data collection.
 For example, Gran and Nord-Aurdal have not recorded any field data from their most urban areas (HIA 3; @fig-forest) and could make these areas a priority in upcoming field campaigns in order to get more complete spatial indicator coverage.
@@ -2800,15 +2797,15 @@ We hold this to be a fact and are therefore critical to the lack of direct guide
 The variance (or standard deviation) is perhaps most commonly used as a measure of uncertainty around indicator estimates, usually calculated from the variation between spatially distant sampling points.
 However, the variance is not reliable for low sample sizes, nor is it sensible for highly skewed or truncated data.
 If a numerical population has a large variance, it is still possible to sample, by chance alone, two or three numbers that are very close to each other, and this sample would then display a low variance which is not reflective of the true variance.
-This problem get exaggerated when data is truncated, as indicators are (they are bound between zero and one), because one is more likely to sample a series of identical one's or zero's which would yield a variance of zero.
+This problem gets exaggerated when data is truncated, as indicators are (they are bound between zero and one), because one is more likely to sample a series of identical one's or zero's which would yield a variance of zero.
 Knowing this, one approach is to set a sample size limit, and refrain from estimating indicator values (or at least the uncertainties) unless there are more than a given number of data points.
 In our test municipality Nordre Follo, we had only 1-3 data points for each HIA strata, yet we were able to use these data regardless.
 Our emipirical Bayes approach would in this case borrow strenght from a larger national dataset to predict the most probable distribution of indicator values, whilst keeping the point estimate seprerate from this process.
-This is an advantage, especially for local ecosystem condition assessments where data scarcity is likely to be more of an issue than in for example national assessments.
+This is an advantage, especially for local ecosystem condition assessments where data scarcity is likely to be more of an issue than for national assessments.
 Our solution does not however, fix the inherent stochastic that follow from having a point estimate based on few data points, but it puts this estimate into the light of a realistic distribution of possible indicator values, thus making it possibel to extract actionable information from data that would otherwise had been discarded.
 
-As we would not estimate indicator values without uncertainty estimates, then our approach make it possible to estimate indicator values for a much greater area than if we were forced to set a minimum sample size threshold.
-With increasing sample sizes, local data get more infuence on predicting the indicator distributions.
+As we would not want to presnet indicator values without ayn uncertainty estimates, then our approach make it possible to estimate indicator values for a much greater area than if we were forced to set a minimum sample size threshold.
+With increasing sample sizes, local data get more influence on predicting the indicator distributions.
 The solution is therefore generic and can be used on large and small datasets alike, or in cases where some HIAs are well samples and some are not.
 
 <!--# We have also demonstrated how Bayesian updating and re-sampling can be used instead of traditional arithmetic aggregation of indicators, from ecosystem assets to EAAs, to produce probability density distributions for indicator values. -->
@@ -2843,9 +2840,10 @@ Still, the indicator values are consistently above the threshold value for good 
 
 # Conclusion
 
-In conclusion,
-
-<!--# we have demonstrated a new GIS based workflow for constructing ecosystem condition indicators from spatially biased variables using a method of stratified aggregation by an ordinal gradient of Homogeneous Impact Areas (HIA). In addition, we show how Bayesian updating can help produce uncertainty estimates for condition indicators that suffer from low sampling sizes where traditional variances would be unreliable. Our workflow can also help guide local field efforts to in the future get better and less resource demanding local ecosystem condition accounts. -->
+With a premise that local ECAs should use direct estimation and not be influence by data from outside the EAA, we have developed two generic approaches that allows the inclusion of sparse and spatially biased datasets.
+ECAs are often limited by indicator availabilities, and making use of less-than-ideal datasets could greatly alleviate this problem.
+We have demonstrated approaches that are new or relatively new to the ECA field of practice but well established in other fields of statistics.
+As ECAs and the SEEA EA continues to develop and mature we find it reasonable that more emphasis is placed on the estimation and disclosure of indicator uncertainties, as well as on spatial extrapolation and aggregation, and our work is pointing in this direction.
 
 # CRediT authorship contribution statement {.unnumbered}
 
