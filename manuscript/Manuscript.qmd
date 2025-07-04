@@ -1,5 +1,6 @@
 ---
-title: Making use of spatially biased variables in ecosystem condition accounting – a GIS based workflow
+title: Bias Correction and Uncertainty Quantification for Small-Sample Ecosystem Condition Assessments
+
 author:
   - name: Anders Lorentzen Kolstad
     email: anders.kolstad@nina.no
@@ -29,7 +30,8 @@ author:
           city: Oslo
           postal-code: NO-0855
 abstract: |
-  Ecosystem Condition Accounts (ECA) should reflect the integrity or quality of all nature inside the scope of the account, and therefore rely on spatially representative indicators for condition. All ECAs are subject to data constraints in some way. Therefore, being able to make use of spatially biased data sets would be very valuable. For national ECAs, modelling approaches can in some cases be used to control for sampling biases. For local ECAs however, like at the scale of individual municipalities of development projects, this is often not an option as it involves spatial extrapolation using data from outside the ecosystem accounting area. In this study we develop three ecosystem condition indicators from the same spatially biased data set based on nature type mapping of Norwegian mires. The indicators are Alien species, Trenching and Anthropogenic Disturbance to Soil and Vegetation. We test our approach in three municipalities in south Norway. We discretised a spatial variable representing infrastructure prevalence, and we refer to this new map as Homogeneous Impact Areas (HIAs). To facilitate reliable estimation of indicator uncertainties, even in cases with very low sample sizes, we use a Bayesian updating method and produce probability distributions for the area-weighted mean indicator values in each HIA separately. Then we use area-weighted resampling and produce indicator probability distributions for each municipality. With this Bayesian updating and resampling approach, small sample sizes can be compensated by correspondingly large uncertainty ranges, as long as the full dataset is large enough to estimate the true population standard deviation. This paper demonstrates the use of a GIS-based workflow to control for some of the most problematic biases in an opportunistic field survey so that the data can be used for indicators in ECAs. The workflow can be used at any scale, including national scale. Because indicator values are calculated for unique spatial strata, local governments or others can target their data acquisition towards strata with low sample sizes, and thus achieve higher cost effectiveness and ultimately better spatial indicator coverage.
+  Ecosystem Condition Accounts (ECAs) require spatially representative indicators to accurately reflect ecosystem integrity, yet data constraints—particularly small sample sizes and spatial bias—often hinder robust assessments. While national-scale ECAs can mitigate these issues through modeling, local ECAs face unique challenges, as spatial extrapolation beyond the accounting area risks compromising local relevance. In this study, we address two critical gaps in local-scale ecosystem condition accounting: (1) correcting for spatial bias without external data and (2) uncertainty quantification for small samples. Using three Norwegian municipalities as test cases, we demonstrate a workflow that combines post-stratfication (control bias via Homogenous Impact Areas) and emipirical Bayes variance smoothing (to stabelise uncertainty estimates for 1-inflated beta distributions). Point estimates are derived through direct, area-weighted avergaing within strata, ensuring local fidelity. Our approach enable local ECAs to leverage imperfect datasets while maintaining transparency and local relevance. We provide a scalable solution for small-area ecosystem assessments where traditional modeling is infeasible. This work advances the practical implementation of ecosystem accounting under real-world data constraints.
+  
 keywords: 
   - alien species
   - disturbance
@@ -40,6 +42,7 @@ keywords:
   - mire
   - peatlands
   - SEEA EA
+  - small area estimation
   - wetlands
 date: last-modified
 bibliography: bibliography.bib
@@ -71,8 +74,9 @@ header-includes:
 
 ```{r setup}
 #| eval: true
+library(conflicted)
+conflict_prefer_all("dplyr", quiet =T)
 
-library(tidyverse)
 library(knitr)
 library(sf)
 library(tmap)
@@ -91,7 +95,9 @@ library(eaTools) #https://ninanor.github.io/eaTools/ version 0.0.0.9000
 library(ggpubr)
 library(kableExtra)
 library(here)
-
+library(MASS)
+library(ggh4x)
+library(tidyverse)
 myCRS <- 25832
 ```
 
@@ -103,7 +109,7 @@ dir <- substr(getwd(), 1, 2)
 
 # Some directories
 
-# Ecosystem delineation map
+# Ecosystem delineation map - unfortunately to publically available
 path_mire <- "P:/41201785_okologisk_tilstand_2022_2023/data/Myrmodell/myrmodell90pros.tif"
 
 # infrastructure index (i.e. land use intensity index)
@@ -137,24 +143,33 @@ naturetypes_summary <- readRDS(here("data/natureType_summary.rds"))
 # Survey data
 # The data is too big to be stored on GitHub
 # Import polygon data set
-st_layers(path_naturetypes)
+
+# Getting the layer names
+# st_layers(path_naturetypes) 
+
+# Set local to ensure Norwegian letters get imported correctly
 Sys.setlocale("LC_ALL","Norwegian")
-naturetypes <- sf::st_read(dsn = path_naturetypes, layer = "naturtyper_nin_omr")
+naturetypes <- sf::st_read(dsn = path_naturetypes, layer = "naturtyper_nin_omr",
+                           quiet= T)
 # 142k polygons (2023)
 
-# Impart survey coverage map
-coverage <- sf::st_read(dsn = path_naturetypes, layer = "naturtyper_nin_dekning") |>
+# Import survey coverage map
+coverage <- sf::st_read(dsn = path_naturetypes, layer = "naturtyper_nin_dekning",
+                        quiet= T) |>
   st_transform(myCRS)
 
 # Outline of norway (coastline)
-outline <- sf::read_sf(here("data/outlineOfNorway_EPSG25833.shp")) |>
+outline <- sf::read_sf(here("data/outlineOfNorway_EPSG25833.shp"),
+                       quiet= T) |>
   st_transform(myCRS)
 
 # Municipalities
 # find the correct layer
-st_layers(path_muni)
+  # st_layers(path_muni)
+
 # read inn data and transform
-muni <- sf::read_sf(path_muni, layer = "kommune") |>
+muni <- sf::read_sf(path_muni, layer = "kommune",
+                    quiet= T) |>
   st_transform(myCRS)
 
 # Infrastructure index (read proxy)
@@ -164,7 +179,7 @@ infra <- stars::read_stars(path_infrastructure)
 
 ```{r terraLoad}
 #| eval: true
-# Mire data
+# Import mire delineation data
 # Spat rasters cannot be cached
 mire_terra <- terra::rast(path_mire)
 ```
@@ -172,7 +187,12 @@ mire_terra <- terra::rast(path_mire)
 ```{r getRelevantNTs}
 #| eval: true
 
+# Getting the names of the relevant nature types (mapping units)
+
+# These are the variabels were after
 myVars <- c("7TK", "7SE", "PRTK", "PRSL", "7FA", "7GR-GI")
+
+# And these are the mapping units that have them
 nts <- naturetypes_summary %>%
   rowwise() %>%
   mutate(keepers = sum(c_across(
@@ -182,13 +202,14 @@ nts <- naturetypes_summary %>%
     Ecosystem == "våtmark"
     ) |>
   pull(Nature_type)
+nts
 ```
 
 ```{r natureTypeData}
 #| eval: true
 #| cache: true
 
-# Clean the survey data
+# Clean and subset the survey data
 
 naturetypes <- naturetypes |>
   # keep only wetlands
@@ -223,7 +244,7 @@ naturetypes <- naturetypes |>
     area
   ) |>
   st_transform(myCRS) # Choosing this to match the EDM (se further down)
-# 19k obs.
+# 26k obs.
 ```
 
 ```{r}
@@ -245,16 +266,7 @@ naturetypes |>
 # I will first normalise by converting into % (not for 7GR-GI).
 # Remember the ordinal categories represents frequency ranges
 # The data is strongly right skewed, so simply taking the center value of each
-# bin will not work:
-naturetypes %>%
-  ggplot() +
-  theme_bw() +
-  geom_histogram(aes(x = value),
-    binwidth = 1
-  ) +
-  facet_wrap(. ~ variable,
-    scales = "free"
-  )
+# bin will not work
 
 # I will use the lower bound for each bin instead.
 # The exception in when the variable is 1, because then the lower bound
@@ -445,8 +457,9 @@ head(naturetypes)
 ```{r rescale}
 #| eval: true
 
-# Now I rescale the now continuous variables using reference and threshold values
-# I will use the same reference levels/values for all of Norway for ADSV and alien species:
+# Now I normalise the now continuous variables using reference levels
+# I will use the same reference levels for all of Norway for ADSV and alien species:
+# upper is x100, lower is X0 and threshold is x60.
 
 upper <- 0
 lower <- 100
@@ -575,7 +588,7 @@ muni3 <- muni |>
     kommunenummer == "3446" ~ "Gran"
   ))
 
-# To crop EDM, I need the three municipalities seprately.
+# To crop the EDM, I need the three municipalities seprately.
 nf <- muni3 |>
   filter(kommunenummer == "3207")
 na <- muni3 |>
@@ -663,8 +676,8 @@ myBbox[3:4] <- myBbox[3:4]+inc
   tm_scale_bar()
 )
 
-tmap_save(tm = positionMap,
-       "../images/positionMap.jpg")
+# tmap_save(tm = positionMap,
+#        "../images/positionMap.jpg")
 ```
 
 ```{r distanceBetweenMunis}
@@ -681,6 +694,7 @@ tmap_save(tm = positionMap,
 
 ```{r mireTerra}
 #| eval: false
+# This code block is set to eval: False and manually cached in a gitignored folder.
 
 # I first tried to import and crop the mire data using stars, 
 # but that failed (see pre 21 feb 2023).
@@ -818,6 +832,8 @@ mire_in_dk <- mire_in_dk |>
 
 ```{r infrastructureIndex}
 #| eval: false
+# This code block is also eval: false and cached manually
+
 # this data is on a 100x100m grid
 infra <- infra |>
   # , which is more then we need - warp it to 1x1km
@@ -848,7 +864,7 @@ infra <- eaTools::ea_homogeneous_area(infra,
   groups = infrastructureIndex
 )
 
-saveRDS(infra, paste0(path_temp, "infrastructureIndex_discrete_vectorized.rds"))
+#saveRDS(infra, paste0(path_temp, "infrastructureIndex_discrete_vectorized.rds"))
 ```
 
 ```{r InfraStructureIndex}
@@ -965,7 +981,7 @@ infraMuni3_summary <- infraMuni3_tbl |>
 ```{r corrCheck}
 #| eval: true
 #| cache: true
-# Now I want to see if the indicator values depend on the HIA is a predictable
+# Now I want to see if the indicator values depend on the HIA in a predictable
 # way to justify the stratification
 corrCheck <- st_intersection(naturetypes, infra)
 ```
@@ -1187,10 +1203,10 @@ muniPlot <- tm_shape(muni3) +
   tm_borders(lwd = 3, col = "black")
 )
 
-tmap_save(tm = infraMuniMap_NA,
-       "../images/HIA-NA.jpg",
-       width=4,
-       height=4)
+#tmap_save(tm = infraMuniMap_NA,
+#       "../images/HIA-NA.jpg",
+#       width=4,
+#       height=4)
 ```
 
 ```{r muni-tbl}
@@ -1241,81 +1257,680 @@ muni_tbl <- muni3 |>
          meanHIA = round(meanHIA, 1))
 ```
 
-```{r}
+```{r subset}
 #| eval: true
 
-# Now I need to spatially (horizontally) aggregate the indicator values for each 
-# HIA. Rather than taking the arithmetic mean, I will use a Bayesian updating 
-# approach. The point estimate (central tendency) will probably be the same
-# more or less, with the two approaches, but with the updating approach I can
-# get a honest measure for the uncertainty even with very small sample sizes.
-# For this I need a 'true' value for the variation in the indicator
-# I will use the entire national data set to determine this number
+library(EnvStats)
 
-national_sd_ADSV <- sd(naturetypes$i_ADSV, na.rm=T)
-national_sd_alien <- sd(naturetypes$i_alien, na.rm=T)
-national_sd_ditch <- sd(naturetypes$i_ditch, na.rm=T)
+i_ADSV <- naturetypes$i_ADSV[!is.na(naturetypes$i_ADSV)]
+i_alien <- naturetypes$i_alien[!is.na(naturetypes$i_alien)]
+i_ditch <- naturetypes$i_ditch[!is.na(naturetypes$i_ditch)]
 
-barplot(c(national_sd_ADSV, national_sd_alien, national_sd_ditch),
-        names.arg = c("ADSV", "Alien", "Trenching"),
-        ylab="SD")
+# Later on I use MASS, but the result is the same. They use ML to estmate the
+# shape parameters
+params_ADSV <- EnvStats::ebeta(i_ADSV)
+params_alien <- EnvStats::ebeta(i_alien)
+params_ditch <- EnvStats::ebeta(i_ditch)
 
-# The figure shows that the Trenching indicator is more spatially variable
+
 ```
 
-```{r wgt-mean-fn}
+```{r testFit}
+#| eval: true
+# Check to see that real distributions and estimated beta distributions match up
+
+ADVS_estimated = rbeta(
+      n = 1000, 
+      shape1 = params_ADSV$parameters["shape1"],
+      shape2 = params_ADSV$parameters["shape2"])
+alien_estimated = rbeta(
+      n = 1000, 
+      shape1 = params_alien$parameters["shape1"],
+      shape2 = params_alien$parameters["shape2"])
+ditch_estimated = rbeta(
+      n = 1000, 
+      shape1 = params_ditch$parameters["shape1"],
+      shape2 = params_ditch$parameters["shape2"])
+
+
+# the length of the longest vector is 7628
+max_ln <- 7628
+# create data frame with columns of unequal length
+temp <- tibble(
+  i_ADSV = c(i_ADSV,rep(NA, max_ln - length(i_ADSV))),
+  i_alien = c(i_alien,rep(NA, max_ln - length(i_alien))),
+  i_ditch = c(i_ditch,rep(NA, max_ln - length(i_ditch))),
+  ADVS_estimated = c(ADVS_estimated,rep(NA, max_ln - length(ADVS_estimated))),
+  alien_estimated = c(alien_estimated,rep(NA, max_ln - length(alien_estimated))),
+  ditch_estimated = c(ditch_estimated,rep(NA, max_ln - length(ditch_estimated)))
+  ) |>
+  pivot_longer(cols = everything())
+
+temp |>
+  ggplot()+
+    geom_histogram(
+      aes(x = value),
+      binwidth = .1
+      )+
+    xlim(0,1.1) +
+    facet_wrap(.~name,
+               scales = "free_y")
+# the similated distributions are good approximations
+```
+
+<!-- The goal here is to use a larger dataset (national dataset) to infer about the shape of a smaller domain dataset. The domain mean will always be uninformed by the national data, but I will use empirical bayes to make a better guess at the true variation of the domain data when sample sizes are low. I add a prior weight of 10, meaning the national dataset coundt similarly as ten domain datapoints in describing the distributional shape for the domain data. -->
+
+<!-- Deepseek (free version, may-juni 2025) was used to flesh out some of the ideas and test for logical errors. However, the original idea was by the authors, and all code has been verified and we also added a simulation to test the behaviour of the functions. -->
+
+<!-- I will now simulate som (national) data and some domain data -->
+
+<!-- and then test the functions for getting updated domain shape and variance. -->
+
+<!-- I tried also with prior weight of 5, and results are qualitativly -->
+
+<!-- similar. As a rule of thumb, I want the posterior distribution to include -->
+
+<!-- just about the whole range for the national data when n = 2-3. -->
+
+<!-- This example does not include area weighting. Latyer I want to use area weighting for the domain means, but I will not include it for the updated shape parameters. -->
+
+```{r nationalData}
+#| eval: true
+# set seed
+set.seed(123)
+
+# define sample size
+n <- 1000
+
+
+national_data <- tibble(
+  # first, some population samples with different properties
+  uniform = runif(n, 0, 1),
+  normal_centered = rnorm(n, 0.5, 0.2),
+  normal_high = rnorm(n, 1, .5),
+  beta_2_2 = rbeta(n, 2, 2),
+  beta_05_3 = rbeta(n, .5, 3),
+  beta_3_05 = rbeta(n, 3, .5),
+) |>
+  # truncate
+  mutate(across(everything(),
+    ~ case_when(
+      . >= 1 ~ 1, 
+      . <= 0 ~ 0, 
+      .default = .
+    )
+  )) |>
+  pivot_longer(
+    cols = everything(),
+    names_to = "distribution",
+    values_to = "population_sample"
+  ) |>
+  nest(population_sample = population_sample)
+
+    
+```
+
+```{r domainData}
 #| eval: true
 
-# This function is modified from Bolstad::normdp
-# It updates a flat prior based on a sample of values (indicator values)
-# and weight (polygon area) and returns a distribution for the weighted mean
-# that has a gaussian distribution. It assumes the sampled population is also
-# Gaussian. The variance is estimated from the full sample of indicator values.
+# pre set some sample sizes
+a <- 2
+b <- 5
+c <- 10
+d <- 30
+
+# set seed
+set.seed(123)
+
+domain_data <- tibble(
+    sample_ID = c(
+      "domain_1a",
+      "domain_1b",
+      "domain_1c",
+      "domain_1d",
+      "domain_2a",
+      "domain_2b",
+      "domain_2c",
+      "domain_2d",
+      "domain_3a",
+      "domain_3b",
+      "domain_3c",
+      "domain_3d",
+      "domain_4b",
+      "domain_4c",
+      "domain_4d",
+      "domain_5b",
+      "domain_5c",
+      "domain_5d",
+      "domain_6a",
+      "domain_6b",
+      "domain_6c",
+      "domain_6d"
+      ),
+    
+    values = list(
+      # 1's
+      tibble(sample = rep(1,a)), 
+      tibble(sample = rep(1,b)),
+      tibble(sample = rep(1,c)),
+      tibble(sample = rep(1,d)),
+      
+      #  high values
+      tibble(sample = seq.int(0.7, 1, length.out=a)),
+      tibble(sample = seq.int(0.7, 1, length.out=b)),
+      tibble(sample = seq.int(0.7, 1, length.out=c)),
+      tibble(sample = seq.int(0.7, 1, length.out=d)),
+      
+      #  low values (further from the population shape)
+      tibble(sample = seq.int(0.1, 0.4, length.out=a)),
+      tibble(sample = seq.int(0.1, 0.4, length.out=b)),
+      tibble(sample = seq.int(0.1, 0.4, length.out=c)),
+      tibble(sample = seq.int(0.1, 0.4, length.out=d)),
+      
+      # truncated normal with sd = .5, same as the national data with truncated normal distribution
+      tibble(sample = rnorm(b, 1, .5) |> pmin(1) |> pmax(0) |> sort()),
+      tibble(sample = rnorm(c, 1, .5) |> pmin(1) |> pmax(0) |> sort()),
+      tibble(sample = rnorm(d, 1, .5) |> pmin(1) |> pmax(0) |> sort()),
+      
+      # truncated normal with sd = .1
+      tibble(sample = rnorm(b, 1, .1) |> pmin(1) |> pmax(0) |> sort()),
+      tibble(sample = rnorm(c, 1, .1) |> pmin(1) |> pmax(0) |> sort()),
+      tibble(sample = rnorm(d, 1, .1) |> pmin(1) |> pmax(0) |> sort()),
+      
+      # indicator values are often pseudo-continous,
+      # so ading a special case of nondistinct values
+      tibble(sample = rep(0.9, a)),
+      tibble(sample = rep(0.9, b)),
+      tibble(sample = rep(0.9, c)),
+      tibble(sample = rep(0.9, d))
+      
+    ))
 
 
-wgt_mean <- function(x, weights, 
-                     sigma.x = NULL, 
-                     mu = seq(0, 1, length.out=1000), 
-                     mu.prior = rep(1/length(mu), times=length(mu)), 
-                     stat = "mean",
-                     ...) {
+    
+```
+
+```{r fig-plotDist}
+#| eval: true
+# plot the population samples
+national_data |>
+  unnest(population_sample) |>
+  ggplot()+
+  geom_histogram(aes(x = population_sample),
+                 binwidth = 0.1)+
+  facet_wrap(vars(distribution),
+             scales = "free")
+```
+
+```{r fig-plotDist2}
+#| warning: false
+#| eval: true
+# plot the domain samples
+domain_data |>
+  unnest(values) |>
+  ggplot()+
+  geom_histogram(aes(x = sample),
+                 binwidth = 0.1)+
+  xlim(-0.2, 1.2)+
+  facet_wrap(vars(sample_ID),
+             scales = "free_y")
+```
+
+```{r fit_zoib}
+#| eval: true
+# function to fit zero and one inflated beta distributions
+fit_zoib <- function(x) {
+  prop_1 <- mean(x == 1)
+  prop_0 <- mean(x == 0)
+  x_trunc <- x[x > 0 & x < 1]
+  alpha <- MASS::fitdistr(x_trunc, dbeta, start = list(shape1 = 1, shape2 = 1))$estimate
+  list(alpha = alpha, prop_1 = prop_1, prop_0 = prop_0)
+}
+```
+
+```{r}
+#| eval: true
+# applied on the national dataset
+national_data <- national_data |>
+  rowwise() |>
+  mutate(fit = 
+           list(fit_zoib(unlist(population_sample))))
+```
+
+```{r updatingFunction}
+#| eval: true
+# Empirical bayes
+# Bayesian updating: combine domain data with national shape
+
+update_distribution <- function(domain_data, national_fit, prior_weight = 10) {
   
-  mx <- weighted.mean(x, weights)
-  if (round(sum(mu.prior), 7) != 1) {
-    warning("The prior probabilities did not sum to 1, therefore the prior has been normalized")
-    mu.prior <- mu.prior / sum(mu.prior)
+  n <- length(domain_data)
+  prop_1_domain <- mean(domain_data == 1)
+  prop_0_domain <- mean(domain_data == 0)
+  
+  # Update 1-inflation (weighted average)
+  updated_prop_1 <- (n * prop_1_domain + prior_weight * national_fit$prop_1) / (n + prior_weight)
+  updated_prop_0 <- (n * prop_0_domain + prior_weight * national_fit$prop_0) / (n + prior_weight)
+  
+  # Update beta parameters (only for 0 < x < 1 part)
+  x_trunc <- domain_data[domain_data > 0 & domain_data < 1]
+  
+  if (length(x_trunc) > 1) {
+    tryCatch({
+      alpha_domain <- MASS::fitdistr(x_trunc, dbeta, 
+                                    start = list(shape1 = 1, shape2 = 1))$estimate
+      
+      updated_alpha <- (alpha_domain * length(x_trunc) + national_fit$alpha * prior_weight) /
+                          (length(x_trunc) + prior_weight)
+    }, error = function(msg){
+      return(NA)
+    }
+      
+    )
+  } else {
+    updated_alpha <- national_fit$alpha
   }
-  n.mu <- length(mu)
-  nx <- length(x)
-  snx <- sigma.x^2 / nx
-  likelihood <- exp(-0.5 * (mx - mu)^2 / snx)
-  posterior <- likelihood * mu.prior / sum(likelihood * mu.prior)
-  mx <- sum(mu * posterior)
-  vx <- sum((mu - mx)^2 * posterior)
   
-  # draw 1k samples from the posterior to calculate the quantiles and sd from
-  sample <- sample(mu, size = 1000, prob = posterior, replace = T)
-  lower <- quantile(sample, probs = 0.025)
-  upper <- quantile(sample, probs = 0.975)
-  # we can assume that the distrubutin for the mean is gaussian, so we take a 
-  # symetrical sd from here and use it, along with the mean, to recreate a
-  # normal distribution later which we can sample from
-  sdx <- sd(sample)
-  results <- list(
-    name = "mu", 
-    param.x = mu, 
-    prior = mu.prior,
-    likelihood = likelihood, 
-    posterior = posterior, 
-    weighted_mean = mx,
-    var = vx
-  )
-  if(stat == "mean") return(mx)
-  if(stat == "lower") return(lower)
-  if(stat == "upper") return(upper)
-  if(stat == "sd") return(sdx)
+  # The ML function for estimating the shape parameters require some variation in the 
+  # input values. A series of simiarl values will throw an error. 
+  # In those cases I will use tha national shape,
+  # To check if the function produces new or reused the old paramteres, one can 
+  # unhash this line:
+  #if(!exists("updated_alpha")) updated_alpha <- NA
+  # bit for now we use this:
+  if(!exists("updated_alpha")) updated_alpha <- national_fit$alpha
+  
+  
+  list(
+    alpha = updated_alpha, 
+    prop_1 = updated_prop_1, 
+    prop_0 = updated_prop_0
+    )
 }
 
+```
+
+```{r}
+#| eval: true
+# applied on the domain samples
+comb_data <- domain_data |>
+  cross_join(
+    national_data)|>
+  rowwise() |>
+  mutate(updated_fit = 
+           list(
+             update_distribution(
+               domain_data = unlist(values),
+               national_fit = fit
+           )))
+```
+
+```{r simulationFunction}
+#| eval: true
+# Generate uncertainty distribution around domain mean
+simulate_domain <- function(dist, n_sim = 1000) {
+  is_1 <- rbinom(n_sim, 1, dist$prop_1)
+  is_0 <- rbinom(n_sim, 1, dist$prop_0) * (1 - is_1)
+  cont_part <- (1 - is_1 - is_0) * rbeta(n_sim, dist$alpha[1], dist$alpha[2])
+  is_1 * 1 + is_0 * 0 + cont_part
+}
+
+```
+
+```{r}
+#| eval: true
+# Applied on the test cases
+comb_data <- comb_data |>
+  rowwise() |>
+  mutate(PDs = 
+    list(simulate_domain(updated_fit, n_sim = 1000)))
+
+```
+
+```{r}
+#| eval: true
+# add sample means (unweighted in this case)
+
+comb_data <- comb_data |>
+  mutate(
+    mean = mean(unlist(values)),
+    firstQuartile = quantile(unlist(PDs), 0.25),
+    thirdQuartile = quantile(unlist(PDs), 0.75),
+    lowCI = quantile(unlist(PDs), 0.025),
+    highCI = quantile(unlist(PDs), 0.975)
+  )
+```
+
+```{r}
+#| eval: true
+# Prepare data for plotting
+comb_data <- comb_data |>
+  mutate(
+    n = str_sub(sample_ID, -1, -1),
+    n = case_when(
+      n == "a" ~ 2,
+      n == "b" ~ 5, 
+      n == "c" ~ 10,
+      n == "d" ~30
+    ),
+    scenario = str_sub(
+      sample_ID, -2, -2
+    ),
+    scenario = case_when(
+      scenario == "1" ~ "Only 1's",
+      scenario == "2" ~ "High values",
+      scenario == "3" ~ "Low values",
+      scenario == "4" ~ "Trunc.nor. high SD",
+      scenario == "5" ~ "Trunc.nor. low SD",
+      scenario == "6" ~ "Single value"
+
+    )
+  )
+```
+
+```{r fig-bigFacet}
+#| fig-height: 12
+#| warning: false
+#| eval: true
+
+comb_data |>
+  ggplot()+
+  geom_density(
+    data = comb_data |>
+      unnest(population_sample),
+    aes(x = population_sample,
+        y = after_stat(scaled)),
+    fill = "sienna1",
+    alpha = .5
+  ) +
+  geom_density(
+    data = comb_data |>
+      unnest(PDs),
+    aes(x = PDs,
+        y = after_stat(scaled)),
+    alpha = .5,
+    fill = "cornflowerblue"
+  ) +
+  geom_histogram(
+    data = comb_data |>
+      unnest(values),
+    aes(x = sample,
+        y = stat(ncount)),
+    binwidth = .05,
+    alpha=.8,
+    fill = "cornflowerblue"
+  )+
+      theme(legend.position = 'none',
+        axis.title.y = element_blank()) +
+  geom_segment(
+    aes(x = mean,
+        xend = mean,
+        y = 0,
+        yend = .2),
+    linewidth = 3,
+    alpha=.7,
+    colour = "grey10"    
+  )+
+  geom_segment(
+    aes(x = lowCI,
+        xend = highCI,
+        y = -0.1,
+        yend = -0.1),
+    linewidth = 1.2,
+    alpha=.7,
+    colour = "grey30"    
+  )+
+  geom_segment(
+    aes(x = firstQuartile,
+        xend = thirdQuartile,
+        y = -0.1,
+        yend = -0.1),
+    linewidth = 3,
+    alpha=.7,
+    colour = "grey30"    
+  )+
+  xlim(-0.2,1.2)+
+  facet_nested(scenario + n ~distribution)
+
+#ggsave("../images/posteriorCheck.png",
+#       width = 30, height = 30, units = "cm")
+
+```
+
+```{r interprettations}
+# Blue histograms are domain samples
+# Blues densities are posterior distributions
+# Brown densities are national simulated datasets
+# Black dot is the domain mean (unweighted)
+# Horizontal lines in grey are 95% (thin lines) and 50% CIs.
+
+
+# Higher n generally pulls the PD towards the domain data.
+# and reduced the CI.
+# Exeption for  the single values, where the domain has less 1s 
+# than the national data and thus increases the PD varaition with n.
+
+
+```
+
+```{r}
+# highlighting the most interesting part of the large figure
+#| fig-height: 12
+#| warning: false
+#| eval: true
+temp <- comb_data |>
+  filter(distribution == "normal_high",
+         scenario == "Trunc.nor. high SD" | scenario == "Trunc.nor. low SD")
+
+temp |>
+  ggplot()+
+  geom_density(
+    data = temp |>
+      unnest(population_sample),
+    aes(x = population_sample,
+        y = after_stat(scaled)),
+    fill = "sienna1",
+    alpha = .5
+  ) +
+  geom_density(
+    data = temp |>
+      unnest(PDs),
+    aes(x = PDs,
+        y = after_stat(scaled)),
+    alpha = .5,
+    fill = "cornflowerblue"
+  ) +
+  geom_histogram(
+    data = temp |>
+      unnest(values),
+    aes(x = sample,
+        y = stat(ncount)),
+    binwidth = .05,
+    alpha=.8,
+    fill = "cornflowerblue"
+  )+
+      theme(legend.position = 'none',
+        axis.title.y = element_blank()) +
+  geom_segment(
+    aes(x = mean,
+        xend = mean,
+        y = 0,
+        yend = .2),
+    linewidth = 3,
+    alpha=.7,
+    colour = "grey10"    
+  )+
+  geom_segment(
+    aes(x = lowCI,
+        xend = highCI,
+        y = -0.1,
+        yend = -0.1),
+    linewidth = 1.2,
+    alpha=.7,
+    colour = "grey30"    
+  )+
+  geom_segment(
+    aes(x = firstQuartile,
+        xend = thirdQuartile,
+        y = -0.1,
+        yend = -0.1),
+    linewidth = 3,
+    alpha=.7,
+    colour = "grey30"    
+  )+
+  xlim(-0.2,1.2)+
+  facet_nested(n ~ scenario)
+
+#ggsave("../images/posteriorCheck.png",
+#       width = 30, height = 30, units = "cm")
+
+```
+
+```{r}
+#| eval: true
+# The behaviour is unexpected for high SD domain data
+# A low n gives a very narrow PD
+# With high n the national and domain data converge, as expected,
+# since the data are generated in the same way (rnorm(mean=1, sd=0.5))
+
+# With low n, the proportion of 1's becomes very sensitive. 
+# In this case (for this random seed), with n = 5 there are 4 values out of 5 
+# that are 1's
+
+# This can be solved by increasing the prior weight
+
+comb_data2 <- domain_data |>
+  cross_join(
+    national_data) |>
+  rowwise() |>
+  mutate(updated_fit = 
+           list(
+             update_distribution(
+               domain_data = unlist(values),
+               national_fit = fit,
+               prior_weight = 20 # increasing from 10 to 20
+           )))  |>
+  mutate(PDs = 
+    list(simulate_domain(updated_fit, n_sim = 1000))) |>
+  mutate(
+    mean = mean(unlist(values)),
+    firstQuartile = quantile(unlist(PDs), 0.25),
+    thirdQuartile = quantile(unlist(PDs), 0.75),
+    lowCI = quantile(unlist(PDs), 0.025),
+    highCI = quantile(unlist(PDs), 0.975)
+  ) |>
+  mutate(
+    n = str_sub(sample_ID, -1, -1),
+    n = case_when(
+      n == "a" ~ 2,
+      n == "b" ~ 5, 
+      n == "c" ~ 10,
+      n == "d" ~30
+    ),
+    scenario = str_sub(
+      sample_ID, -2, -2
+    ),
+    scenario = case_when(
+      scenario == "1" ~ "Only 1's",
+      scenario == "2" ~ "High values",
+      scenario == "3" ~ "Low values",
+      scenario == "4" ~ "Trunc.nor. high SD",
+      scenario == "5" ~ "Trunc.nor. low SD",
+      scenario == "6" ~ "Single value"
+
+    )
+  )
+
+temp <- comb_data2 |>
+  filter(distribution == "normal_high",
+         scenario == "Trunc.nor. high SD" | scenario == "Trunc.nor. low SD")
+
+temp |>
+  ggplot()+
+  geom_density(
+    data = temp |>
+      unnest(population_sample),
+    aes(x = population_sample,
+        y = after_stat(scaled)),
+    fill = "sienna1",
+    alpha = .5
+  ) +
+  geom_density(
+    data = temp |>
+      unnest(PDs),
+    aes(x = PDs,
+        y = after_stat(scaled)),
+    alpha = .5,
+    fill = "cornflowerblue"
+  ) +
+  geom_histogram(
+    data = temp |>
+      unnest(values),
+    aes(x = sample,
+        y = stat(ncount)),
+    binwidth = .05,
+    alpha=.8,
+    fill = "cornflowerblue"
+  )+
+      theme(legend.position = 'none',
+        axis.title.y = element_blank()) +
+  geom_segment(
+    aes(x = mean,
+        xend = mean,
+        y = 0,
+        yend = .2),
+    linewidth = 3,
+    alpha=.7,
+    colour = "grey10"    
+  )+
+  geom_segment(
+    aes(x = lowCI,
+        xend = highCI,
+        y = -0.1,
+        yend = -0.1),
+    linewidth = 1.2,
+    alpha=.7,
+    colour = "grey30"    
+  )+
+  geom_segment(
+    aes(x = firstQuartile,
+        xend = thirdQuartile,
+        y = -0.1,
+        yend = -0.1),
+    linewidth = 3,
+    alpha=.7,
+    colour = "grey30"    
+  )+
+  xlim(-0.2,1.2)+
+  facet_nested(n ~ scenario)
+```
+
+```{r}
+# With prior weight set to 20 instead of 10, it takes even more domain samples
+# to override the priors. This is probably sensible for truncated data,
+# where low n can have very high 1-inflation by chance, and thus get very low 
+# PD variance. However, we want to weighted mean, which is calculated independent 
+# of the national data, to always be inside the PD, but when n is low, this might 
+# not be the case. One option is to get more spesific priors, for example not the
+# entire national dataset, but a homogenous area. Another option is to use the PDs 
+# to calculate the distances between the mean and the set percentiles, and transfer
+# this ralative measure of variance over to be centered on the domain mean, but 
+# that wont work as the PDs can be truncated as well.
+```
+
+```{r getNationalShapes}
+#| warning: false
+#| eval: true
+# Getting the beta shape parameters from the national dataset
+
+fit_df <- corrCheck |>
+  as_tibble() |>
+  pivot_longer(cols = starts_with("i_"),
+               names_to = "indicator",
+               values_to = "indicatorValue") |>
+  drop_na(indicatorValue) |>
+  group_by(indicator, infrastructureIndex) |>
+  summarise(fit = list(fit_zoib(indicatorValue)))
 ```
 
 ```{r meanPerHIA}
@@ -1325,6 +1940,12 @@ wgt_mean <- function(x, weights,
 # Intersect nature3 with the HIA
 stats_tbl <- nature3 |>
   st_intersection(infraMuni3) |>
+  select(Municipality,
+         i_ADSV,
+         i_alien,
+         i_ditch,
+         infrastructureIndex) |>
+  mutate(area = drop_units(st_area(SHAPE))) |>
   pivot_longer(cols = c(
     i_ADSV,
     i_alien,
@@ -1332,27 +1953,28 @@ stats_tbl <- nature3 |>
     names_to = "indicator",
     values_to = "indicatorValue") |>
   filter(!is.na(indicatorValue)) |>
-  mutate(area = drop_units(area)) |>
-  group_by(indicator, Municipality, infrastructureIndex) |>
-  summarise(sd = wgt_mean(indicatorValue,
-      weights = area,
-      sigma.x = case_when(
-        indicator == "i_alien" ~ national_sd_alien,
-        indicator == "i_ditch" ~ national_sd_ditch,
-        indicator == "i_ADSV" ~ national_sd_ADSV,
-        .default = NULL
-      ),
-      stat = "sd"),
-    mean = wgt_mean(indicatorValue,
-      weights = area,
-      sigma.x = case_when(
-        indicator == "i_alien" ~ national_sd_alien,
-        indicator == "i_ditch" ~ national_sd_ditch,
-        indicator == "i_ADSV" ~ national_sd_ADSV,
-        .default = NULL
-      ),
-      stat = "mean"),
-    n = n())
+  as_tibble() |>
+  nest(.by = c(Municipality, infrastructureIndex, indicator)) |>
+  left_join(fit_df) |>
+  rowwise() |>
+  mutate(
+    updated_fit = 
+           list(
+             update_distribution(
+               domain_data = unnest(data) |> select(indicatorValue),
+               national_fit = fit,
+               prior_weight = 20
+           )),
+    mean = weighted.mean(
+      x = unnest(data) |> select(indicatorValue),
+      w = unnest(data) |> select(area)
+    ),
+    n = nrow(data),
+    PDs = list(simulate_domain(updated_fit)),
+    low = quantile(unlist(PDs), 0.025),
+    high = quantile(unlist(PDs), 0.975)
+  )
+
 stats_tbl
 ```
 
@@ -1376,12 +1998,6 @@ barCOLS <- c("#fff7bd", "#fecf66", "#f88b22", "#cc4c02")
       indicator == "i_alien" ~ "Alien species",
       indicator == "i_ditch" ~ "Trenching"
     )
-  ) |>
-  rowwise() |>
-  mutate(
-    low = quantile(rnorm(200, mean, sd), probs = 0.025),
-    high = quantile(rnorm(200, mean, sd), probs = 0.975),
-    high = ifelse(high > 1, 1, high)
   ) |>
   ggplot(aes(x=infrastructureIndex, 
              y=mean, 
@@ -1420,21 +2036,24 @@ barCOLS <- c("#fff7bd", "#fecf66", "#f88b22", "#cc4c02")
 #       height = 6)
 ```
 
+```{r}
+# The means are mostly within the 95%CI, which is good.
+# The bars are the predicted distributions of the domain data, and not 
+# traditinal errors. 
+# The distributions are asymetrical, which is natural for truncated data,
+# but hard to achieve with the more common ways to estimate variation, using
+# SDs and assuming normality.
+```
+
 ```{r forest_plotExample}
 #| eval: true
 #| cache: true
 
-# Here is the same plot but only for trenching
+# Here is the same plot but only for trenching in Nord-Aurdal
   
 (forest_plot_ex <- stats_tbl |>
   filter(indicator == "i_ditch",
          Municipality == "Nord-Aurdal") |>
-  rowwise() |>
-  mutate(
-    low = quantile(rnorm(200, mean, sd), probs = 0.025),
-    high = quantile(rnorm(200, mean, sd), probs = 0.975),
-    high = ifelse(high > 1, 1, high)
-  ) |>
   ggplot(aes(x=infrastructureIndex, 
              y=mean, 
              ymin=low,
@@ -1456,22 +2075,22 @@ barCOLS <- c("#fff7bd", "#fecf66", "#f88b22", "#cc4c02")
   scale_fill_manual(values=rev(dotCOLS))+
   scale_color_manual(values=barCOLS)+
   scale_x_discrete(name="") +
-  scale_y_continuous(name="Indicator values", limits = c(.7, 1)) +
+  scale_y_continuous(name="Indicator values", limits = c(0, 1)) +
   coord_flip() +
   theme_bw() +
   labs(fill = "HIA",
        col = "HIA")
 )
 
-ggsave(plot = forest_plot_ex,
-       "../images/forest-plot-ex.jpg",
-       width=3,
-       height = 3)
+#ggsave(plot = forest_plot_ex,
+#       "../images/forest-plot-ex.jpg",
+#       width=3,
+#       height = 3)
 ```
 
 ```{r notes}
 # Next I need to 
-#  - copy the weighted means and SDs over to  HIA map and then over to the 
+#  - copy the weighted means and PDs over to  HIA map and then over to the 
 #    ecosystem delineation map polygons. 
 #  - show intermittent resulting map with ggmagnify
 #  - sample from these distributions (ignore missing HIAs)
@@ -1481,7 +2100,7 @@ ggsave(plot = forest_plot_ex,
 #| eval: true
 #| cache: true
 
-# Copy the weighted means and SDs over to HIA map and then over to the 
+# Copy the weighted means and PDs over to HIA map and then over to the 
 # ecosystem delineation map polygons. 
 spread_na <- mire_stars_na |>
   st_as_sf(merge=T) |>
@@ -1491,8 +2110,13 @@ spread_na <- mire_stars_na |>
   left_join(stats_tbl |> 
               as_tibble() |>
               filter(Municipality == "Nord-Aurdal") |>
-              select(mean, sd, indicator, n, infrastructureIndex, Municipality),
-            by = "infrastructureIndex")
+              select(mean, PDs, indicator, n, infrastructureIndex, Municipality),
+            by = "infrastructureIndex",
+            relationship = "many-to-many")
+# Each polygon (rpw) is repeated for each indicator
+#spread_na |>
+#  select(-PDs) |>
+#  head()
 
 spread_nf <- mire_stars_nf |>
   st_as_sf(merge=T) |>
@@ -1502,8 +2126,9 @@ spread_nf <- mire_stars_nf |>
   left_join(stats_tbl |> 
               as_tibble() |>
               filter(Municipality == "Nordre Follo") |>
-              select(mean, sd, indicator, n, infrastructureIndex, Municipality),
-            by = "infrastructureIndex")
+              select(mean, PDs, indicator, n, infrastructureIndex, Municipality),
+            by = "infrastructureIndex",
+            relationship = "many-to-many")
 
 spread_gr <- mire_stars_gr |>
   st_as_sf(merge=T) |>
@@ -1513,8 +2138,9 @@ spread_gr <- mire_stars_gr |>
   left_join(stats_tbl |> 
               as_tibble() |>
               filter(Municipality == "Gran") |>
-              select(mean, sd, indicator, n, infrastructureIndex, Municipality),
-            by = "infrastructureIndex")
+              select(mean, PDs, indicator, n, infrastructureIndex, Municipality),
+            by = "infrastructureIndex",
+            relationship = "many-to-many")
 
 
 ```
@@ -1568,82 +2194,115 @@ myCols <- c(
 #| eval: true
 #| cache: true
 
-# Now I sample indicator values from the EDM and create a new distribution for 
+# The EAA estimate for the mean indicator value is just an area weighted mean of 
+# the polygons (i.e. no influence fro the national dataset).
+# For the predicted distribution of indicator values we sample indicator values 
+# from the PDs in the EDM and create a new distribution for 
 # indicator values in the EAAs (the municipalities). First I sample the individual
 # distributions for each mire polygon with n defined by the polygon area.
 # The distribution for the polygon areas is strongly right skewed, meaning
 # some polygons will contribute much more to the EAA value than others.
-# I will keep this design, in-line with SEEA EA guidelines for area weighting, 
-# but it's worth noting that this could be solved in other ways.
-# 
+
 combineAll <- rbind(
   spread_nf,
   spread_gr,
-  spread_na
-) |>
+  spread_na) |>
   as_tibble() |>
+  select(-geometry) |>
   drop_na() |>
+  #mutate(weight = drop_units(area/100) |> round()) |>
+  mutate(area = drop_units(area)) |>
+  unnest(PDs) |>
   group_by(Municipality, indicator) |>
+  slice_sample(n = 1000, weight_by = area, replace = T) |>
+  ungroup() |>
+  select(Municipality,
+         indicator,
+         PDs,
+         mean) |>
+  nest(data = c(PDs, mean)) |>
   rowwise() |>
   mutate(
-    # this draws one sample pre m2 from a normal distribution:
-    i_sample = list(sample(rnorm(n, mean, sd)))) |>
-  select(-geometry) |>
-  group_by(Municipality, indicator) |>
-  reframe(i_sample = 
-  # this samples randomly from i_sample, ie large polygons are more likely
-  # to contibute:
-            sample(
-              unlist(i_sample), 
-              size = 1000,
-              replace = TRUE)) |>
-  # truncation, since the tails from the normal distribution can go beyond 0 and 1
-  mutate(i_sample = case_when(
-    i_sample < 0 ~ 0,
-    i_sample >1  ~ 1,
-    .default = i_sample
-  ))
+    low = quantile(data$PDs, 0.025),
+    high = quantile(data$PDs, 0.975),
+    meanWeighted = mean(data$mean),
+    indicator2 = case_when(
+      indicator == "i_ADSV" ~ "ADSV",
+      indicator == "i_alien" ~ "Alien species",
+      indicator == "i_ditch" ~ "Trenching")) |>
+  left_join(
+    stats_tbl |>
+      unnest(data) |>
+      group_by(Municipality, indicator) |>
+      summarise(realSamples = list(indicatorValue))
+    ) |>
+  rowwise() |>
+  mutate(
+    n = length(realSamples)
+  )
+  
 ```
 
 ```{r EEA-plot}
 #| eval: true
 #| cache: true
-(ridgepPlot <- combineAll |>
-  mutate(
-    indicator = case_when(
-      indicator == "i_ADSV" ~ "ADSV",
-      indicator == "i_alien" ~ "Alien species",
-      indicator == "i_ditch" ~ "Trenching"
-    )) |>
-  ggplot(
-    aes(
-      x = i_sample, 
-      y = Municipality,
-      fill = after_stat(x))
+combineAll |>
+  ggplot()+
+  geom_density(
+    data = combineAll |>
+      unnest(data),
+    aes(x = PDs,
+        y = after_stat(scaled)),
+    fill = "sienna1",
+    alpha = .5,
+    bounds = c(0, 1)
   ) +
-  geom_density_ridges_gradient(
-    bandwidth=.05,
-    quantile_lines = TRUE, 
-    quantiles = c(0.025, .5, 0.975)
-  ) +
-  #scale_fill_viridis_c(option = "D") +
-  scale_fill_distiller(palette = "RdYlGn",
-    direction = 1) +
-  theme_bw(base_size = 15) +
-  guides(fill = "none") +
-  geom_vline(xintercept = .6,
-    size=1.2,
-    lty=2) +
-  theme(axis.text.x = element_text(angle=45, hjust=1, vjust=1))+
-  labs(y = "", x = "Indicator values")+
-  xlim(c(0,1)) +
-  facet_wrap(.~indicator)
-)
-
-#ggsave(plot = ridgepPlot,
-#       "../images/ridgePlot.jpg",
+  geom_histogram(
+    data = combineAll |>
+      unnest(realSamples),
+    aes(x = realSamples,
+        y = stat(ncount)),
+    binwidth = .05,
+    alpha=.8,
+    fill = "cornflowerblue"
+  )+
+      theme(legend.position = 'none',
+        axis.title.y = element_blank()) +
+  geom_segment(
+    aes(x = meanWeighted,
+        xend = meanWeighted,
+        y = -0.15,
+        yend = -0.05),
+    linewidth = 3,
+    alpha=.7,
+    colour = "grey10"    
+  )+
+  geom_segment(
+    aes(x = low,
+        xend = high,
+        y = -0.1,
+        yend = -0.1),
+    linewidth = 1.2,
+    alpha=.7,
+    colour = "grey30"    
+  )+
+  xlim(-0.1,1.1)+
+  theme_bw(base_size = 16)+
+  scale_y_continuous(breaks = c(0, 0.5, 1))+
+  labs(x = "Indicator value",
+       y = "Proportion")+
+  geom_text(
+    aes(y = 0.7,
+        x = 0.0, 
+        label = paste("n = ", n, "\nmean = ", round(meanWeighted,2))),
+    show.legend = F,
+    hjust = 0) +
+  facet_grid(cols = vars(indicator2),
+             rows = vars(Municipality),
+             scales = "free_y")
+#ggsave("../images/results.jpg",
 #       width=10,
-#       height=5)
+#       height=8)
 ```
 
 ```{r EEA-plot2}
@@ -1651,70 +2310,83 @@ combineAll <- rbind(
 #| cache: true
 
 # Same as above, but for trenching only
-
-(ridgepPlot2 <- combineAll |>
+temp <- combineAll |>
   filter(indicator == "i_ditch",
-     Municipality == "Nord-Aurdal") |>
-  select(indicator, i_sample, Municipality) |>  
-  ggplot(
-    aes(
-      x = i_sample)
-    ) +
-  geom_density(
-    fill = "lightgreen",
-    alpha=.5
-  ) +
-  theme_bw(base_size = 15) +
-  guides(fill = "none") +
-  theme(
-        axis.ticks.y = element_blank(),
-        axis.text.y = element_blank())+
-  labs(y = "", x = "Indicator values")+
-  xlim(c(0.7,1))
-)
+     Municipality == "Nord-Aurdal")
 
-#ggsave(plot = ridgepPlot2,
-#       "../images/ridgePlot-ex.jpg",
+temp |>
+  ggplot()+
+  geom_density(
+    data = temp |>
+      unnest(data),
+    aes(x = PDs,
+        y = after_stat(scaled)),
+    fill = "sienna1",
+    alpha = .5,
+    bounds = c(0, 1)
+  ) +
+  geom_histogram(
+    data = temp |>
+      unnest(realSamples),
+    aes(x = realSamples,
+        y = stat(ncount)),
+    binwidth = .05,
+    alpha=.8,
+    fill = "cornflowerblue"
+  )+
+      theme(legend.position = 'none',
+        axis.title.y = element_blank()) +
+  geom_segment(
+    aes(x = meanWeighted,
+        xend = meanWeighted,
+        y = -0.15,
+        yend = -0.05),
+    linewidth = 3,
+    alpha=.7,
+    colour = "grey10"    
+  )+
+  geom_segment(
+    aes(x = low,
+        xend = high,
+        y = -0.1,
+        yend = -0.1),
+    linewidth = 1.2,
+    alpha=.7,
+    colour = "grey30"    
+  )+
+  xlim(-0.1,1.1)+
+  theme_bw(base_size = 16)+
+  scale_y_continuous(breaks = c(0, 0.5, 1))+
+  labs(x = "Indicator value",
+       y = "Proportion")+
+  geom_text(
+    aes(y = 0.7,
+        x = 0.0, 
+        label = paste("n = ", n, "\nmean = ", round(meanWeighted,2))),
+    show.legend = F,
+    hjust = 0) 
+
+
+#ggsave("../images/results-ex.jpg",
 #       width=6,
 #       height=4)
 ```
 
-```{r EEA-tbl}
-#| eval: true
-(EEA_tbl <- combineAll |>
-  mutate(
-    indicator = case_when(
-      indicator == "i_ADSV" ~ "ADSV",
-      indicator == "i_alien" ~ "Alien species",
-      indicator == "i_ditch" ~ "Trenching"
-    )) |>
-  group_by(Municipality, indicator) |>
-  summarise(mean = round(mean(i_sample), 2),
-            median = round(median(i_sample), 2),
-            percentile_025 = round(quantile(i_sample, probs = 0.025), 2),
-            percentile_975 = round(quantile(i_sample, probs = 0.975), 2))
-)
-# saveRDS(EEA_tbl, "../output/EEA-table.RDS")
-```
-
 ```{r}
-(EEA_tbl_out <- EEA_tbl |>
+#| eval: true
+(EEA_tbl_out <- combineAll |>
   ungroup() |>
   mutate("Indicator value" = 
     paste0(
-      format(median, 2), 
+      round(meanWeighted, 2), 
       " [",
-      format(percentile_025,2),
+      round(low,2),
       " - ",
-      format(percentile_975,2),
+      round(high,2),
       "] ")) |>
-  rename(Indicator = indicator) |>
   select(
-    -mean,
-    -median,
-    -percentile_025,
-    -percentile_975,
-    -Municipality
+    Indicator = indicator2,
+    "Indicator value"
   )|>
   kbl(table.attr = "style = \"color: black;\"",
       align = "lr") |>
@@ -1775,62 +2447,98 @@ myCols <- c(
 
 # Introduction
 
-Ecosystem condition accounting is the process of compiling relevant data on the status, trends and qualities of ecosystems (i.e. nature) and communicating this in a structured format [@comte2022].
-Its purpose is to make it easier to account for nature in policy by making the environmental costs of certain policies and practices visible to decision makers.
-A statistical standard for ecosystem accounting, including ecosystem condition accounting, was developed by the UN and adopted by the UN Statistical Commission in 2021 and is called SEEA EA (@unitednations2021; System of Environmental-Economic Accounting - Ecosystem Accounting).
-The standard, or framework, is a set of rules, principles and best practices for compiling ecosystem accounts, mainly aimed at national accounts.
+Ecosystem condition accounting (ECA) is the structured compiling and communication of data on the status, trends and qualities of ecosystems [@comte2022; @edens2022].
+Its purpose is to make it easier to account for nature in policy by making the environmental costs of certain policies and practices visible to decision-makers.
 
-Central to ecosystem condition accounts are *variables* and *indicators*.
-These are metrics chosen to reflect the central condition characteristics of the ecosystems.
-These metrics are quantified and ideally monitored over time to reflect the status and trends in condition.
-Indicators are variables that are normalised (rescaled) against upper and lower reference values to become bound between the values 0 and 1.
-This normalisation ensures that indicators are more comparable because an indicator value of 1 will mean the same for all indicators, i.e. that the variable equals the upper reference value which again reflect the value of the variables under the reference (pristine) condition.
-Similarly, a value of 0 means that the variable is in the worst possible state, for example that the species or ecosystem function in question is completely lost from the ecosystem.
-The reference condition needs to be defined for each ecosystem condition assessment separately, but SEEA EA gives some suggestions, such as an an ecosystem with no or minimal anthropogenic disturbance.
+The System of Environmental-Economic Accounting - Ecosystem Accounting (SEEA EA) is a statistical standard for ecosystem accounting, including ecosystem condition accounting, that was developed by the UN and adopted by the UN Statistical Commission in 2021 [@unitednations2024].
+This framework provides a set of rules, principles and best practices for compiling ecosystem accounts, primarily at a national level [@unitednations2022].
+At its core is the idea that data on ecosystem condition can be summarised in the form of metrics (indicators and variables) presented in generalised tables that describe the condition of a larger ecosystem accounting area (EAA).
 
-The SEEA EA framework recommends that ecosystem condition indicators give an unbiased representation of the condition for a given area [table 1 in @czucz_selection_2021; see also @unitednations2021 §2.87], and that condition indicators are recorded uniquely for each ecosystem asset so that the condition in the ecosystem accounting area (EAA) can be inferred from an area weighted mean based on the relative extents of the ecosystem assets [@unitednations2021 §5.54].
-Ecosystem assets are defined as "ecological entities" (meaning areas) about which information is sought and about which statistics are compiled [@unitednations2021].
-This recommendation for representativity in the indicators means that spatially biased data are ill suited, especially if sampling intensity varies systematically along gradients of anthropogenic pressures and hence ecosystem condition.
-The recommendation for spatial resolution also means that when a condition metric is sampled coarsely, for example in an opportunistic and spatially biased field campaign, then it is very likely that you will not have a enough data points to reliably estimate an indicator value for each ecosystem asset.
-This problem does not exist for complete wall-to-wall data, like remotely sensed imagery, where each ecosystem asset will have enough data to estimate its unique indicator value.
-This challenge if spatial generalisation is not unique to ecosystem condition accounts, and it is much discussed in the ecosystem service accounting community of practice via the related term *value transfer* [@unitednations2022; @ncaves; @grammatikopoulou2023; @barton2023].
-There are at least three ways to achieve this same complete areal coverage from indicator values that originally are spatially incomplete:
+With intentional similarities to national accounts, which deal with the economic activity at the scale of nations, SEEA EA accounts have mainly been developed for and used at national scales.
+However, there is a surge of examples of more local accounts appearing, motivated at least partly by the need to match the scale of the information to the scale of decision-making processes (**REF**!).
+Compared to accounts with large EAAs, local accounts face increasing challenges with data resolution and availability.
 
-a.  Predict (project) indicator values from a statistical model that accounts for the effect of environmental variation on the variables.
-b.  Take a central tendency (e.g. the mean) from the sample population and project it to all ecosystem assets of a given ecosystem type.
-c.  Take a central tendency from stratified sections of the sample population and projection them to the ecosystem assets, adhering to the corresponding strata.
+An important requirement of SEEA EA is that condition metrics must give an unbiased representation of the condition for a given area [table 1 in @czucz_selection_2021; see also @unitednations2024 §2.87].
+These metrics should ideally be recorded (or modeled) uniquely for all contiguous spaces (patches) of a specific ecosystem type (a common definition of an *ecosystem asset*), enabling the calculation of area-weighted means for the EAA [@unitednations2024 §5.54].
+While unbiased estimation is essential, this requirement severely limits the types of usable data.
+Local ECAs are particularly constrained by data availability, leading to pragmatic (and potentially unrepresentative) selections of variables and indicators.
+Being able to make use of spatially biased data would greatly alleviate data shortage problems in local ECAs.
 
-The need for an unbiased estimation of indicator values is unquestionable, but nonetheless, this requirement puts a large limitation on what types of data one can use in ecosystem condition accounts.
-Ecosystem condition assessments are generally limited by data availability, and the choice of variables and indicators to include in assessments is more often than not a pragmatic and opportunistic one, which is unlikely to reflect the full scope of the ecosystem condition characteristics.
-Note that the same is true for thematic biases.
-This is for example reflected in the scarcity of data commonly included on insects or soil biota, even though most will agree they represent key ecosystem characteristics.
-Also having data from only one or a subset of nature types inside what is defined as the ecosystem in the assessment, is a typical thematic bias in ecosystem accounting.
-However, in this paper we chose to focus on spatial bias.
+The issue of representativenes extends beyond spatial biases to include thematic biases—such as the under-representation of key ecosystem components like insects or soil biota.
+Also, having data from only one or a subset of nature types inside what is defined as the ecosystem in the assessment, is a typical thematic bias in ecosystem accounting.
+However, this paper focuses on spatial (geographic and environmental) bias.
 
-Being able to make use of spatially biased data would greatly alleviate data shortage problems in ecosystem condition accounts.
-One way to achieve this is modelling (option *a* in the list above).
-Statistical models can describe the general associations between the sampled data and the context where it was sampled (e.g. a set of environmental variables) and use these relationships to predict and project indicator values to areas that where not originally sampled.
-Depending on the data that goes into these models, they can make very precise and good indicators.
-This is especially true when the EAAs are large (e.g. regions or nations).
-But when they are small, like the scale of a municipality, and when the indicator is more likely to be used as the evidence base in concrete physical land use planning, then the inherent level of uncertainty from the spatial extrapolation of such models becomes unacceptable.
+Wall-to-wall raw data, such as satellite imagery, is spatially representative through the property of being spatially exhaustive, although grain size also plays a role [cf. the ecological fallacy; @robinson2009].
+However, many critical ecosystem characteristics - such as species composition, soil properties, or fine-scale habitat features - cannot be derived remotely and still require field surveys.
+These surveys, however, often suffer from sparse or biased sampling, leaving gaps in ecosystem asset coverage.
+Field data are especially problematic if sampling intensity correlates with anthropogenic pressures (and thus ecosystem condition) [@aubry2024].
+A poor solution, which don't attempt to control for sampling biases, is to ignore unsampled areas by directly estimating values for the entire EAA via central tendencies (e.g. means).
+Other options include imputing values to unsampled areas using some type of model or spatial generalisation.
+@unitednations2022 list six relevant modeling techniques for ecosystem condition metrics that can also be used for projecting metric values to ecosystem assets without field data, and simultaneously control for sampling biases:
 
-In this study we explore the potential for using a stratified aggregation technique to make use of spatially biased field data in ecosystem condition accounting.
-We demonstrate this technique on three indicators from the same spatially biased nature type mapping data set from Norwegian mires.
-We highlight the opportunities for local use-cases of this GIS-based workflow by contrasting our findings across three neighboring municipalities in Norway.
+1.  Look-up table
+2.  Spatial interpolation (e.g. inverse distance weighting)
+3.  Geostatistical models (e.g. kriging)
+4.  Statistical models (e.g. regression)
+5.  Dynamic system models (many types of process-based models)
+6.  Machine learning (e.g. random forest)
+
+Depending on the data that goes into them, models can make very accurate estimates, especially when the areas are large (e.g. regions or nations), but their reliability diminishes for smaller areas (e.g., municipalities) due to data scarcity and model uncertainty.
+Small area estimation is a branch in statistics aimed at finding ways to overcome this issue by "borrowing strength" from related areas [@ghosh1994; @guldin2021].
+Ecosystem accounts should ideally reflect conditions only inside the accounting area and are arguable more useful when reflecting local management and land use policies, unaffected by the actions of neighboring or ecologically similar administrative units (i.e. direct estimation).
+There might therefore be a limit to how much data one should "borrow" across ecosystem assets or EAAs.
+
+Look-up tables, the simplest approach, assign the same value across categorical strata (e.g. ecosystem type within a region), often with no uncertainty estimate (although this is quite possible to include).
+Values may derive from expert opinion or aggregated data (e.g. stratum means).
+If strata align with relevant gradients in pressures or environmental conditions, this method can mitigate sampling bias via post-stratification.
+The level of spatial or environmental extrapolation is subject to the size of the strata, with fine-grained typologies leading to less extrapolation.
+Extrapolating non-continuous spatial data (e.g. points) over a surface is a type of spatial generalisation.
+The challenge of spatial generalisation is not unique to ecosystem condition accounts, and it is much discussed in the ecosystem service accounting community of practice via the related term *value transfer* [@unitednations2022; @ncaves; @grammatikopoulou2023; @barton2023].
+Its key advantages are simplicity and the possibility to rely solely on local data.
+A major drawback is the high data requirements, especially for fine-grained strata.
+
+After extrapolating data, the spatial grain of the data (and thus also the information) is essentially still the same.
+However, a critical step in ecosystem accounting is upscaling—synthesising fine-grained data to characterise larger areas, effectively reducing grain size or increasing support [@bierkens2002] (**Kolstad *et al.* in prep**).
+This is typically achieved by aggregation (e.g. arithmetic means), sampling [@brus1997] or resampling techniques [@jakobsson2021].
+For simplicity we also refer to this as aggregation, as the end result is the same - a synthesis of information.
+Upscaling is required to make the information available for decision makers or monitoring frameworks at the appropriate spatial scale [@king2024].
+
+Spatial aggregation allows for the quantification of spatial variance in the estimate.
+In addition, there can be measurement or modling errors that could potentially also be propagated and reported alongside the upscaled estimate [e.g. @heris2021].
+Currently, SEEA EA lacks guidelines for estimating or disclosing any type of numerical uncertainty.
+This could potentially undermine the credibility and finally the uptake of knowledge from ecosystem accounting [@bagstad2021, @venter2024].
+Local ECAs face a unique side of this problem because sample sizes are frequently so small that traditional arithmetic estimates of variance are unreliable.
+In addition, calculating variances is even more data demanding when metrics are truncated, such as for indicators bound between zero and one.
+In such cases, a small sample size can by chance contain only or predominantly ones (or zeros), resulting in an artificially small variance which will then paradoxically increase as sample sizes increase due to the inclusion of more data points from the tail of the distribution.
+
+<!--# Central to ecosystem condition accounts are variables and indicators. These are metrics chosen to reflect the central condition characteristics of the ecosystems. These metrics are quantified and ideally monitored over time to reflect the status and trends in condition. Indicators are variables that are normalised (rescaled) against upper and lower reference values to become bound between the values 0 and 1. This normalisation ensures that indicators are more comparable because an indicator value of 1 will mean the same for all indicators, i.e. that the variable equals the upper reference value which again reflect the value of the variables under the reference (e.g. pristine) condition. Similarly, a value of 0 means that the variable is in the worst possible state, for example that the species or ecosystem function in question is completely lost from the ecosystem. The reference condition needs to be defined for each ecosystem condition assessment separately, but SEEA EA gives some suggestions, such as an an ecosystem with no or minimal anthropogenic disturbance.   -->
+
+In this study we present two techniques for direct estimation of local ecosystem condition indicators using scarce and spatially biased data.
+Firstly, we demonstrate a stratified aggregation technique, using homogeneous impact areas, to reduce the negative consequences of spatial and environmental bias in the data.
+With this we get direct indicator point estimates using area weighting and local data only.
+Second, we use an empirical Bayes variance smoothing approach to predict indicator uncertainties where we borrow strength from a larger national dataset.
+This allows us to get a realistic picture of indicator uncertainty even sample sizes are very low.
+We demonstrate these techniques with three indicators from the same spatially biased nature type mapping data set from Norwegian mires, comparing results across three municipalities in Norway to illustrate its potential for local applications.
 
 # Material and Methods {#sec-methods}
 
-This study makes use of a data set from from a standardised field survey of nature types in Norway that started in 2018 and which is still ongoing [@norwegian_environmental_agency_naturtyper_2024].
-In this survey, selected nature types are delineated on a map (over 140 000 polygons at the end of 2023), and each locality is scored on a range of variables relevant for describing the state and quality of nature [@norwegian_environmental_agency_protocol].
-The surveys are commissioned with the goal of producing data relevant for immediate land-use decisions, and are therefore spatially biased, typically towards areas with high human impact or expected impact.
-In addition, there is a thematic and size bias in the sampling protocol.
-For example, for the forest ecosystem, rare, endangered or calcareous forest types are delineated, whereas more common or ordinary forest types are not.
-In this study we focused on open mire ecosystems in Norway where the thematic bias is less severe (the spatial bias being presumably equal for all ecosystems).
+Mires cover about 10-15% of mainland Norway and play a disproportional role in climate mitigation due to their large carbon stores.
+To delineate open mire ecosystems we used a remote-sensing derived map which estimates 12.7% of the area in southern Norway is mire [@bakkestuen_delineation_2023].
+There has not been a national assessment of the ecosystem condition of mires in Norway, but the authors recently contributed to a report which presented several new indicators that can be used in future national assessments for this ecosystem [@nybo_indikatorer_2023; see also @kolstad2023]).
+The current study builds on the work in that report.
+
+## Data source and survey design
+
+We used a spatial dataset of nature types in Norway [@norwegian_environmental_agency_naturtyper_2024], surveyed in the field following a standardised protocol [@norwegian_environmental_agency_protocol].
+The dataset comprises over 140,000 polygons (as of 2023), each scored on several variables describing ecological condition and qualities.
+The data collection is spatially biased, typically towards areas with high human impact or expected impact, reflecting their primary use in land-use decisions.
+In addition, the sampling protocol introduces thematic and sizes biases.
+For mires, this implies an elevated focus on calcareous and medium to large mires.
 The survey maps the following mire types which we use in our analyses:
 
--   Southern ombrotrophic mires (bogs) \> 2500 m^2^
+-   Southern bogs (ombrotrophic mires) \> 2500 m^2^
 
--   Northern ombrotrophic mires \> 10.000 m^2^
+-   Northern bogs \> 10.000 m^2^
 
 -   All semi-natural mires \> 1000 m^2^
 
@@ -1838,36 +2546,35 @@ The survey maps the following mire types which we use in our analyses:
 
 -   Calcareous northern fens \> 1000 m^2^
 
-In the above, *southern* refers to boreonemoral and southboreal zones, and *northern* refers to mid-boreal, north boreal, and alpine zones [@asbjørnmoen1998].
-In addition, the northern fens need to be even more calcareous than the southern fens in order to be surveyed.
-We included data from 2018 to 2023.
-In this paper we assume the survey is representative for the entire mire ecosystem in Norway (i.e. that there is no thematic bias).
-Although it is possible that smaller or less calcareous mires will score systematically different than the ones that are surveyed, we do not think this is so much the case for our variables (see below).
-However, we do assume that alien plants are slightly less common on bogs relative to fens, and therefore that this variable will be biased since that variable is only recorded in fens.
+Here, *southern* refers to boreonemoral and southern boreal zones, and *northern* refers to mid-boreal, north boreal, and alpine zones [@asbjørnmoen1998].
+Northern fens require larger size and higher calcareousness to be surveyed.
+Data from 2018 to 2023 were included.
+
+We assume the surveyed mires are representative for the broader mire ecosystem inside the surveyed areas, despite undersampling of smaller and less calcareous mires.
+We posit that our selected variables (see below) are relatively unaffected by this bias, with a possible exception for alien plant occurrences, which are probably less common on bogs, but the variable is recorded only in fens.
 The other variables are recorded in all delineated mires.
 
-From the survey data set we identified six relevant variables (variable 1-6 in @tbl-variables) which we attribute to three different ecosystem condition characteristics that describe the typical behavior of open mire ecosystems in the reference condition (Figure S1).
-Variable 1, 7FA, represents the abundance of alien species, mainly plants.
-Variables 2-5 (7SE, PRSL, 7TK and PRTK) describe very related aspects, and are attributed to the same ecosystem condition characteristic (vegetation intactness) and so they were combined into a single indicator called anthropogenic disturbance to soil and vegetation (ADSV; Figure S1).
-These variables were were originally recorded along binned frequency ranges [@norwegian_environmental_agency_protocol].
-Because the data was strongly right skewed, we used the lower limit for each frequency range to convert them into percentages.
-This was done by summing the four variables after they had been converted to percentages.
-This was not a perfect solution, especially since some localities only had one of the variables recorded, but we chose this, rather than for example using a *worst rule* principle, to better separate the localities in terms of their indicator values.
-Variable 6, 7GR-GI, is different from the preceding variables in @tbl-variables in that it includes an estimation of future effects that the observed trenches are projected to have on mire vegetation, function, or structure over time.
-This is not a favourable trait in a metric used to evaluate the ecosystem condition as it is today, yet we include it here nonetheless because there is a general shortage of data on mire hydrology, which is a fundamental part of mire integrity.
+## Indicator development
 
-To turn variables into indicators we scaled them using three normative reference values each: an upper (best possible condition), a lower (worst possible condition), and a threshold value that defines the breaking point between good and poor condition [@jakobsson2020].
-The reference values make up a numerical representation of the reference condition.
-We define the reference condition as one where ecosystems are subject to little or no human influence, with a climate as in the period 1961-1990 and a native species pool similar as today [@jakobsson2021].
+Six raw variables (@tbl-variables, variables 1—6) were normalised and turned into three condition indicators [sensu @unitednations2024]:
 
-The variable 7FA was rescaled into the indicator named *Alien species*, 7GR-GI was rescaled into the indicator *Trenching*, and ADSV was rescaled and kept the name *ADSV* (Figure S1).
-For *Alien species* and *ADSV*, the lower and upper reference values were defined as 100% and 0%, respectively.
-The threshold for *good ecosystem condition* was defined as 10%, which was then mapped to the value 0.6 on the rescaled indicators, thus creating a non-linear rescaling of the variable (Figure S2).
-For *Trenching* we used the lower and upper reference values 1 and 5, respectively, and a threshold value of 2.5 (Figure S2).
-A variable value of 1 indicates an intact mire, and a value of 5 indicates a mire transitioning away from a wetland.
-A value of 2 indicates observable change within the range expected for the same mapping unit, and a value of 3 indicates a mire transitioning into a neighbouring (ecologically speaking) mapping unit.
-See @fig-workflowExample and S1 for schematic workflows for the indicator development.
-*Alien species* was attributed to Ecosystem Condition Typology (ECT) class B1 - Compositional state characteristics and *ADSV,* and *Trenching* were attributed to ECT class A1 - Physical state characteristics [@czucz_common_2021].
+-   *Alien species* (7FA)
+
+-   Anthropogenic disturbance to soil and vegetation (*ADSV;* combined from variables 7SE, PRSL, 7TK and PRTK)
+
+-   *Trenching* (7GR-GI).
+
+Normalisation followed a piece-wise linear transformation with three reference levels [@czúcz; \@jakobsson2020]
+
+-   X~100~: Best possible condition (minimal human influence)
+
+-   X~0~: Worst possible condition
+
+-   X~60~: defining the breaking point between good and poor condition.
+
+The reference levels make up a numerical representation of the reference condition.
+We define the reference condition as one where ecosystems are subject to little or no human influence, with a climate as in the period 1961-1990 and a native species pools similar as today [@jakobsson2021].
+For details about the normalisation process, see Appendix A.
 
 ```{r fig-studyLocation2}
 #| eval: true
@@ -1888,59 +2595,61 @@ knitr::include_graphics("../images/studyLocations.jpg")
 
 \pagebreak
 
-We used an ecosystem delineation map for open mires in southern Norway, produced using remotely sensed data and a deep learning model [@bakkestuen_delineation_2023].
-This model estimates 12.7% of the area in southern Norway is mire [@bakkestuen_delineation_2023].
-Mires are ecologically and socially important in Norway simply due to their large extent, and due to their role in climate mitigation as mires store a large amount of carbon.
-There has not been a national assessment of the ecosystem condition of mires in Norway, but the authors recently contributed to a report which presented several new indicators that can be used in future national assessments for this ecosystem [@nybo_indikatorer_2023; see also @kolstad2023]).
-The current study builds on the work in that report.
+## Homogenous Impact Areas
 
-Because the nature type survey data are spatially biased, we cannot assume that they are area-representative.
-In an attempt to overcome this issue, we divided the area of Norway into four non-overlapping Homogeneous Impact Areas (HIAs) based on an infrastructure index for the year 2022 (@tbl-variables).
-This index is a continuous variable that represents the frequency of different infrastructure types inside 500 m radius circles around each 100×100 m pixel [@erikstad2023].
-We then categorised this continuous variable into four classes (0–3) using ranges chosen to produce a sensible and relatively linear area classification when visualised along an urban-wilderness gradient, whilst at the same time delineating sufficient areas for each stratum across Norway (Table S1).
-We then aggregated the data to 1×1 km pixels to ease computations and vectorised it.
-The name HIAs is not a perfect representation of the information found in the infrastructure index, but we introduce this name here as a general term which is aligned with the concept of Homogeneous Ecosystem Areas, *sensu* @vallecillo_eu-wide_2022.
+To alleviate issues of spatial bias we used spatial information about human pressures, presumably a major structuring variable, to post-stratify the data.
+The Norwegian infrastructure index for the year 2022 is a continuous variable representing the frequency of different infrastructure types inside 500 m radius circles around each 100 × 100 m pixel [@erikstad2023].
+We categorised this data into four non-overlapping Homogeneous Impact Areas (HIAs; @tbl-variables), with boundaries chosen to balance gradient resolution, data stratum area, and computational limitations (Table S1).
+Data was aggregated to 1 × 1 km pixels to ease computations.
+HIAs align conceptually with the concept of Homogeneous Ecosystem Areas, *sensu* @vallecillo_eu-wide_2022.
+The nature type polygons with the indicator values were intersected with a vectorised HIA map and the relationship between the HIA classes and indicator values was examined visually across the entire data set.
 
-We used the entire national data set for assessing the relationship between the HIA levels and the indicator values.
-We then subsetted the national data set and chose three municipalities in south Norway to test out the indicators.
-The municipalities differ in several aspects, such as the amount of mire area, the total area surveyed, and the prevalence of infrastructure (@tbl-munis, @fig-studyLocation2, S3, S4).
-The nature type polygons with the indicator values were intersected with the HIA map and a map of municipal outlines in Norway.
-The relationship between the HIA classes and indicator values was examined visually.
-For each HIA and municipality combination we then created a probability distribution for the area weighted mean of the indicator values using Bayesian updating of a uniform prior between 0 and 1, informed by the standard deviation (SD) of the indicator values in the national data set (@fig-workflowExample C; Appendix C, line 134 <!--# update line number manually when re-rendering appendix C -->).
-We refer to this step as the first of two *aggregation* steps (Figure S1).
-The resulting distributions are assumed to be normally distributed, and we therefore simply carried the mean and SD from the posterior distributions over to individual polygons in the ecosystem delineation map, for each HIA class separately.
-This step is referred to as *spreading* the data (Figure S1).
-For each polygon we then sampled random numbers from a normal distribution with this same mean and SD.
-The number of m^2^ dictated the number of samples for each polygon, thus ensuring that large polygons ended up counting more towards the indicator value in the given municipality.
-We then drew 1000 random values from this vector of possible indicator values and created a probability distribution for the indicators for each municipality (the second aggregation step; Figure S1).
-When there were no indicator values for a given HIA class, we ignored that class also in the municipal estimate.
+### Municipal-level analyses and spatial aggregation
 
-All the data preparation and analyses were done in RStudio [@positteam2024] and R version 4.3.0 [@rcoreteam2023], relying heavily on the packages tidyverse [@wickham2019], sf [@pebesma2018], and stars [@pebesma2023].
+Three municipalities were selected test the indicators, varying in mire area, survey coverage, and infrastructure prevalence (@tbl-munis, @fig-studyLocation2, S3, S4).
+For each HIA — municipality (strata) combination we calculated the area weighted arithmetic mean of the indicator and used a look-up table approach to transfer these values to all ecosystem assets in the same strata.
+Ignoring strata with no data, we then took another area-weighted mean across all ecosystem assets inside the municipality to get the point estimate.
+
+The three indicators where all highly left skewed with strong 1-inflation.
+It was therefore essential to describe the indicator uncertainty using non-symmetrical errors.
+It also makes sense for a bound indicator not to have errors exceed the bounds.
+The sample size for each stratum, excluding those with no data, ranged between 1 and 145, yet we wanted a generic approach that allowed us to include reliable uncertainty estimates for all cases.
+Our solution was to use the entire national dataset, divided into the four HIAs, to describe the indicator distributions as zero and one inflated beta distributions.
+We recorded the frequency of zeros and ones in the data as a measure of zero- and one inflation, respectively.
+For values between, but not including, zero and one, we used maximum likelihood estimation to get the two shape parameters for a beta distribution.
+We did the same for the local strata, although the estimation of the shape parameters requires a certain sample size and dispersion of data values to converge, making it impossible to describe the samples for some strata as a distribution.
+Using an empirical Bayes variance smoothing technique for small area estimation we combined prior information about the shape of the national-level data with the local strata data using a prior weight of 20, meaning the national data informed about the shape of the local indicator distribution with similar weight as 20 local data points.
+The prior weight was chosen after some trial and error to find a suitable weight that balanced local autonomy with realistic distributions.
+With less 1-inflation, a smaller prior weight could have been used.
+Still, the prior weight was low enough that all point estimates (calculated independently from the predicted distributions) fell inside the 95% credible intervals.
+The predicted distributions were transferred over to the ecosystem assets of the corresponding strata, and from there, values where sampled proportional to asset area to obtain a probability distribution for the EAA (@fig-workflowExample - C).
+
+All the data preparation and analyses were done in RStudio [@positteam2024] and R version 4.3.0 [@rcoreteam2023], relying heavily on the packages tidyverse [@wickham2019], sf [@pebesma2018], terra [@Hijmans23] and stars [@pebesma2023].
 
 \pagebreak
 
 \blandscape
 
-| id  | Variable code         | Variable name                                    | Measurement unit                                                                         | Description                                                                                                                                                       | Reference                                |
+| id | Variable code | Variable name | Measurement unit | Description | Reference |
 |------------|------------|------------|------------|------------|------------|
-| 1   | 7FA                   | Prevalence of alien species                      | Unit-less, ordinal, non-linear scale from 1 (no alien species) to 7 (only alien species) | The fraction of the species composition made up from alien species                                                                                                | @runehalvorsen2019                       |
-| 2   | 7SE                   | Human caused abrasion or abrasion-caused erosion | Unit-less, ordinal, non-linear scale from 1 to 4.                                        | Measures the frequency of imagined 4 m^2^ quadrats laid over the area that has some sign of abrasion                                                              | @runehalvorsen2019                       |
-| 3   | PRSL                  | *as above*                                       | Unit-less, ordinal, non-linear scale from 0 to 7.                                        | Same as 7SE, but recorded at a higher resolution                                                                                                                  | @norwegian_environmental_agency_protocol |
-| 4   | 7TK                   | Tracks from large vehicles                       | Unit-less, ordinal, non-linear scale from 1 to 4.                                        | Measures the frequency of imagined 100 m^2^ quadrats laid over the area that has some signs of vehicle tracks                                                     | @runehalvorsen2019                       |
-| 5   | PRTK                  | *as above*                                       | Unit-less, ordinal, non-linear scale from 0 to 7.                                        | Same as 7TK, but recorded at a higher resolution                                                                                                                  | @norwegian_environmental_agency_protocol |
-| 6   | 7GR-GI                | Trenching intensity                              | Unit-less, ordinal scale from 1 to 5                                                     | Describes the effect that drainage ditches is estimate to have on the species composition and environmental variables ones the system reached its new equilibrium | @norwegian_environmental_agency_protocol |
-| 7   | Infra-structure Index | Infrastructure Index                             | Unit-less linear scale from 0 to 13.2                                                    | Unit-less index ranging from from 0 to 13.2                                                                                                                       | @erikstad_index_2023                     |
-| 8   | HIA                   | Homogeneous Impact Area                          | Ordinal, non-linear scale from 1 to 4                                                    | A categorical representation of the infrastructure index                                                                                                          | this paper                               |
+| 1 | 7FA | Prevalence of alien species | Unit-less, ordinal, non-linear scale from 1 (no alien species) to 7 (only alien species) | The fraction of the species composition made up from alien species | @runehalvorsen2019 |
+| 2 | 7SE | Human caused abrasion or abrasion-caused erosion | Unit-less, ordinal, non-linear scale from 1 to 4. | Measures the frequency of imagined 4 m^2^ quadrats laid over the area that has some sign of abrasion | @runehalvorsen2019 |
+| 3 | PRSL | *as above* | Unit-less, ordinal, non-linear scale from 0 to 7. | Same as 7SE, but recorded at a higher resolution | @norwegian_environmental_agency_protocol |
+| 4 | 7TK | Tracks from large vehicles | Unit-less, ordinal, non-linear scale from 1 to 4. | Measures the frequency of imagined 100 m^2^ quadrats laid over the area that has some signs of vehicle tracks | @runehalvorsen2019 |
+| 5 | PRTK | *as above* | Unit-less, ordinal, non-linear scale from 0 to 7. | Same as 7TK, but recorded at a higher resolution | @norwegian_environmental_agency_protocol |
+| 6 | 7GR-GI | Trenching intensity | Unit-less, ordinal scale from 1 to 5 | Describes the effect that drainage ditches is estimate to have on the species composition and environmental variables ones the system reached its new equilibrium | @norwegian_environmental_agency_protocol |
+| 7 | Infra-structure Index | Infrastructure Index | Unit-less linear scale from 0 to 13.2 | Unit-less index ranging from from 0 to 13.2 | @erikstad_index_2023 |
+| 8 | HIA | Homogeneous Impact Area | Ordinal, non-linear scale from 1 to 4 | A categorical representation of the infrastructure index | this paper |
 
 : Variables used in this study {#tbl-variables} {tbl-colwidths="\[5,10,15,25,25,20\]"}
 
 {{< pagebreak >}}
 
-| Municipality  | Total terrestrial area (km^2^)                                            | \% of terrestrial area surveyed                                            | \% open mires in relation to total terrestrial area                         | Total mire area (km^2^)                                                  | %of mire area inside survey area                                                      | Number of mire polygons in survey                                 | Mean Infrastructure Index value                                         |
+| Municipality | Total terrestrial area (km^2^) | \% of terrestrial area surveyed | \% open mires in relation to total terrestrial area | Total mire area (km^2^) | %of mire area inside survey area | Number of mire polygons in survey | Mean Infrastructure Index value |
 |---------|---------|---------|---------|---------|---------|---------|---------|
-| Nordre Follo  | `r muni_tbl |> filter(Municipality == "Nordre Follo") |> pull(t_area_km)` | `r muni_tbl |> filter(Municipality == "Nordre Follo") |> pull(dk_percent)` | `r muni_tbl |> filter(Municipality == "Nordre Follo") |> pull(mirePercent)` | `r muni_tbl |> filter(Municipality == "Nordre Follo") |> pull(mire_km2)` | `r muni_tbl |> filter(Municipality == "Nordre Follo") |> pull(mireInSurvery_percent)` | `r muni_tbl |> filter(Municipality == "Nordre Follo") |> pull(n)` | `r muni_tbl |> filter(Municipality == "Nordre Follo") |> pull(meanHIA)` |
-| `Gran`        | `r muni_tbl |> filter(Municipality == "Gran") |> pull(t_area_km)`         | `r muni_tbl |> filter(Municipality == "Gran") |> pull(dk_percent)`         | `r muni_tbl |> filter(Municipality == "Gran") |> pull(mirePercent)`         | `r muni_tbl |> filter(Municipality == "Gran") |> pull(mire_km2)`         | `r muni_tbl |> filter(Municipality == "Gran") |> pull(mireInSurvery_percent)`         | `r muni_tbl |> filter(Municipality == "Gran") |> pull(n)`         | `r muni_tbl |> filter(Municipality == "Gran") |> pull(meanHIA)`         |
-| `Nord-Aurdal` | `r muni_tbl |> filter(Municipality == "Nord-Aurdal") |> pull(t_area_km)`  | `r muni_tbl |> filter(Municipality == "Nord-Aurdal") |> pull(dk_percent)`  | `r muni_tbl |> filter(Municipality == "Nord-Aurdal") |> pull(mirePercent)`  | `r muni_tbl |> filter(Municipality == "Nord-Aurdal") |> pull(mire_km2)`  | `r muni_tbl |> filter(Municipality == "Nord-Aurdal") |> pull(mireInSurvery_percent)`  | `r muni_tbl |> filter(Municipality == "Nord-Aurdal") |> pull(n)`  | `r muni_tbl |> filter(Municipality == "Nord-Aurdal") |> pull(meanHIA)`  |
+| Nordre Follo | `r muni_tbl |> filter(Municipality == "Nordre Follo") |> pull(t_area_km)` | `r muni_tbl |> filter(Municipality == "Nordre Follo") |> pull(dk_percent)` | `r muni_tbl |> filter(Municipality == "Nordre Follo") |> pull(mirePercent)` | `r muni_tbl |> filter(Municipality == "Nordre Follo") |> pull(mire_km2)` | `r muni_tbl |> filter(Municipality == "Nordre Follo") |> pull(mireInSurvery_percent)` | `r muni_tbl |> filter(Municipality == "Nordre Follo") |> pull(n)` | `r muni_tbl |> filter(Municipality == "Nordre Follo") |> pull(meanHIA)` |
+| `Gran` | `r muni_tbl |> filter(Municipality == "Gran") |> pull(t_area_km)` | `r muni_tbl |> filter(Municipality == "Gran") |> pull(dk_percent)` | `r muni_tbl |> filter(Municipality == "Gran") |> pull(mirePercent)` | `r muni_tbl |> filter(Municipality == "Gran") |> pull(mire_km2)` | `r muni_tbl |> filter(Municipality == "Gran") |> pull(mireInSurvery_percent)` | `r muni_tbl |> filter(Municipality == "Gran") |> pull(n)` | `r muni_tbl |> filter(Municipality == "Gran") |> pull(meanHIA)` |
+| `Nord-Aurdal` | `r muni_tbl |> filter(Municipality == "Nord-Aurdal") |> pull(t_area_km)` | `r muni_tbl |> filter(Municipality == "Nord-Aurdal") |> pull(dk_percent)` | `r muni_tbl |> filter(Municipality == "Nord-Aurdal") |> pull(mirePercent)` | `r muni_tbl |> filter(Municipality == "Nord-Aurdal") |> pull(mire_km2)` | `r muni_tbl |> filter(Municipality == "Nord-Aurdal") |> pull(mireInSurvery_percent)` | `r muni_tbl |> filter(Municipality == "Nord-Aurdal") |> pull(n)` | `r muni_tbl |> filter(Municipality == "Nord-Aurdal") |> pull(meanHIA)` |
 
 : Information for the three target municipalities in Norway {#tbl-munis}
 
@@ -1950,32 +2659,31 @@ All the data preparation and analyses were done in RStudio [@positteam2024] and 
 
 ## Indicator validity and trends in Norway
 
-The three indicators showed some association with the HIAs when we looked at data from all of Norway with `r nrow(naturetypes)` individual mires.
-The indicators mostly showed a worsening of condition with increasing presence of human infrastructure (@fig-validation).
+The three indicators generally showed a worsening of condition with increasing presence of human infrastructure when we looked at data from all of Norway with `r nrow(naturetypes)` individual mires (@fig-validation).
 This relationship was much stronger for the indicator *Trenching*, and weakest for the indicator *Alien species*.
 *Alien species* also had the highest indicator values overall, with most mires having no alien species recorded.
 For *Trenching*, 57% of mires in HIA-3 had some trenches, whereas in HIA-0 this number was 10%.
 
 ## The three focal municipalities
 
-Only in Gran municipality was there a significant difference in the *Trenching* indicator between HIAs, with HIA-2 having worse condition than HIA-1 (@fig-forest).
-Conversely, the *ADSV* indicator in Gran showed worse condition in HIA-1 compared to HIA-2.
-Nordre-Follo had considerably fewer data points compared to Gran, and especially to Nord-Aurdal who had the most data points, and this paucity of data is reflected in the wide credible intervals for all three indicators in Nordre Follo.
-The credible intervals are widest for the *Trenching* indicator, and this is because the national data set showed more variation in the underlying variable 7GR-GI compared to the other variables 1-5 (@tbl-variables), and this information is informing the Bayesian updating process (see @sec-methods).
-Besides Nordre Follo, which do not contain any HIA-0 areas (i.e. relatively wild areas), the three municipalities had areas in all HIA classes.
-Yet, none of the three municipalities had survey data from all HIAs.
-Therefore, when we transferred the mean and SD for each HIA (@fig-forest) over to the ecosystem delineation map (@fig-spread-example), some mire polygons in the ecosystem delineation map did not get assigned any data, and were therefore not included (i.e. did not have any influence on) the following aggregation to ecosystem accounting areas (EAA) (@fig-workflowExample, E) .
-At the municipality level (i.e. the EAA level) the three municipalities show some differentiation.
-Nordre Follo had the highest (the best) indicator values for ADSV, but the lowest for Trenching, which was also the only instance of an indicator crossing the threshold from good to deteriorated condition (@fig-EEA-ridgePlot; Table S2).
+The indicator values were comparable across HISs in the three municipalities, although there were some differences, as for the *Trenching* indicator where in Gran, HIA-2 had worse condition than HIA-1 (@fig-forest).
+Conversely, the *ADSV* indicator in Gran showed worse condition in HIA-1 compared to HIA-2, but the predicted indicator values had a wide credible interval (horizontal bars in @fig-forest).
+Nordre-Follo had considerably fewer data points compared to the other two municipalities and the the 95% credible intervals are thereofre mainly reflecting the indicator distribution nationally.
+
+None of the municipalities had survey data from all HIAs.
+Therefore, when we transferred the point rstimates and the predicted indicator values for each HIA (@fig-forest) over to the ecosystem delineation map (@fig-spread-example), some mire polygons in the ecosystem delineation map did not get assigned any data, and were therefore not included (i.e. did not have any influence on) the following aggregation to ecosystem accounting areas (EAA) (@fig-workflowExample, E) .
+
+At the municipality level (i.e. the EAA level) the indicators generally showed good ecological condition (i.e. values \>0.6) and point estimates ranged between 0.79 and 0.98, with the exception of *Trenching* in Nordre Follo which had 0.24 (@fig-EEA-ridgePlot; Table S2).
+Nordre Follo also had the highest (the best) indicator values for one of the indicators (ADSV); probably reflecting stochaticity due to low sample size .
 
 ```{r fig-workflowExample}
 #| eval: true
 #| include: true
 #| out.width: '100%'
 #| fig.cap:
-#| - "Simplified schematic showing the workflow (Panes A-E) for spatial generalisation of a spatially biased ecosystem condition indicator. Pane A shows a spatially explicit, patchy and spatially biased indicator. The outline is the ecosystem accounting area (EEA). Pane B shows the location of four homogeneous impact areas (HIAs) inside the EEA. The indicator values in Pane A are used, in combination with the HIA map in Pane B, to update a uniform prior and produce a posterior probability distribution for the mean area weighted indicator value for each HIA (Pane C; here simplified to only show the mean (circles) and 95% credible intervals (coloured bands)). The Bayesian updating is informed by the standard deviation for the indicator in a much bigger national data set. The width of the posterior distribution responds both to variation in the data and to the sample size, giving  a realistic measure for the uncertainty around the indicator even with a single observation. The distributions in Pane C are assumed normally distributed. Note that because in this example there were no indicator data for HIA-3, indicator values are only aggregated for HIAs 0–2. In Pane D the mean and SD from the posterior distributions are transferred to individual polygons in an ecosystem delineation map, for each HIA separately. The colours indicate different indicator values (highlighted in the inset). For each ecosystem occurrence (i.e. ecosystem assets) in Pane D, we draw one random value for each square meter of area from a normal distribution with the mean and SD that is associated with that polygon. In Pane E we have randomly sampled 1000 values from the entire vector of samples in the previous step, and we get an area weighted probability distribution for the mean indicator value for the EEA."
+#| - "Simplified schematic showing the workflow (Panes A-E) for spatial generalisation of a spatially biased ecosystem condition indicator. Pane A shows in red the data coverage of a patchy and spatially biased indicator. Surveyed areas are grey and unsurveyed areas are green. Together they make up the ecosystem accounting area (EEA). Pane B shows the location of four homogeneous impact areas (HIAs) inside the EEA, where the prevalence of human infrastructure increases from 0 to 3. The indicator values in Pane A are used, in combination with the HIA map in Pane B, to calculate the area-weighted point estimates shown as grey circles in Pane C.  The errors surrounding the point estimate are calculated independently from the point estimate via an emipircal Bayes approach as predicted distributions (show in Pane C as 95% credible intervals (CI)) informed with prior knowledge about the shape of the distribution of indicator values (a zero- and one-inflated beta distribution in this case) for a larger area, i.e. outside the EAA. Note that because in this example there were no indicator data for HIA-3, indicator values are only aggregated for HIAs 0-2. In Pane D the point estimates and sampled distributions are transferred to individual polygons in an ecosystem delineation map, for each HIA separately. The colours indicate different point estimates (highlighted in the inset). Pane E shows area-weighted indicator values aggregated to the EAA level.  Blue vertical bars show the distribution of real samples values (samples here along an ordinal 5-step scale). The orange density curve show the predicted indicator values informed both by local samples from inside the EAA and from a larger national dataset (indicator weight was 20, meaning the national data had the same influence on the predicted distribution as 20 local samples). The area-weighted mean and 95% CI are shown at the bottom as a thick vertical bar and thin horsontal line, respectively. The mean is informed by the local data only (blue bars) and the 95% CI is a summary of orange distribution."
 
-knitr::include_graphics("../images/aggregation-workflow.jpg")
+knitr::include_graphics("../images/aggregation-workflow.png")
 
 ```
 
@@ -2028,81 +2736,63 @@ knitr::include_graphics("../images/spread-na-small.jpg")
 #| include: true
 #| out.width: '80%'
 #| fig.cap:
-#| - "Distributions for three ecosystem condition indicators in the Norwegian 
-#| municipalities. The colour gradient reflects the value of the x-axis. 
-#| The dotted vertical line represents the threshold for what is considered 
-#| reduced ecosystem condtion (< 0.6). Vertical lines under the density curves
-#| are 2.5%, 50% (the median) and 97.5% percentiles."
+#| - "Distributions for three ecosystem condition indicators in three Norwegian 
+#| municipalities. 
+#| Blue vertical bars show the distribution of real samples values. Orange density curves show the predicted indicator values informed both by local samples from inside the EAA and from a larger national dataset. The area-weighted mean and 95% credible intervals are shown at the bottom as a thick vertical bar and thin horsontal line, respectively. The mean is informed by the local data only (blue bars) and the 95% CI is a summary of orange distribution."
 
 # Histogram smoothing makes it look like there are more data points beyond the lower and upper percentiles than there really is. The 2.5% percentile sometimes looks like the 25% percentile. 
 
-knitr::include_graphics("../images/ridgePlot.jpg")
+knitr::include_graphics("../images/results.jpg")
 ```
 
 # Discussion
 
-## The stratified GIS-based approach using HIAs
+This paper presents a generalizable workflow to address two critical challenges in local ecosystem condition assessments (ECAs): (1) mitigating spatial and environmental bias in scarce field data, and (2) quantifying realistic uncertainties for small-sample indicators (@fig-workflowExample).
+Our approach combines direct estimation (to preserve local representativeness) with empirical Bayes variance smoothing (to stabilize uncertainty estimates), offering a pragmatic solution for municipalities where data limitations hinder robust assessments.
+Below, we discuss the strengths and limitations of our two core innovations: post-stratification using Homogeneous Impact Areas (HIAs) and variance smoothing for small-area statistics.
+The two approaches can also be used independently.
 
-In this paper we have demonstrated a generalisable GIS-based workflow for making use of spatially biased field data to produce representative ecosystem condition indicators at a local municipal scale (@fig-workflowExample).
-This approach is useful especially for local assessments where we do not want to use data from outside the EAA to inform or influence our estimates for condition indicators inside the EAA.
-The method relies on stratifying the field data by Homogeneous Impact Areas (HIAs).
-Our HIA was an ordinal gradient from low to high prevalence of infrastructure, and we found a relationship of increasing infrastructure and decreasing indicator values ranging from weak, in the case of the *Alien species* indicator, to strong, for the indicator for *Trenching* in mires (the *ADSV* indicator falling somewhere in the middle) (@fig-validation) .
-This implies that the stratification was warranted in the latter case (*Trenching*), i.e. that field data from urban or sub-urban mires could not be said to represent the status of mires in more remote wilderness areas.
-In the case for *Alien species*, stratifying the variable by the HIAs can be predicted to have had a less directional effect on average, but we did find a difference between HIA-1 and 2 in Nord-Aurdal municipality, indicating that the impact from alien species differs between these two strata of varying infrastructure (@fig-forest).
-The drawback that we see from using this stratification technique when the HIA variable is not a good predictor for variation in the indicator, is that we end up with less data points, and therefore higher uncertainties around our indicator estimates, than we otherwise would.
-However, we do not see this as a major problem.
-Also, since our HIA areas are somewhat cohesive, forming a clumped or aggregated pattern, stratifying by it will on average lead to relatively more local data being used for each local indicator estimate, with less geographic extrapolation.
-Therefore, we see little risk in using the stratification process also on indicators where the relationship between the indicators and the HIA are weak, although we stress that not accounting for other, potentially more relevant predictors of indicator values, would leave the indicator as spatially biased as the original variable.
+## Post-stratification using HIAs
 
-## The benefits of using Bayesian updating
+Local ECAs often rely on opportunistic datasets that lack spatial representativity.
+Our post-stratification method addresses this by partitioning data into HIAs—homogeneous impact areas (e.g., infrastructure prevalence)—ensuring indicators are estimated only within comparable contexts.
+This minimizes extrapolation bias while retaining interpretability.
+A similar concept called homogeneous ecosystem areas was introduced by @vallecillo_eu-wide_2022 and refer to parts of an ecosystem type that can be allowed to share common reference levels.
+HIAs on the other hand, refer to areas that can be allowed to share common indicator values.
 
-We have also demonstrated how Bayesian updating and re-sampling can be used instead of traditional arithmetic aggregation of indicators, from ecosystem assets to EAAs, to produce probability density distributions for indicator values.
-A major benefit of this approach in our example was that it allowed us to present reliable uncertainty ranges for our indicator estimates even with very low sampling sizes, thus making it possible to estimate indicator values for a much greater area than if we were forced to set a minimum sample size threshold.
+The effectiveness of HIAs depends on their alignment with indicator dynamics.
+For instance, infrastructure prevalence strongly predicted trenching impacts in mires but weakly explained alien species occurrence (@fig-validation).
+For the latter, other stratification variables could have been explored, e.g. latitude, as there are generally more alien species in the south compared to the north in Norway.
+Even though suboptimal HIAs reduce sample size per stratum, they still mitigate geographic bias by limiting inference to relatively spatially cohesive areas.
+We see little risk with using HIA use even when relationships are weak, but not accounting for other, potentially more relevant predictors of indicator values, will leave the indicator as spatially biased as the original variable.
+
+HIAs are particularly valuable for local ECAs, where small samples preclude complex geostatistical methods (e.g., kriging).
+Such methods are also more complicated and and therefore at a compromise with the ideal for simplicity (@czucz_selection_2021).
+HIAs also provide actionable insights by revealing spatial patterns in degradation (@fig-forest).
+However, trade-offs exist between HIA granularity and data availability; our pilot municipalities had insufficient data for some strata, suggesting broader definitions or imputation could be explored.
+Alternatively one can chose to impute values *post hoc* instead of simply dropping strata with no data.
+
+## Uncertainty quantification for small samples
+
 An indicator estimate is of little value unless it is accompanied by a measure of uncertainty.
-The variance is commonly used, usually calculated from the variation between spatially distant sampling points.
-However, the variance is not reliable for low sample sizes.
-For example, even if a numerical population has a large variance, it is still possible to sample, by chance alone, two or three numbers that are very close to each other, and this sample would then display a low variance which is not reflective of the true variance.
-Knowing this, one approach is to set a sample size limit, and refrain from estimating indicator values unless there are more than a given number of data points.
-In our test municipality Nordre Follo, we had only 1-3 data points for each HIA strata, yet we were able to use these data regardless because the Bayesian updating produces a reliable, and relatively broad, uncertainty range for the estimate.
-This is an advantage, especially for local ecosystem condition assessments where data scarcity is likely to be more of an issue than in for example national assessments.
+However, there is a general lack of guidelines for estimation and disclosure of uncertainties in the SEEA EA statistical standard, and indicator values are often reported simply as opening and closing values.
+Traditional variance estimates fail for truncated or skewed indicators, where limited sampling can artificially inflate precision.
+Our empirical Bayes solution circumvents this by borrowing strength from a national dataset to model uncertainty distributions without affecting the point estimates which are estimated directly using only data from inside the EAA to ensure indicators reflect local condition.
 
-## How to get more data for local Ecosystem Condition Accounts
+Our approach enables uncertainty reporting even for tiny samples (e.g., 1–3 data points), which would otherwise be discarded.
+While it cannot eliminate the inherent stochasticity of sparse data, it contextualizes estimates within plausible value ranges, supporting decision-making.
+As sample sizes grow, local data dominate the uncertainty estimates, making the method adaptable across scales.
 
-The UN standard for ecosystem accounting has been tailed towards national accounts [@unitednations2021].
-Similarly, reporting of Ecosystem Accounts to Eurostat, expected to become mandatory for all EU and EEA countries from 2026, is unlikely to require sub-national resolution.
-Assessments at national scales can make use of data sets, and hence indicators, that local assessments cannot.
-For example, national forest inventories or other national area representative field-based nature monitoring provide enough data points for reliable estimates of indicator values only at relatively large spatial scales.
-Local ecosystem accounts instead rely more on remote sensing or field measurements.
-Remote sensing holds great promise for delivering valuable information to ecosystem accounts across all scales, yet there are some ecosystem characteristics that cannot easily be sensed remotely.
-This includes for example species identities, and hence indicators on topics such as alien species or occurrence of threatened or certain keystone species.
-Fieldwork will therefore still be vital for collection of information for ecosystem accounts also in the future.
+However, our results point to where the data shortages are most pressing (HIAs with little or no data), and this information could be used to guide future data collection.
+For example, Gran and Nord-Aurdal have not recorded any field data from their most urban areas (HIA 3; @fig-forest) and could make these areas a priority in upcoming field campaigns in order to get more complete spatial indicator coverage.
 
-To increase efficacy of fieldwork at local scales - and hence, reduce costs - our results demonstrate that municipalities can stratify their field sampling according to the HIAs.
-For example, Gran and Nord-Aurdal have not recorded any field data from their most urban areas (HIA 3) and could make these areas a priority in upcoming field campaigns in order to get more complete spatial indicator coverage.
+## Indicator values in pilot municipalities
 
-We used a national data set of nature type surveys that follow a shared protocol [@norwegian_environmental_agency_protocol].
-There can be other data sets, that may not be compiled nationally, but which could be relevant to local ECAs.
-In some cases, a local ECA is mostly interested in describing and monitoring the status within its own EAA, but great benefits may be had if accounts can also be compared between EAA, say between municipalities.
-This kind of information can give grounds for a more regional assessment, for example looking at the effects of policies on ecosystem condition trajectories.
-To accomplish this level of synthesis it helps to be able to use indicators that are common across EAAs.
-This all depends on the right variables being collected in a similar way, for example across different projects or monitoring frameworks.
-In Norway, ecosystem impact assessments (EIA) are frequently being produced in conjunction with planned development projects.
-This data could be made very valuable for local ecosystem condition accounts, but currently there are several things stopping this.
-Firstly, there is no standardised reporting for EIA in Norway, and no mandatory publication pathway, and therefore no way to obtain a unified data set of variables recorded across different EIAs.
-If data is made publicly available in a national data base, they could be used to design indicators that are informative at multiple scales, also larger than the project level scale at which they were recorded.
-Second, the data collection is mainly on the occurrence of specific nature type or species of interest, and true condition parameters are not part of the information required by the authorities.
-In contrast, other nations have implemented EIA or EIA equivalent systems that have much greater synergistic properties towards ecosystem accounting, such as the Biodiversity Net Gain program in England [@departmentforenvironmentfoodruralaffairs].
-This program enforces developers to record and compile data on ecosystem extent and condition at very fine resolution in order to document their effect on nature and ensure a positive net gain from their activities.
-Relevant ecosystem condition variables are recorded for each delineated ecosystem areas, providing an explicit link between ecosystem type and condition.
-
-## Indicator values in the three pilot municipalities
-
-The indicator values for our three indicators across the three municipalities showed in general a good condition in the mire ecosystems (@fig-EEA-ridgePlot).
-The exception was for variable *Trenching* in Nordre Follo, where the indicator value was 0.25; well below the threshold for good ecosystem condition (0.6).
-This estimate is based on just 4–5 data points (i.e. mires), and this is also reflected in the wide credible intervals \[0.04 – 0.50\].
+The values for our three indicators across the three municipalities showed in general a good condition in the mire ecosystems (@fig-EEA-ridgePlot).
+An exception was *Trenching* in Nordre Follo (indicator: 0.24, *n* = 4) which was well below the threshold for good ecosystem condition (0.6).
+The predicted indicator distribution is higher, suggesting the value might rise with additional sampling, but the direct estimate—uninfluenced by national data—reflects local realities.
 Nordre Follo has surveyed more of its total land area compared to the other two municipalities, but has less mire area to begin with (@tbl-munis), which is the reason for this low sample size.
-We believe this indicator estimate is trustworthy, considering the wide credible intervals, and that it could reflect the true prevalence of trenching in Nordre Follo.
-Future work could test this assumption by simulating the effect of varying the sample size for an EAA where all the mires are sampled.
+Nordre Follo’s limited mire area underscores the value of our small-area methods.
 
 Mire condition in Norway has not been assessed at a national scale.
 Still, we know that they are subject to multiple threats, especially land conversion into agriculture, forestry, or development, and we see this reflected in the Norwegian Red List for Nature types where many ombrotrophic bog types, and rich southern minerotrophic fens are listed [@artsdatabanken2018].
@@ -2116,9 +2806,11 @@ Still, the indicator values are consistently above the threshold value for good 
 
 # Conclusion
 
-In conclusion, we have demonstrated a new GIS based workflow for constructing ecosystem condition indicators from spatially biased variables using a method of stratified aggregation by an ordinal gradient of Homogeneous Impact Areas (HIA).
-In addition, we show how Bayesian updating can help produce uncertainty estimates for condition indicators that suffer from low sampling sizes where traditional variances would be unreliable.
-Our workflow can also help guide local field efforts to in the future get better and less resource demanding local ecosystem condition accounts.
+By integrating post-stratification and empirical Bayes variance smoothing, we enable local ECAs to leverage imperfect datasets while maintaining transparency and local relevance via direct estimation.
+Our methods address fundamental challenges in ecosystem accounting: spatial bias correction and uncertainty quantification for small samples.
+As SEEA EA matures, we urge greater emphasis on uncertainty reporting and robust aggregation techniques.
+We have demonstrated approaches that are new or relatively new to the ECA field of practice but well established in other fields of statistics.
+This work demonstrates that even sparse data can yield actionable insights when paired with statistically principled approaches.
 
 # CRediT authorship contribution statement {.unnumbered}
 

@@ -1,0 +1,375 @@
+---
+title: "bayesUpdating"
+format: html
+editor: visual
+---
+
+## Function to update an estimate of a zero and 1-inflated beta distributed distribution
+
+The goal here is to use a larger dataset (national dataset) to infer about the shape of a smaller domain dataset. The domain mean will always be uninformed by the national data, but I will use empirical bayes to make a better guess at the true variation of the domain data when sample sizes are low. I add a prior weight of 10, meaning the national dataset coundt similarly as ten domain datapoints in describing the distributional shape for the domain data.
+
+Deepseek (free version, may-juni 2025) was used to flesh out some of the ideas and test for logical errors. However, the original idea was by the authors, and all code has been verified and we also added a simulation to test the behaviour of the functions.
+
+I will now simulate som (national) data and some domain data and then test the functions for getting updated domain shape and variance.
+
+I tried also with prior weight of 5, and results are qualitativly similar. As a rule of thumb, I want the posterior distribution to include just about the whole range for the national data when n = 2-3.
+
+This example does not include area weighting. Latyer I want to use area weighting for the domain means, but I will not include it for the updated shape parameters.
+
+```{r setup}
+library(tidyverse)
+library(MASS)
+library(ggh4x)
+```
+
+```{r nationalData}
+# set seed
+set.seed(123)
+
+# define sample size
+n <- 1000
+
+
+national_data <- tibble(
+  # first, some population samples with different properties
+  uniform = runif(n, 0, 1),
+  normal_centered = rnorm(n, 0.5, 0.2),
+  normal_high = rnorm(n, 1, .5),
+  beta_2_2 = rbeta(n, 2, 2),
+  beta_05_3 = rbeta(n, .5, 3),
+  beta_3_05 = rbeta(n, 3, .5),
+) |>
+  # truncate
+  mutate(across(
+    !starts_with("wgt"),
+    ~ case_when(
+      . >= 1 ~ 1, 
+      . <= 0 ~ 0, 
+      .default = .
+    )
+  )) |>
+  pivot_longer(
+    cols = !starts_with("wgt"),
+    names_to = "distribution",
+    values_to = "population_sample"
+  ) |>
+  nest(population_sample = population_sample, wgt = wgt)
+
+    
+```
+
+```{r domainData}
+
+
+# pre set some sample sizes
+a <- 2
+b <- 5
+c <- 10
+d <- 30
+
+# set seed
+set.seed(123)
+
+domain_data <- tibble(
+    sample_ID = c(
+      "domain_1a",
+      "domain_1b",
+      "domain_1c",
+      "domain_1d",
+      "domain_2a",
+      "domain_2b",
+      "domain_2c",
+      "domain_2d",
+      "domain_3a",
+      "domain_3b",
+      "domain_3c",
+      "domain_3d",
+      "domain_4b",
+      "domain_4c",
+      "domain_4d",
+      "domain_5b",
+      "domain_5c",
+      "domain_5d"),
+    
+    values = list(
+      # 1's
+      tibble(sample = rep(1,a)), 
+      tibble(sample = rep(1,b)),
+      tibble(sample = rep(1,c)),
+      tibble(sample = rep(1,d)),
+      
+      #  high values
+      tibble(sample = seq.int(0.7, 1, length.out=a)),
+      tibble(sample = seq.int(0.7, 1, length.out=b)),
+      tibble(sample = seq.int(0.7, 1, length.out=c)),
+      tibble(sample = seq.int(0.7, 1, length.out=d)),
+      
+      #  low values (further from the population shape)
+      tibble(sample = seq.int(0.1, 0.4, length.out=a)),
+      tibble(sample = seq.int(0.1, 0.4, length.out=b)),
+      tibble(sample = seq.int(0.1, 0.4, length.out=c)),
+      tibble(sample = seq.int(0.1, 0.4, length.out=d)),
+      
+      # truncated normal with sd = .5, which is probably more variation than the natinal data
+      tibble(sample = rnorm(b, 1, .5) |> pmin(1) |> pmax(0) |> sort()),
+      tibble(sample = rnorm(c, 1, .5) |> pmin(1) |> pmax(0) |> sort()),
+      tibble(sample = rnorm(d, 1, .5) |> pmin(1) |> pmax(0) |> sort()),
+      
+      # truncated normal with sd = .1
+      tibble(sample = rnorm(b, 1, .1) |> pmin(1) |> pmax(0) |> sort()),
+      tibble(sample = rnorm(c, 1, .1) |> pmin(1) |> pmax(0) |> sort()),
+      tibble(sample = rnorm(d, 1, .1) |> pmin(1) |> pmax(0) |> sort())
+      
+    ))
+
+
+    
+```
+
+```{r tbl-showData}
+
+DT::datatable(national_data)
+```
+
+```{r tbl-showData}
+
+DT::datatable(domain_data)
+```
+
+```{r fig-plotDist}
+
+# plot the population samples
+national_data |>
+  unnest(population_sample) |>
+  ggplot()+
+  geom_histogram(aes(x = population_sample),
+                 binwidth = 0.1)+
+  facet_wrap(vars(distribution),
+             scales = "free")
+#ggsave("../images/population_samples.png")
+```
+
+```{r fig-plotDist}
+
+# plot the domain samples
+domain_data |>
+  unnest(values) |>
+  ggplot()+
+  geom_histogram(aes(x = sample),
+                 binwidth = 0.1)+
+  xlim(-0.2, 1.2)+
+  facet_wrap(vars(sample_ID),
+             scales = "free_y")
+#ggsave("../images/population_samples.png")
+```
+
+```{r fit_zoib}
+# function to fit zero and one inflated beta distributions
+fit_zoib <- function(x) {
+  prop_1 <- mean(x == 1)
+  prop_0 <- mean(x == 0)
+  x_trunc <- x[x > 0 & x < 1]
+  alpha <- MASS::fitdistr(x_trunc, dbeta, start = list(shape1 = 1, shape2 = 1))$estimate
+  list(alpha = alpha, prop_1 = prop_1, prop_0 = prop_0)
+}
+
+
+```
+
+```{r}
+# applied on the national dataset
+
+national_data <- national_data |>
+  rowwise() |>
+  mutate(fit = 
+           list(fit_zoib(unlist(population_sample))))
+
+```
+
+```{r updatingFunction}
+# Empirical bayes
+# Bayesian updating: combine domain data with national shape
+
+update_distribution <- function(domain_data, national_fit, prior_weight = 10) {
+  
+  n <- length(domain_data)
+  prop_1_domain <- mean(domain_data == 1)
+  prop_0_domain <- mean(domain_data == 0)
+  
+  # Update 1-inflation (weighted average)
+  updated_prop_1 <- (n * prop_1_domain + prior_weight * national_fit$prop_1) / (n + prior_weight)
+  updated_prop_0 <- (n * prop_0_domain + prior_weight * national_fit$prop_0) / (n + prior_weight)
+  
+  # Update beta parameters (only for 0 < x < 1 part)
+  x_trunc <- domain_data[domain_data > 0 & domain_data < 1]
+  
+  if (length(x_trunc) > 1) {
+    tryCatch({
+      alpha_domain <- MASS::fitdistr(x_trunc, dbeta, 
+                                    start = list(shape1 = 1, shape2 = 1))$estimate
+      
+      updated_alpha <- (alpha_domain * length(x_trunc) + national_fit$alpha * prior_weight) /
+                          (length(x_trunc) + prior_weight)
+    }, error = function(msg){
+      return(NA)
+    }
+      
+    )
+  } else {
+    updated_alpha <- national_fit$alpha
+  }
+  
+  if(!exists("updated_alpha")) updated_alpha <- NA
+  
+  list(
+    alpha = updated_alpha, 
+    prop_1 = updated_prop_1, 
+    prop_0 = updated_prop_0
+    )
+}
+
+#updated_dist <- update_distribution(domain_data, national_fit)
+```
+
+```{r}
+# applied on the domain samples
+
+comb_data <- domain_data |>
+  cross_join(
+    national_data)
+
+comb_data <- comb_data |>
+  rowwise() |>
+  mutate(updated_fit = 
+           list(
+             update_distribution(
+               domain_data = unlist(values),
+               national_fit = fit
+           )))
+```
+
+```{r simulationFunction}
+
+# Generate uncertainty distribution around domain mean
+simulate_domain <- function(dist, n_sim = 10000) {
+  is_1 <- rbinom(n_sim, 1, dist$prop_1)
+  is_0 <- rbinom(n_sim, 1, dist$prop_0) * (1 - is_1)
+  cont_part <- (1 - is_1 - is_0) * rbeta(n_sim, dist$alpha[1], dist$alpha[2])
+  is_1 * 1 + is_0 * 0 + cont_part
+}
+
+```
+
+```{r}
+# Applied on the test cases
+comb_data <- comb_data |>
+  rowwise() |>
+  mutate(PDs = 
+    list(simulate_domain(updated_fit, n_sim = 1000)))
+
+```
+
+```{r}
+# add sample means (unweighted in this case)
+
+comb_data <- comb_data |>
+  mutate(
+    mean = mean(unlist(values)),
+    firstQuartile = quantile(unlist(PDs), 0.25),
+    thirdQuartile = quantile(unlist(PDs), 0.75),
+    lowCI = quantile(unlist(PDs), 0.025),
+    highCI = quantile(unlist(PDs), 0.975)
+  )
+```
+
+```{r}
+# Prepare data for plotting
+comb_data <- comb_data |>
+  mutate(
+    n = str_sub(sample_ID, -1, -1),
+    n = case_when(
+      n == "a" ~ 2,
+      n == "b" ~ 5, 
+      n == "c" ~ 10,
+      n == "d" ~30
+    ),
+    scenario = str_sub(
+      sample_ID, -2, -2
+    ),
+    scenario = case_when(
+      scenario == "1" ~ "Only 1's",
+      scenario == "2" ~ "High values",
+      scenario == "3" ~ "Low values",
+      scenario == "4" ~ "Trunc.nor. high SD",
+      scenario == "5" ~ "Trunc.nor. low SD"
+    )
+  )
+```
+
+```{r fig-bigFacet}
+#| fig-height: 12
+#| warning: false
+
+comb_data |>
+  ggplot()+
+  geom_density(
+    data = comb_data |>
+      unnest(population_sample),
+    aes(x = population_sample,
+        y = after_stat(scaled)),
+    fill = "sienna1",
+    alpha = .5
+  ) +
+  geom_density(
+    data = comb_data |>
+      unnest(PDs),
+    aes(x = PDs,
+        y = after_stat(scaled)),
+    alpha = .5,
+    fill = "cornflowerblue"
+  ) +
+  geom_histogram(
+    data = comb_data |>
+      unnest(values),
+    aes(x = sample,
+        y = stat(ncount)),
+    binwidth = .05,
+    alpha=.8,
+    fill = "cornflowerblue"
+  )+
+      theme(legend.position = 'none',
+        axis.title.y = element_blank()) +
+  geom_segment(
+    aes(x = mean,
+        xend = mean,
+        y = 0,
+        yend = .2),
+    linewidth = 3,
+    alpha=.7,
+    colour = "grey10"    
+  )+
+  geom_segment(
+    aes(x = lowCI,
+        xend = highCI,
+        y = -0.1,
+        yend = -0.1),
+    linewidth = 1.2,
+    alpha=.7,
+    colour = "grey30"    
+  )+
+  geom_segment(
+    aes(x = firstQuartile,
+        xend = thirdQuartile,
+        y = -0.1,
+        yend = -0.1),
+    linewidth = 3,
+    alpha=.7,
+    colour = "grey30"    
+  )+
+  xlim(-0.2,1.2)+
+  facet_nested(scenario + n ~distribution)
+
+ggsave("../images/posteriorCheck.png",
+       width = 30, height = 30, units = "cm")
+
+```
