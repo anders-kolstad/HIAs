@@ -2745,88 +2745,52 @@ knitr::include_graphics("../images/results.jpg")
 
 # Discussion
 
-In this paper we have demonstrated a generalisable workflow for making use of scarce and spatially biased field data to produce representative ecosystem condition indicators at a local municipal scale, combining direct estimation for point estimates with variance smoothing for better predictions of indicator uncertainty (@fig-workflowExample).
-These approaches can provide valuable tools for local ECAs where limited sample sizes and low data availability still are the major limitation.
-We will focus on two novel approaches in turn, describing their virtues and uses: post-stratification for minimising adverse effects of spatial and environmental bias in the data, and empirical Bayes variance smoothing for calculating realistic indicator uncertainties even for small sample sizes.
+This paper presents a generalizable workflow to address two critical challenges in local ecosystem condition assessments (ECAs): (1) mitigating spatial and environmental bias in scarce field data, and (2) quantifying realistic uncertainties for small-sample indicators (@fig-workflowExample).
+Our approach combines direct estimation (to preserve local representativeness) with empirical Bayes variance smoothing (to stabilize uncertainty estimates), offering a pragmatic solution for municipalities where data limitations hinder robust assessments.
+Below, we discuss the strengths and limitations of our two core innovations: post-stratification using Homogeneous Impact Areas (HIAs) and variance smoothing for small-area statistics.
 The two approaches can also be used independently.
 
-## Post-stratification approach using HIAs
+## Post-stratification using HIAs
 
-<!--# Ecosystem condition indicators should be spatially representative for the individual ecosystem assets in an ECA so that an area weighted average across ecosystem assets provides a representative estimate for the given ecosystem type. Remotely sensed data are spatially representative if they are spatially exhaustive, and they can be used for indicators in ECAs at any scale. However, many aspects of ecological condition cannot be remotely sensed. At national or international scales, indicator developers may have some field-based monitoring data available to them which are sampled using a random or systematic design, and thus fulfill the criteria of representativeness. However, for local scales, such surveys or monitoring programs are less common.  A third category of datasets include opportunistically sampled data where both the relative sampling efforts and the local sample sizes can vary widely. This includes data from certain citizen science initiatives, or as in our case, spatially clumped nature type mapping with unknown environmental biases. Being able to include these kinds of data in local ECAs would greatly alleviate data shortages and provide essential field-based data on for example species composition or small scale disturbances.  -->
-
-Local ECAs are usually not blessed with having a lot of area representative field data to base indicators on and are therefore forced to look at other data sources that might be less ideal, for example due to opportunistic sampling designs.
-We provide a simple solution to make such data more compliant with SEEA EA. First we identifed a candidate spatial variable hypothesised to reflect the direct negative drivers of the ecosystem characteristics, and thus the indicators themselves.
-With a categorised version of this variable we post-stratified the survey data and calculated indicator values for each strata separately, thus avoiding to extrapolate extensively beyond the geographic and environmental context where the samples where initially taken.
-We refer to the strata as homogeneous impact areas, or HIAs.
+Local ECAs often rely on opportunistic datasets that lack spatial representativity.
+Our post-stratification method addresses this by partitioning data into HIAs—homogeneous impact areas (e.g., infrastructure prevalence)—ensuring indicators are estimated only within comparable contexts.
+This minimizes extrapolation bias while retaining interpretability.
 A similar concept called homogeneous ecosystem areas was introduced by @vallecillo_eu-wide_2022 and refer to parts of an ecosystem type that can be allowed to share common reference levels.
 HIAs on the other hand, refer to areas that can be allowed to share common indicator values.
 
-Our HIA was an ordinal gradient from low to high prevalence of infrastructure.
-We found a relationship of increasing infrastructure and decreasing indicator values ranging from weak, in the case of the *Alien species* indicator, to strong, for the indicator for *Trenching* in mires (the *ADSV* indicator falling somewhere in the middle) (@fig-validation).
-This implies that the stratification was warranted in the latter case (*Trenching*), i.e. that field data from urban or sub-urban mires could not be said to represent the status of mires in more remote wilderness areas.
-In the case for *Alien species*, stratifying the variable by the the prevalence of infrastructure probably made less sense.
-Other HIA definitions could have been explored, for example taking into account latitude as there are generally more alien species in the south compared to the north in Norway.
-A drawback from using this stratification technique, especially when the HIA variable is not a good predictor for variation in the indicator, as for *Alien species*, is that we end up with less data points and more stochacity in the indicator point estimate, than we otherwise would.
-However, we do not see this as a major problem.
-Also, since our HIA areas are somewhat cohesive, forming a clumped or aggregated pattern, stratifying by it will on average lead to less geographic extrapolation.
-Therefore, we see little risk in using the stratification process also on indicators where the relationship between the indicators and the HIA are weak, although we stress that not accounting for other, potentially more relevant predictors of indicator values, would leave the indicator as spatially biased as the original variable.
+The effectiveness of HIAs depends on their alignment with indicator dynamics.
+For instance, infrastructure prevalence strongly predicted trenching impacts in mires but weakly explained alien species occurrence (@fig-validation).
+For the latter, other stratification variables could have been explored, e.g. latitude, as there are generally more alien species in the south compared to the north in Norway.
+Even though suboptimal HIAs reduce sample size per stratum, they still mitigate geographic bias by limiting inference to relatively spatially cohesive areas.
+We see little risk with using HIA use even when relationships are weak, but not accounting for other, potentially more relevant predictors of indicator values, will leave the indicator as spatially biased as the original variable.
 
-We demonstrated the use of HIAs on local ecosystem condition indicators and we believe this is where the approach has the greatest benefits, such as the ability to work with small sample sizes.
-In addition, local area managers may get useful information from seeing the indicators values uniquely for each HIA (@fig-forest) and in that way gain an understanding about where problems with ecosystem deterioration are greatest.
-However, with larger EAAs and more data points, geostatistical methods such as krieging might be more suitable.
-But these methods are also more complicated and thus less transparent to the end users, therefore at a compromise with the ideal for simplicity (@czucz_selection_2021).
+HIAs are particularly valuable for local ECAs, where small samples preclude complex geostatistical methods (e.g., kriging).
+Such methods are also more complicated and and therefore at a compromise with the ideal for simplicity (@czucz_selection_2021).
+HIAs also provide actionable insights by revealing spatial patterns in degradation (@fig-forest).
+However, trade-offs exist between HIA granularity and data availability; our pilot municipalities had insufficient data for some strata, suggesting broader definitions or imputation could be explored.
+Alternatively one can chose to impute values *post hoc* instead of simply dropping strata with no data.
 
-When defining the HIAs, the main trade-off is between trying to keep the areas as small and homogeneous as possible, and at the same time ensure there are enough data points to estimate indicator values for each , or most, of the HIAs.
-In our case, only two or three HIA levels had field data recorded in them, depending on the municipality, and the differences in indicator values between HIAs in each municipality was relatively small.
-This could mean that broader HIA definitions could have been used in our case.
-Alternatively, in case there are no data for a stratum, one might chose to impute values *post hoc*, instead of simply dropping the strata all together, as we did.
+## Uncertainty quantification for small samples
 
-## Indicator uncertainties and small area statistics
+An indicator estimate is of little value unless it is accompanied by a measure of uncertainty.
+However, there is a general lack of guidelines for estimation and disclosure of uncertainties in the SEEA EA statistical standard, and indicator values are often reported simply as opening and closing values.
+Traditional variance estimates fail for truncated or skewed indicators, where limited sampling can artificially inflate precision.
+Our empirical Bayes solution circumvents this by borrowing strength from a national dataset to model uncertainty distributions without affecting the point estimates which are estimated directly using only data from inside the EAA to ensure indicators reflect local condition.
 
-<!--# This approach is useful especially for local assessments where we do not want to use data from outside the EAA to inform or influence our estimates for condition indicators inside the EAA. The method relies on stratifying the field data by Homogeneous Impact Areas (HIAs). Our HIA was an ordinal gradient from low to high prevalence of infrastructure, and -->
+Our approach enables uncertainty reporting even for tiny samples (e.g., 1–3 data points), which would otherwise be discarded.
+While it cannot eliminate the inherent stochasticity of sparse data, it contextualizes estimates within plausible value ranges, supporting decision-making.
+As sample sizes grow, local data dominate the uncertainty estimates, making the method adaptable across scales.
 
-Local ECAs that use field data are often faced with a problem of low sample sizes.
-This affect the religablility of both the indicator point estimate and the variance.
-We think that direct estimation is a critical virtue for local point estimates (i.e. relying only on local data) and simply use the area weighted mean of the data that are available for any give strata.
-This approach ensures that local ECAs are populated with information on local ecosystem characteristics, untainted by neighbouring areas where environmental policies might differ.
 However, our results point to where the data shortages are most pressing (HIAs with little or no data), and this information could be used to guide future data collection.
 For example, Gran and Nord-Aurdal have not recorded any field data from their most urban areas (HIA 3; @fig-forest) and could make these areas a priority in upcoming field campaigns in order to get more complete spatial indicator coverage.
 
-An indicator estimate is of little value unless it is accompanied by a measure of uncertainty.
-We hold this to be a fact and are therefore critical to the lack of direct guidelines for estimation and disclosure of uncertainties in the SEEA EA statistical standard.
-The variance (or standard deviation) is perhaps most commonly used as a measure of uncertainty around indicator estimates, usually calculated from the variation between spatially distant sampling points.
-However, the variance is not reliable for low sample sizes, nor is it sensible for highly skewed or truncated data.
-If a numerical population has a large variance, it is still possible to sample, by chance alone, two or three numbers that are very close to each other, and this sample would then display a low variance which is not reflective of the true variance.
-This problem gets exaggerated when data is truncated, as indicators are (they are bound between zero and one), because one is more likely to sample a series of identical one's or zero's which would yield a variance of zero.
-Knowing this, one approach is to set a sample size limit, and refrain from estimating indicator values (or at least the uncertainties) unless there are more than a given number of data points.
-In our test municipality Nordre Follo, we had only 1-3 data points for each HIA strata, yet we were able to use these data regardless.
-Our emipirical Bayes approach would in this case borrow strenght from a larger national dataset to predict the most probable distribution of indicator values, whilst keeping the point estimate seprerate from this process.
-This is an advantage, especially for local ecosystem condition assessments where data scarcity is likely to be more of an issue than for national assessments.
-Our solution does not however, fix the inherent stochastic that follow from having a point estimate based on few data points, but it puts this estimate into the light of a realistic distribution of possible indicator values, thus making it possibel to extract actionable information from data that would otherwise had been discarded.
+## Indicator values in pilot municipalities
 
-As we would not want to presnet indicator values without ayn uncertainty estimates, then our approach make it possible to estimate indicator values for a much greater area than if we were forced to set a minimum sample size threshold.
-With increasing sample sizes, local data get more influence on predicting the indicator distributions.
-The solution is therefore generic and can be used on large and small datasets alike, or in cases where some HIAs are well samples and some are not.
-
-<!--# We have also demonstrated how Bayesian updating and re-sampling can be used instead of traditional arithmetic aggregation of indicators, from ecosystem assets to EAAs, to produce probability density distributions for indicator values. -->
-
-## How to get more data for local Ecosystem Condition Accounts
-
-<!--# The UN standard for ecosystem accounting has been tailed towards national accounts [@unitednations2021]. Similarly, reporting of Ecosystem Accounts to Eurostat, expected to become mandatory for all EU and EEA countries from 2026, is unlikely to require sub-national resolution. Assessments at national scales can make use of data sets, and hence indicators, that local assessments cannot. For example, national forest inventories or other national area representative field-based nature monitoring provide enough data points for reliable estimates of indicator values only at relatively large spatial scales. Local ecosystem accounts instead rely more on remote sensing or field measurements. Remote sensing holds great promise for delivering valuable information to ecosystem accounts across all scales, yet there are some ecosystem characteristics that cannot easily be sensed remotely. This includes for example species identities, and hence indicators on topics such as alien species or occurrence of threatened or certain keystone species. Fieldwork will therefore still be vital for collection of information for ecosystem accounts also in the future. -->
-
-<!--# To increase efficacy of fieldwork at local scales - and hence, reduce costs - our results demonstrate that municipalities can stratify their field sampling according to the HIAs. For example, Gran and Nord-Aurdal have not recorded any field data from their most urban areas (HIA 3) and could make these areas a priority in upcoming field campaigns in order to get more complete spatial indicator coverage. -->
-
-<!--# We used a national data set of nature type surveys that follow a shared protocol [@norwegian_environmental_agency_protocol]. There can be other data sets, that may not be compiled nationally, but which could be relevant to local ECAs. In some cases, a local ECA is mostly interested in describing and monitoring the status within its own EAA, but great benefits may be had if accounts can also be compared between EAA, say between municipalities. This kind of information can give grounds for a more regional assessment, for example looking at the effects of policies on ecosystem condition trajectories. To accomplish this level of synthesis it helps to be able to use indicators that are common across EAAs. This all depends on the right variables being collected in a similar way, for example across different projects or monitoring frameworks. In Norway, ecosystem impact assessments (EIA) are frequently being produced in conjunction with planned development projects. This data could be made very valuable for local ecosystem condition accounts, but currently there are several things stopping this. Firstly, there is no standardised reporting for EIA in Norway, and no mandatory publication pathway, and therefore no way to obtain a unified data set of variables recorded across different EIAs. If data is made publicly available in a national data base, they could be used to design indicators that are informative at multiple scales, also larger than the project level scale at which they were recorded. Second, the data collection is mainly on the occurrence of specific nature type or species of interest, and true condition parameters are not part of the information required by the authorities. In contrast, other nations have implemented EIA or EIA equivalent systems that have much greater synergistic properties towards ecosystem accounting, such as the Biodiversity Net Gain program in England [@departmentforenvironmentfoodruralaffairs]. This program enforces developers to record and compile data on ecosystem extent and condition at very fine resolution in order to document their effect on nature and ensure a positive net gain from their activities. Relevant ecosystem condition variables are recorded for each delineated ecosystem areas, providing an explicit link between ecosystem type and condition. -->
-
-## Indicator values in the three pilot municipalities
-
-The indicator values for our three indicators across the three municipalities showed in general a good condition in the mire ecosystems (@fig-EEA-ridgePlot).
-The exception was for the variable *Trenching* in Nordre Follo, where the indicator value was 0.24; well below the threshold for good ecosystem condition (0.6).
-This estimate is based on just 4 data points (i.e. mires).
-The predicted indicator distribution is higher, meaning that if Nordre Follo is similar to the rest of Norway, then increasing the sampling effort should elevate the indicator value.
-However, Nordre Follo might be unique, and dissimilar, to the rest of Norway, and for that reason, the point estimate is kept independent of data from outside the municipality and reflecting only the local condition.
+The values for our three indicators across the three municipalities showed in general a good condition in the mire ecosystems (@fig-EEA-ridgePlot).
+An exception was *Trenching* in Nordre Follo (indicator: 0.24, *n* = 4) which was well below the threshold for good ecosystem condition (0.6).
+The predicted indicator distribution is higher, suggesting the value might rise with additional sampling, but the direct estimate—uninfluenced by national data—reflects local realities.
 Nordre Follo has surveyed more of its total land area compared to the other two municipalities, but has less mire area to begin with (@tbl-munis), which is the reason for this low sample size.
-We believe this indicator estimate is trustworthy, considering the wide, right skewed credible intervals, and that it could reflect the true prevalence of trenching in Nordre Follo.
+Nordre Follo’s limited mire area underscores the value of our small-area methods.
 
 Mire condition in Norway has not been assessed at a national scale.
 Still, we know that they are subject to multiple threats, especially land conversion into agriculture, forestry, or development, and we see this reflected in the Norwegian Red List for Nature types where many ombrotrophic bog types, and rich southern minerotrophic fens are listed [@artsdatabanken2018].
@@ -2840,10 +2804,11 @@ Still, the indicator values are consistently above the threshold value for good 
 
 # Conclusion
 
-With a premise that local ECAs should use direct estimation and not be influence by data from outside the EAA, we have developed two generic approaches that allows the inclusion of sparse and spatially biased datasets.
-ECAs are often limited by indicator availabilities, and making use of less-than-ideal datasets could greatly alleviate this problem.
+By integrating post-stratification and empirical Bayes variance smoothing, we enable local ECAs to leverage imperfect datasets while maintaining transparency and local relevance via direct estimation.
+Our methods address foundational challenges in ecosystem accounting: spatial bias correction and uncertainty quantification for small samples.
+As SEEA EA matures, we urge greater emphasis on uncertainty reporting and robust aggregation techniques.
 We have demonstrated approaches that are new or relatively new to the ECA field of practice but well established in other fields of statistics.
-As ECAs and the SEEA EA continues to develop and mature we find it reasonable that more emphasis is placed on the estimation and disclosure of indicator uncertainties, as well as on spatial extrapolation and aggregation, and our work is pointing in this direction.
+This work demonstrates that even sparse data can yield actionable insights when paired with statistically principled approaches.
 
 # CRediT authorship contribution statement {.unnumbered}
 
