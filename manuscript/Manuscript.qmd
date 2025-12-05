@@ -29,6 +29,15 @@ author:
           address: Sognsveien 68
           city: Oslo
           postal-code: NO-0855
+  - name: David N. Barton
+    email: david.barton@nina.no
+    affiliations:
+        - ref: nina2
+  - name: Bálint Czùcz
+    email: balint.czucz@nina.no
+    orchid: https://orcid.org/0000-0002-6462-7633
+    affiliations:
+        - ref: nina
 abstract: |
   Ecosystem Condition Accounts (ECAs) require spatially representative indicators to accurately reflect ecosystem integrity, yet data constraints—particularly small sample sizes and spatial bias—often hinder robust assessments. While national-scale ECAs can mitigate these issues through modeling, local ECAs face unique challenges, as spatial extrapolation beyond the accounting area risks compromising local relevance. In this study, we address two critical gaps in local-scale ecosystem condition accounting: (1) correcting for spatial bias without external data and (2) uncertainty quantification for small samples. Using three Norwegian municipalities as test cases, we demonstrate a workflow that combines post-stratfication (control bias via Homogenous Impact Areas) and emipirical Bayes variance smoothing (to stabelise uncertainty estimates for 1-inflated beta distributions). Point estimates are derived through direct, area-weighted averaging within strata, ensuring local fidelity. Our approach enable local ECAs to leverage imperfect datasets while maintaining transparency and local relevance. We provide a scalable solution for small-area ecosystem assessments where traditional modeling is infeasible. This work advances the practical implementation of ecosystem accounting under real-world data constraints.
   
