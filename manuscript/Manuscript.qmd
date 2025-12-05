@@ -2824,6 +2824,8 @@ This work demonstrates that even sparse data can yield actionable insights when 
 **Anders L. Kolstad**: Conceptualization, Methodology, Software, Validation, Formal analysis, Data Curation, Writing - Original Draft, Visualization, Project administration, Funding acquisition.
 **Matthew Grainger**: Validation, Writing - Review & Editing.
 **Marianne Evju**: Conceptualization, Writing - Review & Editing.
+**David N. Barton**: Funding acquisition, Writing - Review & Editing.
+**Bálint Czúcz**: Writing - Review & Editing
 
 # Declaration of Competing Interest {.unnumbered}
 
