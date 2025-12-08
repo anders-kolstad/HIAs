@@ -151,8 +151,10 @@ naturetypes_summary <- readRDS(here("data/natureType_summary.rds"))
 # Getting the layer names
 # st_layers(path_naturetypes) 
 
-# Set local to ensure Norwegian letters get imported correctly
-Sys.setlocale("LC_ALL","Norwegian")
+# Set local to ensure Norwegian letters get imported correctly. I have this ilne in my Rprofile:
+# Sys.setlocale("LC_ALL", "nb_NO.UTF-8") 
+
+
 naturetypes <- sf::st_read(dsn = path_naturetypes, layer = "naturtyper_nin_omr",
                            quiet= T)
 # 142k polygons (2023)
@@ -203,7 +205,7 @@ nts <- naturetypes_summary %>%
     all_of(myVars))>0, na.rm=T)) |>
   filter(
     keepers >0,
-    Ecosystem == fix_utf8_tag("våtmark")
+    Ecosystem == "våtmark"
     ) |>
   pull(Nature_type)
 nts
@@ -592,7 +594,7 @@ muni3 <- muni |>
     kommunenummer == "3446" ~ "Gran"
   ))
 
-# To crop the EDM, I need the three municipalities seprately.
+# To crop the EDM, I need the three municipalities separately.
 nf <- muni3 |>
   filter(kommunenummer == "3207")
 na <- muni3 |>
@@ -753,9 +755,10 @@ saveRDS(mire_stars_na, "manual_cache/mire_stars_na.RDS")
 
 ```{r terraToSTars}
 #| eval: true
-mire_stars_nf <- readRDS("manual_cache/mire_stars_nf.RDS")
-mire_stars_gr <- readRDS("manual_cache/mire_stars_gr.RDS")
-mire_stars_na <- readRDS("manual_cache/mire_stars_na.RDS")
+manu <- here::here("manuscript")
+mire_stars_nf <- readRDS(here::here("manuscript", "manual_cache/mire_stars_nf.RDS"))
+mire_stars_gr <- readRDS(here::here("manuscript", "manual_cache/mire_stars_gr.RDS"))
+mire_stars_na <- readRDS(here::here("manuscript", "manual_cache/mire_stars_na.RDS"))
 mire_terra_nf <- rast(mire_stars_nf)
 mire_terra_gr <- rast(mire_stars_gr)
 mire_terra_na <- rast(mire_stars_na)
@@ -893,7 +896,7 @@ infra <- infra |>
 infra |>
   as_tibble() |>
   group_by(infrastructureIndex) |>
-  summarise(area_km = sum(area_km)) |>
+  summarise(area_km = units::drop_units(sum(area_km))) |> 
   ggplot(aes(
     x = infrastructureIndex,
     y = area_km
@@ -1019,9 +1022,9 @@ corrCheck |>
   scale_fill_brewer(palette = "RdYlGn") +
   facet_grid(indicator ~ year)
 
-# After this I also tried chaning the color gradient, 
+# After this I also tried changing the color gradient, 
 # and the number of categories. I tries discrete colors and log-transformation.
-# These variants are interpretted slightly differetly by the brain.
+# These variants are interpreted slightly differetly by the brain.
 # See versions pre 27.02.2023
 ```
 
@@ -1324,9 +1327,9 @@ temp |>
 
 <!-- The goal here is to use a larger dataset (national dataset) to infer about the shape of a smaller domain dataset. The domain mean will always be uninformed by the national data, but I will use empirical bayes to make a better guess at the true variation of the domain data when sample sizes are low. I add a prior weight of 10, meaning the national dataset coundt similarly as ten domain datapoints in describing the distributional shape for the domain data. -->
 
-<!-- Deepseek (free version, may-juni 2025) was used to flesh out some of the ideas and test for logical errors. However, the original idea was by the authors, and all code has been verified and we also added a simulation to test the behaviour of the functions. -->
+<!-- Deepseek (free version, may-june 2025) was used to flesh out some of the ideas and test for logical errors. However, the original idea was by the authors, and all code has been verified and we also added a simulation to test the behaviour of the functions. -->
 
-<!-- I will now simulate som (national) data and some domain data -->
+<!-- I will now simulate some (national) data and some domain data -->
 
 <!-- and then test the functions for getting updated domain shape and variance. -->
 
@@ -1441,8 +1444,8 @@ domain_data <- tibble(
       tibble(sample = rnorm(c, 1, .1) |> pmin(1) |> pmax(0) |> sort()),
       tibble(sample = rnorm(d, 1, .1) |> pmin(1) |> pmax(0) |> sort()),
       
-      # indicator values are often pseudo-continous,
-      # so ading a special case of nondistinct values
+      # indicator values are often pseudo-continuous,
+      # so adding a special case of nondistinct values
       tibble(sample = rep(0.9, a)),
       tibble(sample = rep(0.9, b)),
       tibble(sample = rep(0.9, c)),
@@ -1537,8 +1540,8 @@ update_distribution <- function(domain_data, national_fit, prior_weight = 10) {
   
   # The ML function for estimating the shape parameters require some variation in the 
   # input values. A series of simiarl values will throw an error. 
-  # In those cases I will use tha national shape,
-  # To check if the function produces new or reused the old paramteres, one can 
+  # In those cases I will use the national shape,
+  # To check if the function produces new or reused the old parameters, one can 
   # unhash this line:
   #if(!exists("updated_alpha")) updated_alpha <- NA
   # bit for now we use this:
@@ -1711,8 +1714,8 @@ comb_data |>
 
 # Higher n generally pulls the PD towards the domain data.
 # and reduced the CI.
-# Exeption for  the single values, where the domain has less 1s 
-# than the national data and thus increases the PD varaition with n.
+# Exception for  the single values, where the domain has less 1s 
+# than the national data and thus increases the PD variation with n.
 
 
 ```
@@ -1915,10 +1918,10 @@ temp |>
 # where low n can have very high 1-inflation by chance, and thus get very low 
 # PD variance. However, we want to weighted mean, which is calculated independent 
 # of the national data, to always be inside the PD, but when n is low, this might 
-# not be the case. One option is to get more spesific priors, for example not the
+# not be the case. One option is to get more specific priors, for example not the
 # entire national dataset, but a homogenous area. Another option is to use the PDs 
 # to calculate the distances between the mean and the set percentiles, and transfer
-# this ralative measure of variance over to be centered on the domain mean, but 
+# this relative measure of variance over to be centered on the domain mean, but 
 # that wont work as the PDs can be truncated as well.
 ```
 
@@ -2044,7 +2047,7 @@ barCOLS <- c("#fff7bd", "#fecf66", "#f88b22", "#cc4c02")
 # The means are mostly within the 95%CI, which is good.
 # The bars are the predicted distributions of the domain data, and not 
 # traditinal errors. 
-# The distributions are asymetrical, which is natural for truncated data,
+# The distributions are asymmetrical, which is natural for truncated data,
 # but hard to achieve with the more common ways to estimate variation, using
 # SDs and assuming normality.
 ```
