@@ -39,7 +39,7 @@ author:
     affiliations:
         - ref: nina
 abstract: |
-  Ecosystem Condition Accounts (ECAs) require spatially representative indicators to accurately reflect ecosystem integrity, yet data constraints—particularly small sample sizes and spatial bias—often hinder robust assessments. While national-scale ECAs can mitigate these issues through modeling, local ECAs face unique challenges, as spatial extrapolation beyond the accounting area risks compromising local relevance. In this study, we address two critical gaps in local-scale ecosystem condition accounting: (1) correcting for spatial bias without external data and (2) uncertainty quantification for small samples. Using three Norwegian municipalities as test cases, we demonstrate a workflow that combines post-stratfication (control bias via Homogenous Impact Areas) and emipirical Bayes variance smoothing (to stabelise uncertainty estimates for 1-inflated beta distributions). Point estimates are derived through direct, area-weighted averaging within strata, ensuring local fidelity. Our approach enable local ECAs to leverage imperfect datasets while maintaining transparency and local relevance. We provide a scalable solution for small-area ecosystem assessments where traditional modeling is infeasible. This work advances the practical implementation of ecosystem accounting under real-world data constraints.
+  Ecosystem Condition Accounts (ECAs) require spatially representative indicators to accurately reflect ecosystem integrity, yet data constraints—particularly small sample sizes and spatial bias—often hinder robust assessments. While national-scale ECAs can mitigate these issues through modeling, local ECAs face unique challenges, as spatial extrapolation beyond the accounting area risks compromising local relevance. In this study, we address two critical gaps in local-scale ecosystem condition accounting: (1) correcting for spatial bias without external data and (2) uncertainty quantification for small samples. Using three Norwegian municipalities as test cases, we demonstrate a workflow that combines post-stratfication (control bias via Homogenous Impact Areas) and emipirical Bayes variance smoothing (to stabilise uncertainty estimates for 1-inflated beta distributions). Point estimates are derived through direct, area-weighted averaging within strata, ensuring local fidelity. Our approach enables local ECAs to leverage imperfect datasets while maintaining transparency and local relevance. We provide a scalable solution for small-area ecosystem assessments where traditional modeling is infeasible. This work advances the practical implementation of ecosystem accounting under real-world data constraints.
   
 keywords: 
   - alien species
@@ -113,32 +113,27 @@ myCRS <- 25832
 ```{r paths}
 #| eval: true
 
-# Conditional file directory
-dir <- substr(getwd(), 1, 2)
+source(here::here("helpers.R"))
+root <- get_root_NINA()
+rootR <- get_root_NINA("R")
 
 # Some directories
 
-# Ecosystem delineation map - unfortunately to publically available
-path_mire <- "P:/41201785_okologisk_tilstand_2022_2023/data/Myrmodell/myrmodell90pros.tif"
+# Ecosystem delineation map - unfortunately to publicly available
+path_mire <- paste0(root, "41201785_okologisk_tilstand_2022_2023/data/Myrmodell/myrmodell90pros.tif")
 
 # infrastructure index (i.e. land use intensity index)
-path_infrastructure <- ifelse(dir == "C:",
-  "R:/GeoSpatialData/Utility_governmentalServices/Norway_Infrastructure_Index/Original/Infrastrukturindeks_UTM33/infra_tiff.tif",
-  "/data/R/GeoSpatialData/Utility_governmentalServices/Norway_Infrastructure_Index/Original/Infrastrukturindeks_UTM33/infra_tiff.tif"
-)
+path_infrastructure <- paste0(rootR, "GeoSpatialData/Utility_governmentalServices/Norway_Infrastructure_Index/Original/Infrastrukturindeks_UTM33/infra_tiff.tif")
 
 # field survey
 # # downloaded from https://kartkatalog.geonorge.no/metadata/naturtyper-miljoedirektoratets-instruks/eb48dd19-03da-41e1-afd9-7ebc3079265c
-path_naturetypes <- "P:/41001581_egenutvikling_anders_kolstad/data/Naturtyper_nin_0000_norge_25833_FILEGDB.gdb"
+path_naturetypes <- paste0(root, "41001581_egenutvikling_anders_kolstad/data/Naturtyper_nin_0000_norge_25833_FILEGDB.gdb")
 
 # municipality outline
-path_muni <- here("data/Basisdata_0000_Norge_25833_Kommuner_FGDB.gdb")
+path_muni <- here::here("data/Basisdata_0000_Norge_25833_Kommuner_FGDB.gdb")
 
 # path to local caching folder
-path_temp <- ifelse(dir == "C:",
-  "P:/41201785_okologisk_tilstand_2022_2023/data/cache/",
-  "/data/P-Prosjekter2/41201785_okologisk_tilstand_2022_2023/data/cache/"
-)
+path_temp <- paste0(root, "41201785_okologisk_tilstand_2022_2023/data/cache/")
 ```
 
 ```{r import}
@@ -198,7 +193,7 @@ mire_terra <- terra::rast(path_mire)
 
 # Getting the names of the relevant nature types (mapping units)
 
-# These are the variabels were after
+# These are the variables we're after
 myVars <- c("7TK", "7SE", "PRTK", "PRSL", "7FA", "7GR-GI")
 
 # And these are the mapping units that have them
@@ -208,7 +203,7 @@ nts <- naturetypes_summary %>%
     all_of(myVars))>0, na.rm=T)) |>
   filter(
     keepers >0,
-    Ecosystem == "våtmark"
+    Ecosystem == fix_utf8_tag("våtmark")
     ) |>
   pull(Nature_type)
 nts
@@ -876,7 +871,7 @@ infra <- eaTools::ea_homogeneous_area(infra,
 #saveRDS(infra, paste0(path_temp, "infrastructureIndex_discrete_vectorized.rds"))
 ```
 
-```{r InfraStructureIndex}
+```{r InfraStructureIndex2}
 #| eval: true
 
 # read cached vetorized infrastructure data
@@ -2471,7 +2466,7 @@ These metrics should ideally be recorded (or modeled) uniquely for all contiguou
 While unbiased estimation is essential, this requirement severely limits the types of usable data.
 Local ECAs are particularly constrained by data availability, leading to pragmatic (and potentially unrepresentative) selections of variables and indicators.
 Being able to make use of spatially biased data would greatly alleviate data shortage problems in local ECAs.
-The issue of representativenes extends beyond spatial biases to include thematic biases—such as the under-representation of key ecosystem components like insects or soil biota.
+The issue of representativeness extends beyond spatial biases to include thematic biases—such as the under-representation of key ecosystem components like insects or soil biota.
 Also, having data from only one or a subset of nature types inside what is defined as the ecosystem in the assessment, is a typical thematic bias in ecosystem accounting.
 However, this paper focuses on spatial (geographic and environmental) bias.
 
@@ -2513,7 +2508,7 @@ Upscaling is required to make the information available for decision makers or m
 Spatial aggregation allows for the quantification of spatial variance in the estimate.
 In addition, there can be measurement or modling errors that could potentially also be propagated and reported alongside the upscaled estimate [e.g. @heris2021].
 Currently, SEEA EA lacks guidelines for estimating or disclosing any type of numerical uncertainty.
-This could potentially undermine the credibility and finally the uptake of knowledge from ecosystem accounting [@bagstad2021, @venter2024].
+This could potentially undermine the credibility and finally the uptake of knowledge from ecosystem accounting [@bagstad2021; @venter2024].
 Local ECAs face a unique side of this problem because sample sizes are frequently so small that traditional arithmetic estimates of variance are unreliable.
 In addition, calculating variances is even more data demanding when metrics are truncated, such as for indicators bound between zero and one.
 In such cases, a small sample size can by chance contain only or predominantly ones (or zeros), resulting in an artificially small variance which will then paradoxically increase as sample sizes increase due to the inclusion of more data points from the tail of the distribution.
