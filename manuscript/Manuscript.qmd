@@ -151,9 +151,8 @@ naturetypes_summary <- readRDS(here("data/natureType_summary.rds"))
 # Getting the layer names
 # st_layers(path_naturetypes) 
 
-# Set local to ensure Norwegian letters get imported correctly. I have this ilne in my Rprofile:
+# Set local to ensure Norwegian letters get imported correctly. I have this line in my Rprofile:
 # Sys.setlocale("LC_ALL", "nb_NO.UTF-8") 
-
 
 naturetypes <- sf::st_read(dsn = path_naturetypes, layer = "naturtyper_nin_omr",
                            quiet= T)
@@ -918,7 +917,7 @@ infraMuni3 <- infra |>
   group_by(Municipality, infrastructureIndex) |>
   summarise(total_area_HIAs_km2 = round(sum(area_HIA_km2))))
 
-# Calculate the area weighted mean HIA value per municipality
+# Calculate the area-weighted mean HIA value per municipality
 infraMuni3_summary <- infraMuni3_tbl |>
   group_by(Municipality) |>
   summarise(
@@ -1111,84 +1110,53 @@ infraMuniMap <- tm_shape(muni3) +
     title = "Homogeneous Impact Areas"
   ) +
   tm_layout(
-    legend.show = F,
+    legend.outside = TRUE,
     panel.label.height = 0) +
   tm_shape(muni3) +
   tm_borders(lwd = 3, col = "black") +
   tm_facets(by = "Municipality")
 
-# A figure with just the legend
-infraMuniMap_l <- tm_shape(muni3) +
-  tm_borders() +
-  tm_shape(infraMuni3) +
-  tm_polygons(
-    col = "infrastructureIndex",
-    style = "cat",
-    title = "Homogeneous\nImpact Area"
-  ) +
-  tm_layout(legend.only = TRUE,
-            legend.position = c("left", "bottom"),
-            legend.outside = F)
-
-
-empty <- tm_shape(muni3) +
-  tm_borders(col="white") +
-  tm_layout(frame = F)
-
 # Survey coverage and other colour overlaid the municipalities
 muniPlot <- tm_shape(muni3) +
-  tm_borders() +
-  tm_facets(
-    by = "Municipality",
-    ncol = 3
-  ) +
-  tm_shape(terrestrial) +
-  tm_fill(
-    col = "lightgreen",
-    alpha = .4
-  ) +
-  tm_shape(ocean) +
-  tm_polygons(
-    col = "skyblue",
-    border.col = "black"
-  ) +
-  tm_shape(dk2) +
-  tm_polygons(
-    col = "grey",
-    alpha = .8
-  ) +
-  tm_shape(nature3) +
-  tm_polygons(
-    col = "red",
-    border.col = "red",
-    lwd = 3
-  )
+  tm_borders(lwd = 3, col = "black") +
+  tm_facets(by = "Municipality", ncol = 3) +
 
+  tm_shape(terrestrial) +
+  tm_fill(col = "lightgreen", alpha = 1) +
+
+  tm_shape(ocean) +
+  tm_polygons(col = "skyblue", border.col = "black") +
+
+  tm_shape(dk2) +
+  tm_polygons(col = "grey", alpha = .8) +
+
+  tm_shape(nature3) +
+  tm_polygons(col = "red", border.col = "red", lwd = 3)+
+
+  tm_add_legend(type = "fill",
+                labels = c("Land", "Water", "Survey coverage area", "Mapped mires"),
+                col    = c("lightgreen", "skyblue", "grey", "red")) +
+  
+  tm_layout(legend.outside = TRUE)
 
 
 (methodsMap <- tmap_arrange(
   muniPlot,
-  empty,
   infraMuniMap,
-  infraMuniMap_l,
-  ncol = 2,
-  widths = c(.8, .2),
   heights = c(.6, .4),
+  ncol = 1,
   outer.margins = NULL
 ))
 
-
-#tmap_save(methodsMap, "../images/studyLocations.tiff",
+#tmap_save(methodsMap, "images/studyLocations.tiff",
 #           dpi= 1000,
 #           units = "cm",
 #           width = 18,
 #           height = 10)
-#tmap_save(methodsMap, "../images/studyLocations.jpg",
+#tmap_save(methodsMap, "images/studyLocations.jpg",
 #           units = "cm",
 #           width = 18,
 #           height = 10)
-#
-#saveRDS(methodsMap, "../figures/studyLocation.RDS")
 ```
 
 ```{r infra-NA}
@@ -1339,7 +1307,7 @@ temp |>
 
 <!-- just about the whole range for the national data when n = 2-3. -->
 
-<!-- This example does not include area weighting. Latyer I want to use area weighting for the domain means, but I will not include it for the updated shape parameters. -->
+<!-- This example does not include area-weighting. Latyer I want to use area-weighting for the domain means, but I will not include it for the updated shape parameters. -->
 
 ```{r nationalData}
 #| eval: true
@@ -2201,7 +2169,7 @@ myCols <- c(
 #| eval: true
 #| cache: true
 
-# The EAA estimate for the mean indicator value is just an area weighted mean of 
+# The EAA estimate for the mean indicator value is just an area-weighted mean of 
 # the polygons (i.e. no influence fro the national dataset).
 # For the predicted distribution of indicator values we sample indicator values 
 # from the PDs in the EDM and create a new distribution for 
@@ -2455,30 +2423,37 @@ myCols <- c(
 # Introduction
 
 Ecosystem condition accounting (ECA) is the structured compiling and communication of data on the status, trends and qualities of ecosystems [@comte2022; @edens2022].
-Its purpose is to make it easier to account for nature in policy by making the environmental costs of certain policies and practices visible to decision-makers.
+Its purpose is support policies, landuse planning and management decitions, and making it easier to account for nature by making the environmental costs of certain policies and practices visible to decision-makers.
 The System of Environmental-Economic Accounting - Ecosystem Accounting (SEEA EA) is a statistical standard for ecosystem accounting, including ecosystem condition accounting, that was developed by the UN and adopted by the UN Statistical Commission in 2021 [@unitednations2024].
 This framework provides a set of rules, principles and best practices for compiling ecosystem accounts, primarily at a national level [@unitednations2022].
 At its core is the idea that data on ecosystem condition can be summarised in the form of metrics (indicators and variables) presented in generalised tables that describe the condition of a larger ecosystem accounting area (EAA).
 
 With intentional similarities to national accounts, which deal with the economic activity at the scale of nations, SEEA EA accounts have mainly been developed for and used at national scales.
-However, there is a surge of examples of more local accounts appearing, motivated at least partly by the need to match the scale of the information to the scale of decision-making processes [@simensen_naturregnskap_2024; @gorman_decision_2024].
+However, there is a surge of new examples of regional, municipal and project level accounts, motivated at least partly by the need to match the scale of the information to the scale of decision-making processes [@simensen_naturregnskap_2024; @gorman_decision_2024].
 Compared to accounts with large EAAs, local accounts face increasing challenges with data resolution and availability.
 
-An important requirement of SEEA EA is that condition metrics must give an unbiased representation of the condition for a given area [table 1 in @czucz_selection_2021; see also @unitednations2024 §2.87].
+An important requirement of SEEA EA is that condition metrics must give an unbiased spatial representation of the condition for a given area [table 1 in @czucz_selection_2021; see also @unitednations2024 §2.87].
 These metrics should ideally be recorded (or modeled) uniquely for all contiguous spaces (patches) of a specific ecosystem type (a common definition of an *ecosystem asset*), enabling the calculation of area-weighted means for the EAA [@unitednations2024 §5.54].
-While unbiased estimation is essential, this requirement severely limits the types of usable data.
-Local ECAs are particularly constrained by data availability, leading to pragmatic (and potentially unrepresentative) selections of variables and indicators.
+While spatially and temporally representative estimation is essential, this requirement severely limits the types of usable data.
+Local ECAs are particularly constrained by data availability, 
+because ecosystem condition and environmental quality monitoring programmes are often designed to be representative at national scale. 
+This can lead to _ad hoc_ and potentially unrepresentative selections of variables and indicators.
 Being able to make use of spatially biased data would greatly alleviate data shortage problems in local ECAs.
 The issue of representativeness extends beyond spatial biases to include thematic biases—such as the under-representation of key ecosystem components like insects or soil biota.
 Also, having data from only one or a subset of nature types inside what is defined as the ecosystem in the assessment, is a typical thematic bias in ecosystem accounting.
 However, this paper focuses on spatial (geographic and environmental) bias.
 
-Wall-to-wall raw data, such as satellite imagery, is spatially representative through the property of being spatially exhaustive, although grain size also plays a role [cf. the ecological fallacy; @robinson2009].
+Wall-to-wall raw data, such as satellite imagery, is spatially representative through the property of being spatially exhaustive [@williams_overcoming_2024], although grain size also plays a role (cf. the ecological fallacy [@robinson2009]).
 However, many critical ecosystem characteristics - such as species composition, soil properties, or fine-scale habitat features - cannot be derived remotely and still require field surveys.
-These surveys, however, often suffer from sparse or biased sampling, leaving gaps in ecosystem asset coverage.
+Nationally designed surveys will suffer from sparse sampling, and, depending on the reason for the survey, may also suffer from spatially biased sampling, thus leaving gaps in ecosystem asset coverage from a local management perspective.
 Field data are especially problematic if sampling intensity correlates with anthropogenic pressures (and thus ecosystem condition) [@aubry2024].
-A poor solution, which don't attempt to control for sampling biases, is to ignore unsampled areas by directly estimating values for the entire EAA via central tendencies (e.g. means).
-Other options include imputing values to unsampled areas using some type of model or spatial generalisation.
+A poor solution, which doesn't attempt to control for sampling biases, is to ignore unsampled areas by directly estimating values for the entire EAA via central tendencies (e.g. means).
+Other options include imputing values to unsampled areas using some type of model or spatial generalisation [@barton2023].
+Spatial generalisation is not unique to ecosystem condition accounts, 
+and it is much discussed in the ecosystem service accounting community of practice 
+via the related term *value transfer* [@unitednations2022; @ncaves; @grammatikopoulou2023; @barton2023].
+Advantages of value transfer include low cost by leveraging freely available seondary data. 
+The major drawback of value transfer or generalisation is estimation error due to spatial and temporal biases.
 @unitednations2022 list six relevant modeling techniques for ecosystem condition metrics that can also be used for projecting metric values to ecosystem assets without field data, and simultaneously control for sampling biases:
 
 1.  Look-up table
@@ -2488,25 +2463,23 @@ Other options include imputing values to unsampled areas using some type of mode
 5.  Dynamic system models (many types of process-based models)
 6.  Machine learning (e.g. random forest)
 
-Depending on the data that goes into them, models can make very accurate estimates, especially when the areas are large (e.g. regions or nations), but their reliability diminishes for smaller areas (e.g., municipalities) due to data scarcity and model uncertainty.
+Depending on the data that goes into them, models can make very accurate estimates, especially when the areas are large (e.g. regions or nations), but their reliability diminishes for smaller areas (e.g., municipalities) due to data scarcity and model uncertainty [@venter2024].
 Small area estimation is a branch in statistics aimed at finding ways to overcome this issue by "borrowing strength" from related areas [@ghosh1994; @guldin2021].
-Ecosystem accounts should ideally reflect conditions only inside the accounting area and are arguable more useful when reflecting local management and land use policies, unaffected by the actions of neighboring or ecologically similar administrative units (i.e. direct estimation).
+Ecosystem accounts should ideally reflect conditions only inside the accounting area (i.e. direct estimation) 
+and are arguable more useful when reflecting local management and land use policies, unaffected by the actions of neighboring or ecologically similar administrative units.
 There might therefore be a limit to how much data one should "borrow" across ecosystem assets or EAAs.
 
 Look-up tables, the simplest approach, assign the same value across categorical strata (e.g. ecosystem type within a region), often with no uncertainty estimate (although this is quite possible to include).
 Values may derive from expert opinion or aggregated data (e.g. stratum means).
 If strata align with relevant gradients in pressures or environmental conditions, this method can mitigate sampling bias via post-stratification.
 The level of spatial or environmental extrapolation is subject to the size of the strata, with fine-grained typologies leading to less extrapolation.
-Extrapolating non-continuous spatial data (e.g. points) over a surface is a type of spatial generalisation.
-The challenge of spatial generalisation is not unique to ecosystem condition accounts, and it is much discussed in the ecosystem service accounting community of practice via the related term *value transfer* [@unitednations2022; @ncaves; @grammatikopoulou2023; @barton2023].
-Its key advantages are simplicity and the possibility to rely solely on local data.
-A major drawback is the high data requirements, especially for fine-grained strata.
+Extrapolating non-continuous spatial data (e.g. points) over a surface is also a type of spatial generalisation.
 
 After extrapolating data, the spatial grain of the data (and thus also the information) is essentially still the same.
-However, a critical step in ecosystem accounting is upscaling—synthesising fine-grained data to characterise larger areas, effectively reducing grain size or increasing support [@bierkens2002] (**Kolstad *et al.* in prep**).
+However, a critical step in ecosystem accounting is upscaling — synthesising fine-grained data to characterise larger areas, effectively reducing grain size or increasing support [@bierkens2002; @kolstad_spatial_2025].
 This is typically achieved by aggregation (e.g. arithmetic means), sampling [@brus1997] or resampling techniques [@jakobsson2021].
-For simplicity we also refer to this as aggregation, as the end result is the same - a synthesis of information.
-Upscaling is required to make the information available for decision makers or monitoring frameworks at the appropriate spatial scale [@king2024].
+For simplicity we also refer to this as aggregation, as the end result is the same — a synthesis of information.
+Upscaling is required to make the information available for decision makers or monitoring frameworks at the appropriate spatial scale [@king2024; @ewert_scale_2011].
 
 Spatial aggregation allows for the quantification of spatial variance in the estimate.
 In addition, there can be measurement or modling errors that could potentially also be propagated and reported alongside the upscaled estimate [e.g. @heris2021].
@@ -2520,24 +2493,32 @@ In such cases, a small sample size can by chance contain only or predominantly o
 
 In this study we present two techniques for direct estimation of local ecosystem condition indicators using scarce and spatially biased data.
 Firstly, we demonstrate a stratified aggregation technique, using homogeneous impact areas, to reduce the negative consequences of spatial and environmental bias in the data.
-With this we get direct indicator point estimates using area weighting and local data only.
-Second, we use an empirical Bayes variance smoothing approach to predict indicator uncertainties where we borrow strength from a larger national dataset.
+With this we get direct indicator point estimates using area-weighting and local data only.
+Second, we use an empirical Bayes variance smoothing approach to predict indicator uncertainties, where we borrow strength from a larger national dataset.
 This allows us to get a realistic picture of indicator uncertainty even though sample sizes are very low.
 We demonstrate these techniques with three indicators from the same spatially biased nature type mapping data set from Norwegian mires, comparing results across three municipalities in Norway to illustrate their potential for local applications.
 
 # Material and Methods {#sec-methods}
 
-Mires cover about 10-15% of mainland Norway and play a disproportional role in climate mitigation due to their large carbon stores.
+We used a spatial dataset of nature types in Norway [@norwegian_environmental_agency_naturtyper_2024], surveyed in the field following a standardised protocol [@norwegian_environmental_agency_protocol].
+The dataset comprises over 140,000 polygons (as of 2023), each scored on several variables describing ecological condition and qualities.
+The data collection is spatially biased, typically towards areas with high human impact or expected impact.
+This is by design, as the survey is meant primarily to support land-use decisions in areas where there might be a conflict or just a general data shortage. 
+
+Although the dataset covers many different nature and ecosystem types, we chose to focus on mires. 
+This was because a large fraction of Norwegian mire types are included in the survey, 
+and because the set of condition variables recorded for these types generally overlapped quite well. 
+Because, also, Norwegian mires share a lot of characteristics and anthropogenic pressures, 
+this allowed us to combine data from several mire nature types into a common _mire_ ecosystem type.
+
+Mires cover about 10-15% of mainland Norway and play a disproportional role in climate mitigation due to their large carbon stores [@Scharlemann01022014].
 To delineate open mire ecosystems we used a remote-sensing derived map which estimates 12.7% of the area in southern Norway is mire [@bakkestuen_delineation_2023].
 There has not been a national assessment of the ecosystem condition of mires in Norway, but the authors recently contributed to a report which presented several new indicators that can be used in future national assessments for this ecosystem [@nybo_indikatorer_2023; see also @kolstad2023]).
 The current study builds on the work in that report.
 
-## Data source and survey design
+<!-- ## Data source and survey design -->
 
-We used a spatial dataset of nature types in Norway [@norwegian_environmental_agency_naturtyper_2024], surveyed in the field following a standardised protocol [@norwegian_environmental_agency_protocol].
-The dataset comprises over 140,000 polygons (as of 2023), each scored on several variables describing ecological condition and qualities.
-The data collection is spatially biased, typically towards areas with high human impact or expected impact, reflecting their primary use in land-use decisions.
-In addition, the sampling protocol introduces thematic and sizes biases.
+The field mapping protocol [@norwegian_environmental_agency_protocol] introduces thematic and sizes biases.
 For mires, this implies an elevated focus on calcareous and medium to large mires.
 The survey maps the following mire types which we use in our analyses:
 
@@ -2555,8 +2536,11 @@ Here, *southern* refers to boreonemoral and southern boreal zones, and *northern
 In addition to requiring a large size, northern fens also require higher calcareousness, compared to southern fens, to be surveyed [@norwegian_environmental_agency_protocol].
 Data from 2018 to 2023 were included.
 
-We assume the surveyed mires are representative for the broader mire ecosystem inside the surveyed areas, despite undersampling of smaller and less calcareous mires.
-We posit that our selected variables (see below) are relatively unaffected by this bias, with a possible exception for alien plant occurrences, which are probably less common on bogs, but the variable is recorded only in fens.
+We treat the surveyed mires as representative for the broader mire ecosystem inside the surveyed areas
+and posit that our selected variables (see below) are relatively unaffected by the biases declared above,
+related to undersampling of smaller and less calcareous mires.
+A possible exception to this is for alien plant occurrences, 
+which are probably less common on bogs, but the variable is recorded only in fens.
 The other variables are recorded in all delineated mires.
 
 ## Indicator development
@@ -2565,9 +2549,9 @@ Six raw variables (@tbl-variables, variables 1—6) were normalised and turned i
 
 -   *Alien species* (7FA)
 
--   Anthropogenic disturbance to soil and vegetation (*ADSV;* combined from variables 7SE, PRSL, 7TK and PRTK)
-
 -   *Trenching* (7GR-GI).
+
+-   *ADSV* (*Anthropogenic disturbance to soil and vegetation*; combined from variables 7SE, PRSL, 7TK and PRTK)
 
 Normalisation followed a piece-wise linear transformation with three reference levels [@czúcz; @jakobsson2020]
 
@@ -2575,7 +2559,7 @@ Normalisation followed a piece-wise linear transformation with three reference l
 
 -   X~0~: Worst possible condition
 
--   X~60~: defining the breaking point between good and poor condition.
+-   X~60~: defining the threshold between good and poor condition.
 
 The reference levels make up a numerical representation of the reference condition.
 We define the reference condition as one where ecosystems are subject to little or no human influence, with a climate as in the period 1961-1990 and a native species pool similar to today [@jakobsson2021].
@@ -2612,8 +2596,8 @@ The nature type polygons with the indicator values were intersected with a vecto
 ### Municipal-level analyses and spatial aggregation
 
 Three municipalities were selected to test the indicators, varying in mire area, survey coverage, and infrastructure prevalence (@tbl-munis, @fig-studyLocation2, S3, S4).
-For each HIA - municipality (strata) combination we calculated the area weighted arithmetic mean of the indicator and used a look-up table approach to transfer these values to all ecosystem assets in the same strata.
-Ignoring strata with no data, we then took another area weighted mean across all ecosystem assets inside the municipality to get the point estimate.
+For each HIA - municipality (strata) combination we calculated the area-weighted arithmetic mean of the indicator and used a look-up table approach to transfer these values to all ecosystem assets in the same strata.
+Ignoring strata with no data, we then took another area-weighted mean across all ecosystem assets inside the municipality to get the point estimate.
 
 The three indicators where all highly left skewed with strong 1-inflation.
 It was therefore essential to describe the indicator uncertainty using non-symmetrical errors.
