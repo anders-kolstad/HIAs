@@ -2134,7 +2134,7 @@ myCols <- c(
   "#B5DF73", 
   "#009000"
   )
-
+library(ggspatial)
 
 (spread_na_map <- spread_na |>
   filter(indicator == "i_ditch") |>
@@ -2152,16 +2152,21 @@ myCols <- c(
     ylim = c(6737092 , 6789676)) +
   ggmagnify::geom_magnify(from = from, to = to, 
                           expand = 0,
-                          shadow =T,
+                          #shadow =T,
                           corners = 0.1) +
+  ggspatial::annotation_scale(location = "bl", width_hint = 0.4,
+    pad_x = unit(0.83, "in")) +
+  annotation_north_arrow(location = "bl", which_north = "true", 
+        pad_x = unit(0.0, "in"), pad_y = unit(0.0, "in"),
+        style = north_arrow_fancy_orienteering)+
   theme_bw()
 )
-#ggsave("../images/spread-na.tiff",
+#ggsave("images/spread-na.tiff",
 #       plot = spread_na_map)
-#ggsave("../images/spread-na-small.tiff",
+#ggsave("images/spread-na-small.tiff",
 #       plot = spread_na_map,
 #       dpi=150)
-#ggsave("../images/spread-na-small.jpg",
+#ggsave("images/spread-na-small.jpg",
 #       plot = spread_na_map)
 ```
 
@@ -2588,8 +2593,12 @@ knitr::include_graphics("../images/studyLocations.jpg")
 
 To correct for spatial bias we used spatial information about human pressures, as an expected structuring variable, to post-stratify the data.
 The Norwegian infrastructure index for the year 2022 is a continuous variable representing the frequency of different infrastructure types inside 500 m radius circles around each 100 × 100 m pixel [@erikstad2023].
-We categorised this data into four non-overlapping Homogeneous Impact Areas (HIAs; @tbl-variables), with boundaries chosen to balance gradient resolution, data stratum area, and computational limitations (Table S1).
-Data was aggregated to 1 × 1 km pixels to ease computations.
+We aggregated this data to 1 × 1 km pixels; a grit which is sufficient for estimating precise area weighted means for municipalities, which is the main objective for this analysis.
+The 1 × 1 km scale is too coarse, however, for the maps themselves to be very usefil in land-use management decitions, 
+and perhaps also in municipal planning. 
+This is intentional, since as the extrapolated indicator values we produce are not reliable enough to be used at that spatial scale.  
+We categorised the infrastructure index map into four non-overlapping Homogeneous Impact Areas (HIAs; @tbl-variables), with boundaries chosen to balance gradient resolution, data stratum area, and computational limitations (Table S1).
+
 HIAs align conceptually with the concept of Homogeneous Ecosystem Areas, *sensu* @vallecillo_eu-wide_2022.
 The nature type polygons with the indicator values were intersected with a vectorised HIA map and the relationship between the HIA classes and indicator values was examined visually across the entire data set.
 
@@ -2599,17 +2608,19 @@ Three municipalities were selected to test the indicators, varying in mire area,
 For each HIA - municipality (strata) combination we calculated the area-weighted arithmetic mean of the indicator and used a look-up table approach to transfer these values to all ecosystem assets in the same strata.
 Ignoring strata with no data, we then took another area-weighted mean across all ecosystem assets inside the municipality to get the point estimate.
 
-The three indicators where all highly left skewed with strong 1-inflation.
+The three indicators where all highly left skewed with strong 1-inflation (a disproportionate amount of the surveyed mires had indicator value 1).
 It was therefore essential to describe the indicator uncertainty using non-symmetrical errors.
 It also makes sense for a bound indicator not to have errors exceed the bounds.
 The sample size for each stratum, excluding those with no data, ranged between 1 and 145, yet we wanted a generic approach that allowed us to include reliable uncertainty estimates for all cases.
-Our solution was to use the entire national dataset, divided into the four HIAs, to describe the indicator distributions as zero and one inflated beta distributions.
+Our solution was to use the entire national dataset, divided into the four HIAs, to describe the indicator distributions as zero- and one-inflated beta distributions.
 We recorded the frequency of zeros and ones in the data as a measure of zero- and one inflation, respectively.
 For values between, but not including, zero and one, we used maximum likelihood estimation to get the two shape parameters for a beta distribution.
 We did the same for the local strata, although the estimation of the shape parameters requires a certain sample size and dispersion of data values to converge, making it impossible to describe the samples for some strata as a distribution.
-Using an empirical Bayes variance smoothing technique for small area estimation we combined prior information about the shape of the national-level data with the local strata data using a prior weight of 20, meaning the national data informed about the shape of the local indicator distribution with similar weight as 20 local data points.
-The prior weight was chosen after some trial and error to find a suitable weight that balanced local autonomy with realistic distributions.
-With less 1-inflation, a smaller prior weight could have been used.
+When the local sample sizes where too low for religable estimates of variance, 
+we adjusted the local sample variances using an empirical Bayes variance smoothing technique for small area estimation.
+This implied combining prior information about the shape of the national-level data with the local strata data.
+We used a prior weight of 20, meaning the national data informed the shape of the local indicator distribution with similar weight as 20 local data points.
+The prior weight was chosen after some trial and error to find a suitable weight that balanced local autonomy with realistic distributions, and with less 1-inflation, a smaller prior weight could have been used.
 Still, the prior weight was low enough that all point estimates (calculated independently from the predicted distributions) fell inside the 95% credible intervals.
 The predicted distributions were transferred over to the ecosystem assets of the corresponding strata, and from there, values where sampled proportional to asset area to obtain a probability distribution for the EAA (@fig-workflowExample - C).
 
@@ -2655,8 +2666,9 @@ For *Trenching*, 57% of mires in HIA-3 had some trenches, whereas in HIA-0 this 
 
 ## The three focal municipalities
 
-The indicator values were comparable across HIAs in the three municipalities, although there were some differences, as for the *Trenching* indicator where in Gran, HIA-2 had worse condition than HIA-1 (@fig-forest).
-Conversely, the *ADSV* indicator in Gran showed worse condition in HIA-1 compared to HIA-2, but the predicted indicator values had a wide credible interval (horizontal bars in @fig-forest).
+The indicator values were comparable across HIAs in the three municipalities, although there were some differences.
+For example the *Trenching* indicator, which in the municipality of Gran, had a slightly lower value (more trenches) in areas with more human infrastructure (@fig-forest).
+Conversely, the *ADSV* indicator in Gran showed slightly higher values (better condition) in areas with more infrastructure, but the uncertainty around the point was large (horizontal bars in @fig-forest).
 Nordre-Follo had considerably fewer data points compared to the other two municipalities and the the 95% credible intervals are therefore mainly reflecting the indicator distribution nationally.
 
 None of the municipalities had survey data from all HIAs.
@@ -2714,7 +2726,7 @@ knitr::include_graphics("../images/forest-plot.jpg")
 #| Individual mire polygons are coloured by the mean indicator values for the
 #| homogenous impact area where it lies. Colours are chosen to best reflect 
 #| categorical differences and exaggerates the absolute difference between 
-#| areas. The inset it just a visual aid. Coordinate reference system is 
+#| areas. The inset is 5 km across and shows the typical size and shape of mire polygons, and how indicator values can vary between them. Coordinate reference system is 
 #| EPSG 25832. Axis are in meters."
 
 knitr::include_graphics("../images/spread-na-small.jpg")
