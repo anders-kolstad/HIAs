@@ -2586,7 +2586,7 @@ knitr::include_graphics("../images/studyLocations.jpg")
 
 ## Homogenous Impact Areas
 
-To alleviate issues of spatial bias we used spatial information about human pressures, presumably a major structuring variable, to post-stratify the data.
+To correct for spatial bias we used spatial information about human pressures, as an expected structuring variable, to post-stratify the data.
 The Norwegian infrastructure index for the year 2022 is a continuous variable representing the frequency of different infrastructure types inside 500 m radius circles around each 100 × 100 m pixel [@erikstad2023].
 We categorised this data into four non-overlapping Homogeneous Impact Areas (HIAs; @tbl-variables), with boundaries chosen to balance gradient resolution, data stratum area, and computational limitations (Table S1).
 Data was aggregated to 1 × 1 km pixels to ease computations.
