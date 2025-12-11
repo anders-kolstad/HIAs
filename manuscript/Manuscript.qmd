@@ -754,7 +754,6 @@ saveRDS(mire_stars_na, "manual_cache/mire_stars_na.RDS")
 
 ```{r terraToSTars}
 #| eval: true
-manu <- here::here("manuscript")
 mire_stars_nf <- readRDS(here::here("manuscript", "manual_cache/mire_stars_nf.RDS"))
 mire_stars_gr <- readRDS(here::here("manuscript", "manual_cache/mire_stars_gr.RDS"))
 mire_stars_na <- readRDS(here::here("manuscript", "manual_cache/mire_stars_na.RDS"))
@@ -841,6 +840,7 @@ mire_in_dk <- mire_in_dk |>
 # This code block is also eval: false and cached manually
 
 # this data is on a 100x100m grid
+infra_big <- infra
 infra <- infra |>
   # , which is more then we need - warp it to 1x1km
   st_warp(
@@ -905,9 +905,33 @@ infra |>
 
 # intersect with the three municipalities
 # and calculate area
-infraMuni3 <- infra |>
-  st_intersection(muni3) |>
-  mutate(area = geometry |> st_area())
+# However, for this we want to use th 100m resolution data,
+# so lets prepare that first
+
+# Rather than transforming the entire 100m raster, 
+# I mask it first, and then transform
+muni3x <- muni3 |>
+  st_transform(st_crs(infra_big))
+#st_crs(muni3x) == st_crs(infra_big)
+infraMuni3 <- infra_big[muni3x] |>
+  st_transform(myCRS) |>
+  setNames("infrastructureIndex") |>
+  mutate(infrastructureIndex = case_when(
+    infrastructureIndex < 1 ~ 0,
+    infrastructureIndex < 6 ~ 1,
+    infrastructureIndex < 12 ~ 2,
+    infrastructureIndex >= 12 ~ 3
+  )) 
+rm(muni3x)
+
+# Then I vectorise
+infraMuni3 <- eaTools::ea_homogeneous_area(infraMuni3,
+  groups = infrastructureIndex
+)
+# calculate area and get municipality variables
+infraMuni3 <- infraMuni3 |>
+  mutate(area = geometry |> st_area()) |>
+  st_intersection(muni3)
 
 # Turn m2 into km2
 # and sum the total area per HIA
@@ -1137,6 +1161,8 @@ muniPlot <- tm_shape(muni3) +
                 labels = c("Land", "Water", "Survey coverage area", "Mapped mires"),
                 col    = c("lightgreen", "skyblue", "grey", "red")) +
   
+  tm_scale_bar(position = c("left", "bottom"), text.size = 1) +
+
   tm_layout(legend.outside = TRUE)
 
 
@@ -1159,6 +1185,36 @@ muniPlot <- tm_shape(muni3) +
 #           height = 10)
 ```
 
+```{r mapOfNordAurdal}
+
+(NA_overview <- tm_shape(muni3 |> filter(Municipality == "Nord-Aurdal")) +
+
+  tm_borders(lwd = 3, col = "black") +
+
+  tm_shape(terrestrial) +
+  tm_fill(col = "lightgreen", alpha = 1) +
+
+  tm_shape(dk2) +
+  tm_polygons(col = "grey", alpha = .8) +
+
+  tm_shape(nature3) +
+  tm_polygons(col = "red", border.col = "red", lwd = 3)+
+
+  tm_add_legend(type = "fill",
+                labels = c("Land", "Survey coverage", "Condition data"),
+                col    = c("lightgreen", "grey", "red")) +
+  
+  tm_scale_bar(position = c("left", "bottom"), text.size = 1) +
+
+  tm_layout(legend.position = c("left", "top"))
+)
+
+#tmap_save(tm = NA_overview,
+#       "images/NA_overviewA.jpg",
+#       width=4,
+#       height=4)
+
+```
 ```{r infra-NA}
 # Infratructure in Nord-Aurdal only
 (infraMuniMap_NA <- 
@@ -1179,7 +1235,7 @@ muniPlot <- tm_shape(muni3) +
 )
 
 #tmap_save(tm = infraMuniMap_NA,
-#       "../images/HIA-NA.jpg",
+#       "images/HIA-NA.jpg",
 #       width=4,
 #       height=4)
 ```
@@ -1667,7 +1723,7 @@ comb_data |>
   xlim(-0.2,1.2)+
   facet_nested(scenario + n ~distribution)
 
-#ggsave("../images/posteriorCheck.png",
+#ggsave("images/posteriorCheck.png",
 #       width = 30, height = 30, units = "cm")
 
 ```
@@ -2005,16 +2061,17 @@ barCOLS <- c("#fff7bd", "#fecf66", "#f88b22", "#cc4c02")
   facet_grid(indicator ~ Municipality)
 )
 
-#ggsave("../images/forest-plot.jpg",
+#ggsave("images/forest-plot_100m.jpg",
 #       plot=forest_plot,
 #       width = 8,
 #       height = 6)
 ```
 
 ```{r}
-# The means are mostly within the 95%CI, which is good.
+# The means are mostly within the 95%CI, withtwo exceptions.
 # The bars are the predicted distributions of the domain data, and not 
 # traditinal errors. 
+# They should not be presented as uncertainty intervals, since the predicted point estimate can be outside the predicted range. 
 # The distributions are asymmetrical, which is natural for truncated data,
 # but hard to achieve with the more common ways to estimate variation, using
 # SDs and assuming normality.
@@ -2058,22 +2115,21 @@ barCOLS <- c("#fff7bd", "#fecf66", "#f88b22", "#cc4c02")
 )
 
 #ggsave(plot = forest_plot_ex,
-#       "../images/forest-plot-ex.jpg",
+#       "images/forest-plot-ex.jpg",
 #       width=3,
 #       height = 3)
 ```
 
-```{r notes}
+
+```{r}
+#| eval: true
+#| cache: true
+
 # Next I need to 
 #  - copy the weighted means and PDs over to  HIA map and then over to the 
 #    ecosystem delineation map polygons. 
 #  - show intermittent resulting map with ggmagnify
 #  - sample from these distributions (ignore missing HIAs)
-```
-
-```{r}
-#| eval: true
-#| cache: true
 
 # Copy the weighted means and PDs over to HIA map and then over to the 
 # ecosystem delineation map polygons. 
@@ -2141,7 +2197,8 @@ library(ggspatial)
   mutate(Trenching = factor(round(mean, 2))) |>
   ggplot() +
   geom_sf(aes(fill=Trenching,
-              color = Trenching)) +
+              color = Trenching),
+              show.legend = FALSE) +
   geom_sf(data = na,
           alpha=0) +
   scale_fill_manual(values = myCols) +
@@ -2154,12 +2211,11 @@ library(ggspatial)
                           expand = 0,
                           #shadow =T,
                           corners = 0.1) +
-  ggspatial::annotation_scale(location = "bl", width_hint = 0.4,
-    pad_x = unit(0.83, "in")) +
-  annotation_north_arrow(location = "bl", which_north = "true", 
-        pad_x = unit(0.0, "in"), pad_y = unit(0.0, "in"),
-        style = north_arrow_fancy_orienteering)+
-  theme_bw()
+  theme_bw() +
+  theme(
+        panel.grid=element_blank(), 
+        axis.text = element_blank(), 
+        axis.ticks = element_blank()) 
 )
 #ggsave("images/spread-na.tiff",
 #       plot = spread_na_map)
@@ -2214,7 +2270,8 @@ combineAll <- rbind(
     stats_tbl |>
       unnest(data) |>
       group_by(Municipality, indicator) |>
-      summarise(realSamples = list(indicatorValue))
+      summarise(realSamples = list(indicatorValue),
+                realAreas = list(area))
     ) |>
   rowwise() |>
   mutate(
@@ -2280,24 +2337,41 @@ combineAll |>
   facet_grid(cols = vars(indicator2),
              rows = vars(Municipality),
              scales = "free_y")
-#ggsave("../images/results.jpg",
+#ggsave("images/results.jpg",
 #       width=10,
 #       height=8)
 ```
 
-```{r EEA-plot2}
+```{r EEA-plotAreaHeights}
 #| eval: true
 #| cache: true
+# Now the same as above, but where the height of the blue bars reflect the area and not the count
+bin_width <- 0.05
+breaks = seq(0, 1, by = bin_width)
 
-# Same as above, but for trenching only
-temp <- combineAll |>
-  filter(indicator == "i_ditch",
-     Municipality == "Nord-Aurdal")
+combineAll_area <- combineAll |>
+  unnest(cols = c(realSamples, realAreas)) |>
+  mutate(
+    sample_bin = cut(
+      realSamples,
+      breaks = breaks,
+      include.lowest = TRUE,
+      labels = head(breaks, -1) + bin_width/2
+    ),
+    sample_bin = as.numeric(as.character(sample_bin))
+  ) |>
+  select(Municipality, indicator2, realSamples, sample_bin, realAreas) |>
+  group_by(Municipality, indicator2, sample_bin) |>
+  summarise(area = sum(realAreas)) |>
+  ungroup() |>
+  group_by(Municipality, indicator2) |>
+  mutate(area_norm = area / max(area, na.rm = TRUE)) |>
+  ungroup()
 
-temp |>
+combineAll |>
   ggplot()+
   geom_density(
-    data = temp |>
+    data = combineAll |>
       unnest(data),
     aes(x = PDs,
         y = after_stat(scaled)),
@@ -2305,12 +2379,11 @@ temp |>
     alpha = .5,
     bounds = c(0, 1)
   ) +
-  geom_histogram(
-    data = temp |>
-      unnest(realSamples),
-    aes(x = realSamples,
-        y = stat(ncount)),
-    binwidth = .05,
+  geom_col(
+    data = combineAll_area,
+    aes(x = sample_bin,
+        y = area_norm),
+    width = 0.05,
     alpha=.8,
     fill = "cornflowerblue"
   )+
@@ -2338,7 +2411,77 @@ temp |>
   theme_bw(base_size = 16)+
   scale_y_continuous(breaks = c(0, 0.5, 1))+
   labs(x = "Indicator value",
-       y = "Proportion")+
+       y = "Area (relative)")+
+  geom_text(
+    aes(y = 0.7,
+        x = 0.0, 
+        label = paste("n = ", n, "\nmean = ", round(meanWeighted,2))),
+    show.legend = F,
+    hjust = 0) +
+  facet_grid(cols = vars(indicator2),
+             rows = vars(Municipality),
+             scales = "free_y")
+#ggsave("images/results.jpg",
+#       width=10,
+#       height=8)
+```
+
+```{r EEA-plot2}
+#| eval: true
+#| cache: true
+
+# Same as above, but for trenching only
+temp <- combineAll |>
+  filter(indicator == "i_ditch",
+     Municipality == "Nord-Aurdal")
+temp2 <- combineAll_area |>
+  filter(Municipality == "Nord-Aurdal",
+  indicator2 == "Trenching")
+
+temp |>
+  ggplot()+
+  geom_density(
+    data = temp |>
+      unnest(data),
+    aes(x = PDs,
+        y = after_stat(scaled)),
+    fill = "sienna1",
+    alpha = .5,
+    bounds = c(0, 1)
+  ) +
+  geom_col(
+    data = temp2,
+    aes(x = sample_bin,
+        y = area_norm),
+    width = 0.05,
+    alpha=.8,
+    fill = "cornflowerblue"
+  )+
+      theme(legend.position = 'none',
+        axis.title.y = element_blank()) +
+  geom_segment(
+    aes(x = meanWeighted,
+        xend = meanWeighted,
+        y = -0.15,
+        yend = -0.05),
+    linewidth = 3,
+    alpha=.7,
+    colour = "grey10"    
+  )+
+  geom_segment(
+    aes(x = low,
+        xend = high,
+        y = -0.1,
+        yend = -0.1),
+    linewidth = 1.2,
+    alpha=.7,
+    colour = "grey30"    
+  )+
+  xlim(-0.1,1.1)+
+  theme_bw(base_size = 16)+
+  scale_y_continuous(breaks = c(0, 0.5, 1))+
+  labs(x = "Indicator value",
+       y = "Area")+
   geom_text(
     aes(y = 0.7,
         x = 0.0, 
@@ -2347,7 +2490,7 @@ temp |>
     hjust = 0) 
 
 
-#ggsave("../images/results-ex.jpg",
+#ggsave("images/results-ex.jpg",
 #       width=6,
 #       height=4)
 ```
@@ -2381,7 +2524,7 @@ temp |>
       label_row_css = "background-color: #cef598; color: #000000;")
 )
 
-#saveRDS(EEA_tbl_out, "../output/EEA-tbl.RDS")
+#saveRDS(EEA_tbl_out, "output/EEA-tbl.RDS")
 ```
 
 ```{r indicator-map-zoom}
@@ -2416,13 +2559,13 @@ myCols <- c(
     ylim = c(6737092 , 6789676)) +
   ggmagnify::geom_magnify(from = from, to = to, 
                           expand = 0,
-                          shadow =T,
+                          #shadow =T,
                           corners = 0.1) +
   theme_bw()
 )
 
 #ggsave(plot = indicator_magnify,
-#       "../images/indicator-magnify.jpg")
+#       "images/indicator-magnify.jpg")
 ```
 
 # Introduction
@@ -2575,10 +2718,8 @@ For details about the normalisation process, see Appendix A.
 #| include: true
 #| out.width: '80%'
 #| fig.cap:
-#| - "Map of the three focal municipalities. For each municipality the maps
-#| in the top row show ocean in blue and non-ocean in green. 
-#| The survey coverage maps are in grey, and the mapped mires are
-#| in red, with polygon borders made extra thick to make them visible,
+#| - "Map of the three focal municipalities. Note that for the mapped mires 
+#| in red, the polygon borders are made extra thick to make them visible,
 #| but then also exaggerating their size.
 #| The bottom row shows the delineation for homogeneous impact areas which
 #| is an ordinal gradient from 0–3 with increasing presence of human 
@@ -2593,11 +2734,9 @@ knitr::include_graphics("../images/studyLocations.jpg")
 
 To correct for spatial bias we used spatial information about human pressures, as an expected structuring variable, to post-stratify the data.
 The Norwegian infrastructure index for the year 2022 is a continuous variable representing the frequency of different infrastructure types inside 500 m radius circles around each 100 × 100 m pixel [@erikstad2023].
-We aggregated this data to 1 × 1 km pixels; a grit which is sufficient for estimating precise area weighted means for municipalities, which is the main objective for this analysis.
-The 1 × 1 km scale is too coarse, however, for the maps themselves to be very usefil in land-use management decitions, 
-and perhaps also in municipal planning. 
-This is intentional, since as the extrapolated indicator values we produce are not reliable enough to be used at that spatial scale.  
 We categorised the infrastructure index map into four non-overlapping Homogeneous Impact Areas (HIAs; @tbl-variables), with boundaries chosen to balance gradient resolution, data stratum area, and computational limitations (Table S1).
+We did a visual exploration to check if the HIAs had any explanatory power over the indicator values in te national dataset, 
+For this purpose we used an aggregated 1 × 1 km version of the infrastructure index map, to ease computations.
 
 HIAs align conceptually with the concept of Homogeneous Ecosystem Areas, *sensu* @vallecillo_eu-wide_2022.
 The nature type polygons with the indicator values were intersected with a vectorised HIA map and the relationship between the HIA classes and indicator values was examined visually across the entire data set.
@@ -2714,7 +2853,7 @@ knitr::include_graphics("../images/validation-plot.jpg")
 #| municipality. The numbers to the left of each bar is the sample size, i.e. 
 #| the number of surveyed mires. ADSV = Anthropogenic disturbance to soil and vegetation."  
 
-knitr::include_graphics("../images/forest-plot.jpg")
+knitr::include_graphics("../images/forest-plot_100m.jpg")
 ```
 
 ```{r fig-spread-example}
@@ -2727,7 +2866,7 @@ knitr::include_graphics("../images/forest-plot.jpg")
 #| homogenous impact area where it lies. Colours are chosen to best reflect 
 #| categorical differences and exaggerates the absolute difference between 
 #| areas. The inset is 5 km across and shows the typical size and shape of mire polygons, and how indicator values can vary between them. Coordinate reference system is 
-#| EPSG 25832. Axis are in meters."
+#| EPSG 25832."
 
 knitr::include_graphics("../images/spread-na-small.jpg")
 ```
