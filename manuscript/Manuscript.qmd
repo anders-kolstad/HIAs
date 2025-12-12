@@ -2895,22 +2895,35 @@ The two approaches can also be used independently.
 ## Post-stratification using HIAs
 
 Local ECAs often rely on opportunistic datasets that lack spatial representativity.
-Our post-stratification method addresses this by partitioning data into HIAs—homogeneous impact areas (e.g., infrastructure prevalence)—ensuring indicators are estimated only within comparable contexts.
+Our post-stratification method addresses this by partitioning data into HIAs — homogeneous impact areas (e.g., infrastructure prevalence) — ensuring indicators are estimated and extrapolated only within comparable contexts.
 This minimizes extrapolation bias while retaining interpretability.
+HIAs have the advantage of simplicity [@czucz_selection_2021], 
+are particularly valuable for local ECAs, where small samples preclude complex geostatistical methods (e.g., kriging).
 A similar concept called homogeneous ecosystem areas was introduced by @vallecillo_eu-wide_2022 and refer to parts of an ecosystem type that can be allowed to share common reference levels.
 HIAs on the other hand, refer to areas that can be allowed to share common indicator values.
 
 The effectiveness of HIAs depends on their alignment with indicator dynamics.
 For instance, infrastructure prevalence strongly predicted trenching impacts in mires but weakly explained alien species occurrence (@fig-validation).
-For the latter, other stratification variables could have been explored, e.g. latitude, as there are generally more alien species in the south compared to the north in Norway.
-Even though suboptimal HIAs reduce sample size per stratum, they still mitigate geographic bias by limiting inference to relatively spatially cohesive areas.
-We see little risk with using HIAs even when relationships are weak, but not accounting for other, potentially more relevant predictors of indicator values, will leave the indicator as spatially biased as the original variable.
+Stratification generally leads to better estimation [@brus_spatial_2022], but 
+using uninformative stratification variables will only lead to a reduce sample size per stratum. 
+However, we see little risk with using HIAs even when relationships are weak, 
+but note that not accounting for other, potentially more relevant predictors of indicator values, can leave the indicator as spatially biased as the original variable.
+For the alien species occurrence indicator, HIAs did not predict indicator values to any large degree, neither nationally (@fig-validation) nor locally (@fig-forest). 
+Other stratification variables could have been explored, e.g. latitude, as there are generally more alien species in the south compared to the north in Norway.
 
-HIAs are particularly valuable for local ECAs, where small samples preclude complex geostatistical methods (e.g., kriging).
-Such methods are also more complicated and and therefore at a compromise with the ideal for simplicity (@czucz_selection_2021).
-HIAs also provide actionable insights by revealing spatial patterns in degradation (@fig-forest).
-However, trade-offs exist between HIA granularity and data availability; our pilot municipalities had insufficient data for some strata, suggesting broader definitions or imputation could be explored.
-Alternatively one can chose to impute values *post hoc* instead of simply dropping strata with no data.
+At the national scale, indicator values (and hence ecosystem condition) generally decreased as human infrastructure increased,
+and especially so for the trenching indicator (@fig-validation).
+However, this pattern was reversed inside Gran municipality 
+where trencing was most severe in areas further away from infrastructure (@fig-forest).
+In Gran, the sample sizes are relatively small (e.g. only one sample inside each of HIA-0 and HIA-3),
+and this makes it difficult to draw any clear conclusion about this pattern.
+So although HIAs can reveal spatial patterns in degradation, 
+concluding that ecosystem condition is better or worse in one HIA over another, 
+requires a sample size bigger than what we have for Gran. 
+The sample sizes are also so small that they have little influence on the predicted indicator range which becomes determined mainly by the national data. 
+That is also why the point estimate for HIA-3 in Gran is outside the predicted range, 
+indicating that this data point is likely to prove as an outlier if we increase the sample size.
+
 
 ## Uncertainty quantification for small samples
 
