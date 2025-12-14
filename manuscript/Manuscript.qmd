@@ -836,6 +836,7 @@ mire_in_dk <- mire_in_dk |>
 ```
 
 ```{r infraBig}
+#| eval: true
 infra_big <- infra
 ```
 ```{r infrastructureIndex}
