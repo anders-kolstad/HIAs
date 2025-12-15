@@ -1,4 +1,4 @@
-get_root_NINA <- function(server = "P") {
+get_folder_dir <- function(server = "P", folder = "41001581_egenutvikling_anders_kolstad/data/") {
   server <- toupper(server)
   if (!server %in% c("P", "R")) {
     stop("server must be 'P' or 'R'")
@@ -12,6 +12,7 @@ get_root_NINA <- function(server = "P") {
                    P = "/data/P-Prosjekter2/",
                    R = "/data/R/")
   } 
+  base <- paste0(base, folder)
   return(base)
 }
 
