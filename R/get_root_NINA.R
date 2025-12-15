@@ -15,9 +15,3 @@ get_root_NINA <- function(server = "P") {
   return(base)
 }
 
-
-fix_utf8_tag <- function(x) {
-  x2 <- x
-  Encoding(x2) <- "UTF-8"
-  x2
-}
