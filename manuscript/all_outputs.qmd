@@ -1,0 +1,15 @@
+---
+title: "Printing test and output from targets pipeline"
+format: pdf
+---
+
+```{r setup}
+#| include: false
+library(knitr)
+library(targets)
+```
+
+```{r}
+tar_read(test_most_common)
+tar_read(test_naturetypes_p)
+```
