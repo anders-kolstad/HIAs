@@ -50,9 +50,15 @@ list(
   tar_target(myVars, c("7TK", "7SE", "PRTK", "PRSL", "7FA", "7GR-GI")),
   tar_target(nts, getRelevantNTs(naturetypes_summary, myVars)),
   tar_target(naturetypes_cs, clean_subset(naturetypes, nts = nts, myCodes = myVars)),
-  tar_target(test_most_common, test_most_common(naturetypes_cs)),
+  tar_target(test_most_common, f_test_most_common(naturetypes_cs)),
   tar_target(naturetypes_p, convertToPercent(naturetypes_cs)),
   tar_target(test_naturetypes_p, test_convertToPercent(naturetypes_p)),
+  tar_target(naturetypes_wide, make_naturetypes_wide(naturetypes_p)),
+  tar_target(naturetypes_comb, make_naturetypes_comb(naturetypes_wide)),
+  tar_target(plot_naturetypes_comb, f_plot_naturetypes_comb(naturetypes_comb)),
+  tar_target(plot_naturetypes_comb2, f_plot_naturetypes_comb2(naturetypes_comb)),
+  tar_target(naturetypes_wide2, make_naturetypes_wide2(naturetypes_p, naturetypes_comb)),
+
 
   tar_quarto(all_outputs, "manuscript/all_outputs.qmd")
 )
