@@ -36,5 +36,15 @@ tar_read("naturetypes_wide2") |> head()
 ```
 ```{r c3}
 tar_read(plot_normalised)
+tar_read(nature3_test)
 ```
+
+There where some polygons that spanned municipal borders. 
+It's not a problem.
+
+```{r}
+knitr::include_graphics("images/positionMap.jpg")
+
+```
+
 

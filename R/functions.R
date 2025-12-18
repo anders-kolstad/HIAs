@@ -359,3 +359,60 @@ getMunicipalities <- function(x) {
   ))
 
 }
+
+prepPolygons <- function(x,y) {
+  out <- x |> 
+    st_intersection(y)
+}
+
+test_prepPolygons <- function(x) {
+  x |>
+    as_tibble() |>
+    count(municipality,
+      sort = TRUE,
+      name = "Number of polygons")
+}
+
+get_coverage <- function(x, y){
+  x |> 
+    st_intersection(y)
+}
+
+get_world_map <- function(x) {
+  ne_countries(scale = "medium", returnclass = "sf") |>
+  st_transform(x) |>
+  filter(admin %in% c("Norway", "Sweden")) |>
+  st_make_valid()
+}
+
+posMap <- function(x,y,z,z2) {
+  inc <- 200000
+  myB <- z2
+  myB[1:2] <- myB[1:2]-inc 
+  myB[3:4] <- myB[3:4]+inc 
+
+  out <- 
+    tm_shape(x,
+             bbox = myB) +
+      tm_polygons() +
+    tm_shape(y) +
+      tm_polygons(col = "green") +
+    tm_shape(z) +
+    tm_text(
+      text = "Municipality",
+      just= "left",
+      size = .8,
+      xmod = 1,
+      ymod = 0
+    ) +
+    tm_grid(projection = 4326) +
+    tm_layout(
+      bg.color = "skyblue",
+      outer.margins = c(0.01, .02, .02, .02))+
+    tm_compass()+
+    tm_scale_bar()
+
+ tmap_save(tm = out,
+        here::here("images/positionMap.jpg"))
+
+}

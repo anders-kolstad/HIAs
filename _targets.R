@@ -52,6 +52,17 @@ list(
   tar_target(nf, dplyr::filter(muni3, kommunenummer == "3207")),
   tar_target(na, dplyr::filter(muni3, kommunenummer == "3451")),
   tar_target(gr, dplyr::filter(muni3, kommunenummer == "3446")),
+  tar_target(nature3, prepPolygons(naturetypes_norm, muni3)),
+  tar_target(nature3_test, test_prepPolygons(nature3)),
+  tar_target(coverage3, get_coverage(coverage, muni3)),
+  tar_target(terrestrial_poly, outline |> sf::st_intersection(muni3)),
+  tar_target(ocean, muni3 |> sf::st_difference(outline)),
+  tar_target(terrestrial, terrestrial_poly |> mutate(area_t = geometry |> st_area(), t_area_km = round(units::drop_units(area_t * 1e-6)))),
+  tar_target(world, get_world_map(myCRS)),
+  tar_target(centroids, muni3 |> sf::st_centroid()),
+  tar_target(myBbox, sf::st_bbox(centroids)),
+  tar_target(positionMap, posMap(world, muni3, centroids, myBbox), format = "file"),
+
 
 
   tar_quarto(all_outputs, "all_outputs.qmd")
