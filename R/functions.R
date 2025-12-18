@@ -234,3 +234,64 @@ make_naturetypes_wide2 <- function(x, y) {
     select(!c("7TK", "7SE", "PRSL", "PRTK"))
 }
 
+head_sf <- function(y) {
+  y |> as_tibble() |> head()
+}
+
+# Now I normalise the now continuous variables using reference levels
+# I will use the same reference levels for all of Norway for ADSV and alien species:
+# upper is x100, lower is X0 and threshold is x60.
+
+normalise_plot <- function(x) {
+  upper <- 0
+  lower <- 100
+  threshold <- 10
+
+  # For 7GR-GI I use this
+  upper2 <- 1
+  lower2 <- 5
+  threshold2 <- 2.5 # = observable effect. Value 3 indicates a shift to a new type (grunntype)
+
+  scale1 <- eaTools::ea_normalise(
+    data = x,
+    vector = "ADSV",
+    upper_reference_level = lower,
+    lower_reference_level = upper,
+    break_point = threshold,
+    plot = T,
+    reverse = T
+  ) +
+    labs(x = "ADVS (converted to %)") +
+    ylim(0, 1)
+
+  # There is no point yet making this a time series
+  # I will assign all the indicator value to the same time (2018-2022)
+
+  # same for 7FA
+  scale2 <- eaTools::ea_normalise(
+    data = x,
+    vector = "7FA",
+    upper_reference_level = lower,
+    lower_reference_level = upper,
+    break_point = threshold,
+    plot = T,
+    reverse = T
+  ) +
+    labs(x = "7FA (converted to %)", y = "") +
+    ylim(0, 1)
+  # The variables are really coarse
+
+  scale3 <- eaTools::ea_normalise(
+    data = x,
+    vector = "7GR-GI",
+    upper_reference_level = lower2,
+    lower_reference_level = upper2,
+    break_point = threshold2,
+    plot = T,
+    reverse = T
+  ) +
+    labs(x = "7GR-GI (original units)", y = "") +
+    ylim(0, 1)
+
+  ggarrange(scale1, scale2, scale3, ncol = 3)
+}

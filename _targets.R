@@ -6,21 +6,7 @@
 # Load packages required to define the pipeline:
 library(targets)
 library(tarchetypes)
-
-# Some directories
-
-# infrastructure index (i.e. land use intensity index)#
-#path_infrastructure <- paste0(my_folder, "infra_tiff.tif")
-
-# field survey, downloaded from https://kartkatalog.geonorge.no/metadata/naturtyper-miljoedirektoratets-instruks/eb48dd19-03da-41e1-afd9-7ebc3079265c
-#path_naturetypes <- paste0(my_folder, "Naturtyper_nin_0000_norge_25833_FILEGDB.gdb")
-
-# municipality outline
-#path_muni <- here::here("data/Basisdata_0000_Norge_25833_Kommuner_FGDB.gdb")
-
-# path to local caching folder
-#path_temp <- paste0(root, "41201785_okologisk_tilstand_2022_2023/data/cache/")
-
+options(warn=-1)
 
 # Set target options:
 tar_option_set(
@@ -58,7 +44,9 @@ list(
   tar_target(plot_naturetypes_comb, f_plot_naturetypes_comb(naturetypes_comb)),
   tar_target(plot_naturetypes_comb2, f_plot_naturetypes_comb2(naturetypes_comb)),
   tar_target(naturetypes_wide2, make_naturetypes_wide2(naturetypes_p, naturetypes_comb)),
+  tar_target(head_naturetypes_wide2, head_sf(naturetypes_wide2)),
+  tar_target(plot_normalised, normalise_plot(naturetypes_wide2)),
 
 
-  tar_quarto(all_outputs, "manuscript/all_outputs.qmd")
+  tar_quarto(all_outputs, "all_outputs.qmd")
 )

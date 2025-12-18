@@ -1,0 +1,40 @@
+---
+title: "Printing test and output from targets pipeline"
+format: pdf
+execute:
+  message: false
+  warning: false
+---
+
+```{r setup}
+#| include: false
+library(knitr)
+library(targets)
+library(tidyverse)
+library(tarchetypes)
+library(sf)
+setwd(here::here())
+```
+
+```{r c1}
+tar_read(test_most_common)
+tar_read(test_naturetypes_p)
+tar_read(naturetypes_wide) |> head()
+tar_read(plot_naturetypes_comb)
+```
+
+The NA's represents localities where just one of the two variables (then thinking 7SE and PRSL as the same variable)
+is recorded. To combine these into one metric, ADSV, I could take the one with the highest value (worst-rule) or the sum.
+Sum is problematic as not all locations have two values to sum together. But the other option is problematic since I think field workers often tend to split the effects over two variables is they have that option. And if we have 50% vehicle damage and 50% hiking damage, that is no doubt worst than just having 50% of either. So I will use the sum, despite its issues.
+
+```{r c2}
+tar_read(plot_naturetypes_comb2)
+```
+
+```{r c2x}
+tar_read("naturetypes_wide2") |> head()
+```
+```{r c3}
+tar_read(plot_normalised)
+```
+
