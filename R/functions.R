@@ -295,3 +295,67 @@ normalise_plot <- function(x) {
 
   ggarrange(scale1, scale2, scale3, ncol = 3)
 }
+
+normalise <- function(x) {
+  # Adding scaled indicator values to the dataset
+  # Same code as above, but with plot=F.
+
+  upper <- 0
+  lower <- 100
+  threshold <- 10
+
+  # For 7GR-GI I use this
+  upper2 <- 1
+  lower2 <- 5
+  threshold2 <- 2.5 # = observable effect. Value 3 indicates a shift to a new type (grunntype)
+
+
+  x$i_ADSV <- eaTools::ea_normalise(
+    data = x,
+    vector = "ADSV",
+    upper_reference_level = lower,
+    lower_reference_level = upper,
+    break_point = threshold,
+    reverse = T
+  )
+
+  x$i_alien <- eaTools::ea_normalise(
+    data = x,
+    vector = "7FA",
+    upper_reference_level = lower,
+    lower_reference_level = upper,
+    break_point = threshold,
+    reverse = T
+  )
+
+  x$i_ditch <- eaTools::ea_normalise(
+    data = x,
+    vector = "7GR-GI",
+    upper_reference_level = lower2,
+    lower_reference_level = upper2,
+    break_point = threshold2,
+    reverse = T
+  )
+
+  return(x)
+}
+
+ensure_multipolygons <- function(x) {
+  # Cast polygons to multipolygons (keeps multipolygons as multipolygons)
+  sf::st_cast(x, "MULTIPOLYGON", warn = FALSE)
+}
+
+getMunicipalities <- function(x) {
+  x |>
+    filter(kommunenummer %in% c(
+      "3207", # Nordre Follo
+      "3451", # Nord-Aurdal
+      "3446" # Gran
+    )) |>
+    mutate(Municipality = case_when(
+      kommunenummer == "3207" ~ "Nordre Follo",
+      kommunenummer == "3451" ~ "Nord-Aurdal",
+      kommunenummer == "3446" ~ "Gran"
+  ))
+
+}

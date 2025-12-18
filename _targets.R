@@ -46,6 +46,12 @@ list(
   tar_target(naturetypes_wide2, make_naturetypes_wide2(naturetypes_p, naturetypes_comb)),
   tar_target(head_naturetypes_wide2, head_sf(naturetypes_wide2)),
   tar_target(plot_normalised, normalise_plot(naturetypes_wide2)),
+  tar_target(naturetypes_norm, normalise(naturetypes_wide2)),
+  tar_target(muni_mp, ensure_multipolygons(muni)),
+  tar_target(muni3, getMunicipalities(muni_mp)),
+  tar_target(nf, dplyr::filter(muni3, kommunenummer == "3207")),
+  tar_target(na, dplyr::filter(muni3, kommunenummer == "3451")),
+  tar_target(gr, dplyr::filter(muni3, kommunenummer == "3446")),
 
 
   tar_quarto(all_outputs, "all_outputs.qmd")
