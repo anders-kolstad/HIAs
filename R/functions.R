@@ -831,7 +831,7 @@ muni_table <- function(muni3, terrestrial, dk2, nature3, mireArea, mire_in_dk, i
     tibble::as_tibble()
 
   muni3 |>
-    dplyr::mutate(area_km = round(units::drop_units(sf::st_area(geom) * 1e-6))) |>
+    dplyr::mutate(area_km = round(units::drop_units(sf::st_area(SHAPE) * 1e-6))) |>
     tibble::as_tibble() |>
     dplyr::left_join(terrestrial |> tibble::as_tibble() |> dplyr::select(kommunenummer, t_area_km), by = "kommunenummer") |>
     dplyr::left_join(dk2 |> dplyr::select(Municipality, dk_area_km), by = "Municipality") |>
@@ -1063,20 +1063,22 @@ forest_plot_example <- function(stats_tbl) {
     ggplot2::ggplot(ggplot2::aes(x = infrastructureIndex, y = mean, ymin = low, ymax = high,
                                  col = factor(infrastructureIndex), fill = factor(infrastructureIndex))) +
     ggplot2::geom_linerange(linewidth = 10) +
-    ggplot2::geom_linerange(linewidth = 10, linewidth = 1, colour = "black") +
+    ggplot2::geom_linerange(linewidth = 1, colour = "black") +
     ggplot2::geom_point(size = 3, shape = 21, colour = "white", stroke = 0.5) +
     ggplot2::scale_fill_manual(values = rev(dotCOLS)) +
     ggplot2::scale_color_manual(values = barCOLS) +
     ggplot2::scale_x_discrete(name = "") +
     ggplot2::scale_y_continuous(name = "Indicator values", limits = c(0, 1)) +
     ggplot2::coord_flip() +
-    ggplot2::theme_bw()
+    ggplot2::theme_bw() +
+    labs(fill = "HIA", col = "HIA")
 }
 
 spread_mires_to_edm <- function(mire_stars, infraMuni3, stats_tbl, municipality_name) {
   mire_stars |>
     sf::st_as_sf(merge = TRUE) |>
-    dplyr::filter(Myr153 == 1) |>
+    dplyr::rename(presence = starts_with("mire_stars")) |>
+    dplyr::filter(presence == 1) |>
     sf::st_intersection(infraMuni3 |> dplyr::select(infrastructureIndex)) |>
     dplyr::mutate(area = geometry |> sf::st_area()) |>
     dplyr::left_join(
@@ -1154,7 +1156,8 @@ eea_plot <- function(combineAll) {
       data = combineAll |> tidyr::unnest(data),
       ggplot2::aes(x = PDs, y = after_stat(scaled)),
       alpha = 0.5,
-      fill = "sienna1"
+      fill = "sienna1",
+      bounds = c(0, 1)
     ) +
     ggplot2::geom_histogram(
       data = combineAll |> tidyr::unnest(realSamples),
@@ -1171,6 +1174,61 @@ eea_plot <- function(combineAll) {
                           linewidth = 1.2, alpha = 0.7, colour = "grey30") +
     ggplot2::xlim(-0.1, 1.1) +
     ggplot2::labs(x = "Indicator value", y = "Proportion") +
+    ggplot2::geom_text(ggplot2::aes(y = 0.7, x = 0.0, label = paste("n = ", n, "\nmean = ", round(meanWeighted, 2))),
+                       show.legend = FALSE, hjust = 0) +
+    ggplot2::facet_grid(cols = ggplot2::vars(indicator2), rows = ggplot2::vars(Municipality), scales = "free_y")
+}
+
+eea_plot2 <- function(combineAll) {
+
+  bin_width <- 0.1
+  breaks = seq(0, 1, by = bin_width)
+  
+  combineAll_area <- combineAll |>
+  unnest(data) |>
+  mutate(
+    sample_bin = cut(
+      mean,
+      breaks = breaks,
+      include.lowest = TRUE,
+      labels = head(breaks, -1) + bin_width/2
+    ),
+    sample_bin = as.numeric(as.character(sample_bin))
+  ) |>
+  select(Municipality, indicator2, sample_bin, area_EDM) |>
+  group_by(Municipality, indicator2, sample_bin) |>
+  summarise(area_EDM = sum(area_EDM)) |>
+  ungroup() |>
+  group_by(Municipality, indicator2) |>
+  mutate(area_norm = area_EDM / max(area_EDM, na.rm = TRUE)) |>
+  ungroup()
+  
+  combineAll |>
+    ggplot2::ggplot() +
+    ggplot2::geom_density(
+      data = combineAll |> tidyr::unnest(data),
+      ggplot2::aes(x = PDs, y = after_stat(scaled)),
+      alpha = 0.5,
+      fill = "sienna1",
+      bounds = c(0, 1)
+    ) +
+    ggplot2::geom_col(
+      data = combineAll_area,
+    aes(x = sample_bin,
+        y = area_norm),
+    width = 0.1,
+    alpha=.8,
+    fill = "cornflowerblue"
+    ) +
+    ggplot2::theme_bw(base_size = 16) +
+    ggplot2::theme(legend.position = "none", axis.title.y = ggplot2::element_blank()) +
+    ggplot2::geom_segment(ggplot2::aes(x = meanWeighted, xend = meanWeighted, y = -0.15, yend = -0.05),
+                          linewidth = 3, alpha = 0.7, colour = "grey10") +
+    ggplot2::geom_segment(ggplot2::aes(x = low, xend = high, y = -0.1, yend = -0.1),
+                          linewidth = 1.2, alpha = 0.7, colour = "grey30") +
+    ggplot2::xlim(-0.1, 1.1) +
+    labs(x = "Indicator value", y = "Area (relative)")+
+    scale_y_continuous(breaks = c(0, 0.5, 1))+
     ggplot2::geom_text(ggplot2::aes(y = 0.7, x = 0.0, label = paste("n = ", n, "\nmean = ", round(meanWeighted, 2))),
                        show.legend = FALSE, hjust = 0) +
     ggplot2::facet_grid(cols = ggplot2::vars(indicator2), rows = ggplot2::vars(Municipality), scales = "free_y")
@@ -1229,4 +1287,10 @@ get_path_temp <- function(server = "P", folder = "41201785_okologisk_tilstand_20
     base <- switch(server, P = "/data/P-Prosjekter2/", R = "/data/R/")
   }
   paste0(base, folder)
+}
+
+
+ggplot_tiff <- function(plot, path, width = 8, height = 6, dpi = 300){
+  ggsave(filename = path, plot = plot, width = width, height = height, dpi = dpi)
+  path
 }
