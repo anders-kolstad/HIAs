@@ -6,7 +6,7 @@
 # Load packages required to define the pipeline:
 library(targets)
 library(tarchetypes)
- library(geotargets)
+library(geotargets)
 options(warn=-1)
 
 # Set target options:
@@ -15,7 +15,8 @@ tar_option_set(
     "knitr", "sf",  "tmap", "tmaptools", "stars", "terra",
     "tidyterra", "ggtext", "cowplot",  "units",  "rnaturalearth",
     "rnaturalearthdata", "ggmagnify", "ggridges", "eaTools", "ggpubr",
-    "kableExtra", "here", "MASS", "ggh4x", "tidyverse")
+    "kableExtra", "here", "MASS", "ggh4x", "tidyverse", "RColorBrewer",
+    "forcats")
 )
 
 # Run the R scripts in the R/ folder with your custom functions:
@@ -77,30 +78,28 @@ list(
   tar_terra_rast(mire_terra_gr, terra::rast(mire_stars_gr)),
   tar_terra_rast(mire_terra_na, terra::rast(mire_stars_na)),
   tar_target(dk2, coverage_area_km2(coverage3)),
-  tar_target(mireArea, mire_area_stats(list(nf = mire_terra_nf, gr = mire_terra_gr, na = mire_terra_na)))
-  #tar_target(mire_in_dk, mire_in_survey_km2(list(nf = mire_terra_nf, gr = mire_terra_gr, na = mire_terra_na), dk2)),
-
-  ## Infrastructure (vectorized cache + 100m muni-cropped version)
-  #tar_target(path_temp, get_path_temp()),
-  #tar_file_read(infra_vec, paste0(path_temp, "infrastructureIndex_discrete_vectorized.rds"), read = readRDS(!!.x)),
-  #tar_target(infra_vec2, infra_area_add(infra_vec)),
-  #tar_target(infra_area_plot, infra_area_plot(infra_vec2)),
-  #tar_target(infra_big, infra),
-  #tar_target(infraMuni3, infra_muni3_vectorize(infra_big, muni3, outline, myCRS)),
-  #tar_target(infraMuni3_tbl, infra_muni3_tbl(infraMuni3)),
-  #tar_target(infraMuni3_summary, infra_muni3_summary(infraMuni3_tbl)),
-  #tar_target(infra_dist_plot, infra_dist_plot(infraMuni3_tbl)),
-#
+  tar_target(mireArea, mire_area_stats(list(nf = mire_terra_nf, gr = mire_terra_gr, na = mire_terra_na))),
+  tar_target(mire_in_dk, mire_in_survey_km2(list(nf = mire_terra_nf, gr = mire_terra_gr, na = mire_terra_na), dk2)),
+  tar_target(infra_vec, downsize(x = infra, crs = myCRS, outline = outline)),
+  tar_target(infra_vec2, infra_area_add(infra_vec)),
+  tar_target(infra_area_plot, infra_area_plot(infra_vec2)),
+  tar_target(infraMuni3, infra_muni3_vectorize(infra, muni3, outline, myCRS)),
+  tar_target(infraMuni3_tbl, infra_muni3_tbl(infraMuni3)),
+  tar_target(infraMuni3_summary, infra_muni3_summary(infraMuni3_tbl)),
+  tar_target(infra_dist_plot, infra_dist_plot(infraMuni3_tbl)),
+  
   ## Stratification validation
-  #tar_target(corrCheck, corr_check(naturetypes_norm, infra_vec)),
-  #tar_target(validationPlot, validation_plot(corrCheck)),
-#
+  tar_target(corrCheck, corr_check(naturetypes_norm, infra_vec)),
+  tar_target(validationPlot, validation_plot(corrCheck)),
+
   ## Methods maps (tmap objects + a TIFF file to include in quarto)
-  #tar_target(infra_maps_list, infra_maps(muni3, infraMuni3, terrestrial, ocean, dk2, nature3)),
-  #tar_target(methodsMap, infra_maps_list$methodsMap),
-  #tar_target(methodsMap_tiff, save_tmap_tiff(methodsMap, here::here("outputs", "fig", "studyLocations.tiff"), dpi = 600), format = "file"),
-  #tar_target(NA_overview, map_overview_na(muni3, terrestrial, dk2, nature3)),
-  #tar_target(infraMuniMap_NA, infra_map_na(muni3, infraMuni3)),
+  tar_target(infra_maps_list, infra_maps(muni3, infraMuni3, terrestrial, ocean, dk2, nature3)),
+  tar_target(methodsMap, infra_maps_list$methodsMap),
+  tar_target(methodsMap_tiff, save_tmap_tiff(methodsMap, here::here("output", "fig", "studyLocations.tiff"), dpi = 600), format = "file"),
+  tar_target(overview_NA, map_overview_na(muni3, terrestrial, dk2, nature3)),
+  tar_target(overview_NA_out, save_tmap_tiff(overview_NA, here::here("output", "fig", "overview_NA.tiff"), dpi = 600), format = "file"),
+  tar_target(infraMuniMap_NA2, infra_map_na2(muni3, infraMuni3)),
+  tar_target(infraMuniMap_NA_out, save_tmap_tiff(infraMuniMap_NA2, here::here("output", "fig", "HIA-NA.tiff"), dpi = 600), format = "file") 
 #
   ## Municipality summary table (data frame)
   #tar_target(muni_tbl, muni_table(muni3, terrestrial, dk2, nature3, mireArea, mire_in_dk, infraMuni3_summary)),

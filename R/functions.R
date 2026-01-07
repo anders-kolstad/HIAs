@@ -563,9 +563,37 @@ mire_in_survey_km2 <- function(mire_terra_by_muni, dk2) {
   )
 }
 
-infra_vectorized_cached <- function(path_temp) {
-  readRDS(paste0(path_temp, "infrastructureIndex_discrete_vectorized.rds"))
+downsize <- function(x, crs, outline){
+  x <- x|>
+    st_warp(
+    cellsize = c(1000, 1000),
+    crs = crs,
+    use_gdal = TRUE,
+    method = "average"
+  ) |>
+  setNames("infrastructureIndex") |>
+  st_transform(crs) |>
+  mutate(infrastructureIndex = case_when(
+    infrastructureIndex < 1 ~ 0,
+    infrastructureIndex < 6 ~ 1,
+    infrastructureIndex < 12 ~ 2,
+    infrastructureIndex >= 12 ~ 3
+  )) |>
+  # taking away point in the sea
+  st_crop(outline)
+
+x <- eaTools::ea_homogeneous_area(x,
+  groups = infrastructureIndex
+)
+  
+return(x)
+  
 }
+
+
+#infra_vectorized_cached <- function(path_temp) {
+#  readRDS(paste0(path_temp, "infrastructureIndex_discrete_vectorized.rds"))
+#}
 
 infra_area_add <- function(infra_vec) {
   infra_vec |>
@@ -621,7 +649,12 @@ infra_muni3_summary <- function(infraMuni3_tbl) {
 }
 
 infra_dist_plot <- function(infraMuni3_tbl) {
-  # keep original styling as much as possible, but avoid hard-coded palettes if missing
+
+  # this is the HIA area in the municipality overall
+# and not the distribution of HIAs for wetlands.
+# There is for example very little mires in HIA 3 in Nordre Follo.
+  
+  
   infraMuni3_tbl |>
     ggplot2::ggplot() +
     ggplot2::geom_bar(
@@ -634,7 +667,35 @@ infra_dist_plot <- function(infraMuni3_tbl) {
       stat = "identity",
       linewidth = 1.2
     ) +
-    ggpubr::theme_minimal_hgrid() +
+    cowplot::theme_minimal_hgrid() +
+    ggplot2::scale_fill_manual(values = RColorBrewer::brewer.pal(4, "YlOrBr")) +
+    ggplot2::scale_color_manual(values = RColorBrewer::brewer.pal(5, "YlOrBr")[-1]) +
+    ggplot2::theme(
+      axis.title.x = element_textbox_simple(
+        width = NULL,
+        padding = margin(4, 4, 4, 4),
+        margin = margin(4, 0, 0, 0),
+        linetype = 1,
+        r = grid::unit(8, "pt"),
+        fill = "azure1"
+      ),
+      axis.title.y = element_textbox_simple(
+        width = NULL,
+        padding = margin(4, 4, 4, 4),
+        margin = margin(4, 0, 0, 0),
+        linetype = 1,
+        orientation = "left-rotated",
+        r = grid::unit(8, "pt"),
+        fill = "azure1"
+      ),
+      strip.background = element_blank(),
+      strip.text = element_textbox(
+        size = 12,
+        color = "white", fill = "#5D729D", box.color = "#4A618C",
+        halign = 0.5, linetype = 1, r = unit(5, "pt"), width = unit(1, "npc"),
+        padding = margin(2, 0, 1, 0), margin = margin(3, 3, 3, 3)
+      )
+    ) +
     ggplot2::labs(x = "Homogeneous Impact Areas", y = "Area (km^2)") +
     ggplot2::guides(fill = "none", colour = "none") +
     ggplot2::facet_grid(cols = ggplot2::vars(Municipality))
@@ -689,10 +750,15 @@ validation_plot <- function(corrCheck) {
       panel.grid = ggplot2::element_blank(),
       axis.text.x = ggplot2::element_text(margin = ggplot2::margin(t = -10)),
       axis.text.y = ggplot2::element_blank(),
-      axis.title.y = ggplot2::element_blank()
+      axis.title.y = ggplot2::element_blank(),
+      strip.text = element_textbox(
+      size = 12,
+      halign = 0.5, linetype = 1, r = unit(5, "pt"), width = unit(1, "npc"),
+      padding = margin(2, 0, 1, 0), margin = margin(3, 3, 3, 3))
     ) +
     ggplot2::guides(fill = ggplot2::guide_legend("Indicator values")) +
     ggplot2::xlab("Homogeneous Impact Areas") +
+    scale_fill_manual(values = c("#E85437","#FBAF00", "#B5DF73", "#009000")) +
     ggplot2::facet_grid(~indicator)
 }
 
@@ -747,7 +813,7 @@ map_overview_na <- function(muni3, terrestrial, dk2, nature3) {
     tmap::tm_layout(legend.position = c("left", "top"))
 }
 
-infra_map_na <- function(muni3, infraMuni3) {
+infra_map_na2 <- function(muni3, infraMuni3) {
   tmap::tm_shape(muni3 |> dplyr::filter(Municipality == "Nord-Aurdal")) +
     tmap::tm_borders() +
     tmap::tm_shape(infraMuni3) +
@@ -755,6 +821,7 @@ infra_map_na <- function(muni3, infraMuni3) {
     tmap::tm_layout(legend.show = TRUE, legend.position = c("left", "top"), legend.text.size = 1.2) +
     tmap::tm_shape(muni3) +
     tmap::tm_borders(lwd = 3, col = "black")
+  
 }
 
 muni_table <- function(muni3, terrestrial, dk2, nature3, mireArea, mire_in_dk, infraMuni3_summary) {
