@@ -155,7 +155,6 @@ make_naturetypes_wide <- function(x) {
 
 # First I will combine 7TK and PRTK, and also 7SE and PRSL.
 # Then I taking the sum of 7SE and 7TK (incl the PR.. variables)
-
 make_naturetypes_comb <- function(x) {
   x |>
     mutate(
@@ -234,9 +233,6 @@ make_naturetypes_wide2 <- function(x, y) {
     select(!c("7TK", "7SE", "PRSL", "PRTK"))
 }
 
-head_sf <- function(y) {
-  y |> as_tibble() |> head()
-}
 
 # Now I normalise the now continuous variables using reference levels
 # I will use the same reference levels for all of Norway for ADSV and alien species:
@@ -417,67 +413,6 @@ posMap <- function(x,y,z,z2) {
 
 }
 
-wgt_mean <- function (x, weights, sigma.x = NULL, mu = NULL, mu.prior = NULL, n.mu = 50, 
-          ...) 
-{
-  if (n.mu < 3) 
-    stop("Number of prior values of theta must be greater than 2")
-  if (is.null(mu)) {
-    mu = seq(min(x) - sigma.x, max(x) + sigma.x, length = n.mu)
-    mu.prior = rep(1/n.mu, n.mu)
-  }
-  mx = weighted.mean(x, weights)
-  quiet = Bolstad.control(...)$quiet
-  if (is.null(sigma.x)) {
-    sigma.x = sd(x - mx)
-    if (!quiet) {
-      cat(paste("Standard deviation of the residuals :", 
-                signif(sigma.x, 4), "\n", sep = ""))
-    }
-  }
-  else {
-    if (sigma.x > 0) {
-      if (!quiet) {
-        cat(paste("Known standard deviation :", signif(sigma.x, 
-                                                       4), "\n", sep = ""))
-      }
-    }
-    else {
-      stop("The standard deviation must be greater than zero")
-    }
-  }
-  if (any(mu.prior < 0) | any(mu.prior > 1)) 
-    stop("Prior probabilities must be between 0 and 1 inclusive")
-  if (round(sum(mu.prior), 7) != 1) {
-    warning("The prior probabilities did not sum to 1, therefore the prior has been normalized")
-    mu.prior = mu.prior/sum(mu.prior)
-  }
-  n.mu = length(mu)
-  nx = length(x)
-  snx = sigma.x^2/nx
-  likelihood = exp(-0.5 * (mx - mu)^2/snx)
-  posterior = likelihood * mu.prior/sum(likelihood * mu.prior)
-  if (Bolstad.control(...)$plot) {
-    plot(mu, posterior, ylim = c(0, 1.1 * max(posterior, 
-                                              mu.prior)), pch = 20, col = "blue", xlab = expression(mu), 
-         ylab = expression(Probabilty(mu)))
-    points(mu, mu.prior, pch = 20, col = "red")
-    legend("topleft", bty = "n", fill = c("blue", "red"), 
-           legend = c("Posterior", "Prior"), cex = 0.7)
-  }
-  mx = sum(mu * posterior)
-  vx = sum((mu - mx)^2 * posterior)
-  results = list(name = "mu", param.x = mu, prior = mu.prior, 
-                 likelihood = likelihood, posterior = posterior, weighted_mean = mx, 
-                 var = vx, cdf = function(x, ...) cumDistFun(x, mu, posterior), 
-                 quantileFun = function(probs, ...) qFun(probs, mu, posterior))
-  class(results) = "Bolstad"
-  invisible(results)
-}
-
-
-
-# ---- Second_part ----
 
 distance_between_centroids_km <- function(centroids) {
   centroids |>
@@ -499,26 +434,6 @@ crop_and_mask <- function(edm,vect){
      stars::st_as_stars()
 }
 
-## Read manually cached mire datasets (stars) and return both stars + terra rasters
-#read_mire_manual_cache <- function() {
-#  nf_path <- here::here("manuscript", "manual_cache", "mire_stars_nf.RDS")
-#  gr_path <- here::here("manuscript", "manual_cache", "mire_stars_gr.RDS")
-#  na_path <- here::here("manuscript", "manual_cache", "mire_stars_na.RDS")
-#
-#  mire_stars_nf <- readRDS(nf_path)
-#  mire_stars_gr <- readRDS(gr_path)
-#  mire_stars_na <- readRDS(na_path)
-#
-#  list(
-#    stars = list(nf = mire_stars_nf, gr = mire_stars_gr, na = mire_stars_na),
-#    terra = list(
-#      nf = terra::rast(mire_stars_nf),
-#      gr = terra::rast(mire_stars_gr),
-#      na = terra::rast(mire_stars_na)
-#    ),
-#    files = c(nf_path, gr_path, na_path)
-#  )
-#}
 
 coverage_area_km2 <- function(coverage3) {
   coverage3 |>
@@ -570,30 +485,24 @@ downsize <- function(x, crs, outline){
     crs = crs,
     use_gdal = TRUE,
     method = "average"
-  ) |>
-  setNames("infrastructureIndex") |>
-  st_transform(crs) |>
-  mutate(infrastructureIndex = case_when(
-    infrastructureIndex < 1 ~ 0,
-    infrastructureIndex < 6 ~ 1,
-    infrastructureIndex < 12 ~ 2,
-    infrastructureIndex >= 12 ~ 3
-  )) |>
+    ) |>
+    setNames("infrastructureIndex") |>
+    st_transform(crs) |>
+    mutate(infrastructureIndex = case_when(
+      infrastructureIndex < 1 ~ 0,
+      infrastructureIndex < 6 ~ 1,
+      infrastructureIndex < 12 ~ 2,
+      infrastructureIndex >= 12 ~ 3
+    )) |>
   # taking away point in the sea
-  st_crop(outline)
+    st_crop(outline)
 
-x <- eaTools::ea_homogeneous_area(x,
-  groups = infrastructureIndex
-)
-  
-return(x)
-  
+  x <- eaTools::ea_homogeneous_area(x,
+    groups = infrastructureIndex
+  )
+  return(x)
 }
 
-
-#infra_vectorized_cached <- function(path_temp) {
-#  readRDS(paste0(path_temp, "infrastructureIndex_discrete_vectorized.rds"))
-#}
 
 infra_area_add <- function(infra_vec) {
   infra_vec |>
@@ -649,12 +558,9 @@ infra_muni3_summary <- function(infraMuni3_tbl) {
 }
 
 infra_dist_plot <- function(infraMuni3_tbl) {
-
-  # this is the HIA area in the municipality overall
+# this is the HIA area in the municipality overall
 # and not the distribution of HIAs for wetlands.
 # There is for example very little mires in HIA 3 in Nordre Follo.
-  
-  
   infraMuni3_tbl |>
     ggplot2::ggplot() +
     ggplot2::geom_bar(
@@ -883,64 +789,6 @@ simulate_domain <- function(dist, n_sim = 1000) {
   is_1 * 1 + is_0 * 0 + cont_part
 }
 
-make_national_data <- function(n = 1000, seed = 123) {
-  set.seed(seed)
-  tibble::tibble(
-    uniform = stats::runif(n, 0, 1),
-    normal_centered = stats::rnorm(n, 0.5, 0.2),
-    normal_high = stats::rnorm(n, 1, 0.5),
-    beta_2_2 = stats::rbeta(n, 2, 2),
-    beta_05_3 = stats::rbeta(n, 0.5, 3),
-    beta_3_05 = stats::rbeta(n, 3, 0.5)
-  ) |>
-    dplyr::mutate(dplyr::across(dplyr::everything(), ~ dplyr::case_when(. >= 1 ~ 1, . <= 0 ~ 0, TRUE ~ .))) |>
-    tidyr::pivot_longer(cols = dplyr::everything(), names_to = "distribution", values_to = "population_sample") |>
-    tidyr::nest(population_sample = population_sample)
-}
-
-make_domain_data <- function(seed = 123) {
-  a <- 2; b <- 5; c <- 10; d <- 30
-  set.seed(seed)
-  tibble::tibble(
-    sample_ID = c(
-      "domain_1a","domain_1b","domain_1c","domain_1d",
-      "domain_2a","domain_2b","domain_2c","domain_2d",
-      "domain_3a","domain_3b","domain_3c","domain_3d",
-      "domain_4b","domain_4c","domain_4d",
-      "domain_5b","domain_5c","domain_5d",
-      "domain_6a","domain_6b","domain_6c","domain_6d"
-    ),
-    values = list(
-      tibble::tibble(sample = rep(1, a)),
-      tibble::tibble(sample = rep(1, b)),
-      tibble::tibble(sample = rep(1, c)),
-      tibble::tibble(sample = rep(1, d)),
-
-      tibble::tibble(sample = seq.int(0.7, 1, length.out = a)),
-      tibble::tibble(sample = seq.int(0.7, 1, length.out = b)),
-      tibble::tibble(sample = seq.int(0.7, 1, length.out = c)),
-      tibble::tibble(sample = seq.int(0.7, 1, length.out = d)),
-
-      tibble::tibble(sample = seq.int(0.1, 0.4, length.out = a)),
-      tibble::tibble(sample = seq.int(0.1, 0.4, length.out = b)),
-      tibble::tibble(sample = seq.int(0.1, 0.4, length.out = c)),
-      tibble::tibble(sample = seq.int(0.1, 0.4, length.out = d)),
-
-      tibble::tibble(sample = sort(pmin(1, pmax(0, stats::rnorm(b, 1, 0.5))))),
-      tibble::tibble(sample = sort(pmin(1, pmax(0, stats::rnorm(c, 1, 0.5))))),
-      tibble::tibble(sample = sort(pmin(1, pmax(0, stats::rnorm(d, 1, 0.5))))),
-
-      tibble::tibble(sample = sort(pmin(1, pmax(0, stats::rnorm(b, 1, 0.1))))),
-      tibble::tibble(sample = sort(pmin(1, pmax(0, stats::rnorm(c, 1, 0.1))))),
-      tibble::tibble(sample = sort(pmin(1, pmax(0, stats::rnorm(d, 1, 0.1))))),
-
-      tibble::tibble(sample = rep(0.9, a)),
-      tibble::tibble(sample = rep(0.9, b)),
-      tibble::tibble(sample = rep(0.9, c)),
-      tibble::tibble(sample = rep(0.9, d))
-    )
-  )
-}
 
 add_national_fits <- function(national_data) {
   national_data |>
@@ -977,22 +825,7 @@ combine_domain_national <- function(domain_data, national_data, prior_weight = 1
     )
 }
 
-plot_population_dist <- function(national_data) {
-  national_data |>
-    tidyr::unnest(population_sample) |>
-    ggplot2::ggplot() +
-    ggplot2::geom_histogram(ggplot2::aes(x = population_sample), binwidth = 0.1) +
-    ggplot2::facet_wrap(ggplot2::vars(distribution), scales = "free")
-}
 
-plot_domain_dist <- function(domain_data) {
-  domain_data |>
-    tidyr::unnest(values) |>
-    ggplot2::ggplot() +
-    ggplot2::geom_histogram(ggplot2::aes(x = sample), binwidth = 0.1) +
-    ggplot2::xlim(-0.2, 1.2) +
-    ggplot2::facet_wrap(ggplot2::vars(sample_ID), scales = "free_y")
-}
 
 # --- National shapes from corrCheck (used later) ---
 fit_df_from_corrcheck <- function(corrCheck) {
@@ -1241,12 +1074,16 @@ eea_table_kable <- function(combineAll) {
     dplyr::select(Indicator = indicator2, `Indicator value`) |>
     kableExtra::kbl(table.attr = 'style = "color: black;"', align = "lr") |>
     kableExtra::kable_classic("striped", full_width = FALSE) |>
-    kableExtra::row_spec(0, bold = TRUE)
+    kableExtra::row_spec(0, bold = TRUE) |>
+    pack_rows("Gran", 1, 3, label_row_css = "background-color: #cef598; color: #000000;") |>
+    pack_rows("Nord-Aurdal", 4, 6, label_row_css = "background-color: #cef598; color: #000000;") |>
+    pack_rows("Nordre Follo", 7, 9, label_row_css = "background-color: #cef598; color: #000000;")
 }
 
 indicator_magnify_plot <- function(nature3, na, myCRS) {
   from <- c(xmin = 510000, xmax = 510600, ymin = 6747200, ymax = 6747800)
   to <-   c(xmin = 495000, xmax = 520000, ymin = 6765000, ymax = 6790000)
+  myCols <- c("#E85437", "#FBAF00", "#B5DF73", "#009000")
 
   nature3 |>
     dplyr::select(i_ditch) |>
@@ -1255,6 +1092,8 @@ indicator_magnify_plot <- function(nature3, na, myCRS) {
     ggplot2::ggplot() +
     ggplot2::geom_sf(data = na, alpha = 0) +
     ggplot2::geom_sf(ggplot2::aes(fill = Trenching, color = Trenching)) +
+    scale_color_manual(values = RColorBrewer::brewer.pal(5, "Set2")) +
+    scale_fill_manual(values = RColorBrewer::brewer.pal(5, "Set2")) +
     ggplot2::coord_sf(datum = sf::st_crs(myCRS),
                       xlim = c(494174.8, 537114.7),
                       ylim = c(6737092, 6789676)) +
@@ -1262,31 +1101,12 @@ indicator_magnify_plot <- function(nature3, na, myCRS) {
     ggplot2::theme_bw()
 }
 
-# Utility: save ggplot to file target
-save_plot_tiff <- function(plot, path, width = 18, height = 12, units = "cm", dpi = 300) {
-  dir.create(dirname(path), recursive = TRUE, showWarnings = FALSE)
-  ggplot2::ggsave(filename = path, plot = plot, width = width, height = height, units = units, dpi = dpi)
-  path
-}
 
 # Utility: save tmap to file target
 save_tmap_tiff <- function(tm, path, width = 18, height = 10, units = "cm", dpi = 300) {
   dir.create(dirname(path), recursive = TRUE, showWarnings = FALSE)
   tmap::tmap_save(tm = tm, filename = path, width = width, height = height, units = units, dpi = dpi)
   path
-}
-
-
-get_path_temp <- function(server = "P", folder = "41201785_okologisk_tilstand_2022_2023/data/cache/") {
-  # similar logic as get_folder_dir(), but for the cache directory
-  server <- toupper(server)
-  if (!server %in% c("P", "R")) stop("server must be 'P' or 'R'")
-  if (.Platform$OS.type == "windows") {
-    base <- switch(server, P = "P:/", R = "R:/")
-  } else {
-    base <- switch(server, P = "/data/P-Prosjekter2/", R = "/data/R/")
-  }
-  paste0(base, folder)
 }
 
 

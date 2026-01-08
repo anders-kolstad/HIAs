@@ -92,6 +92,7 @@ list(
   ## Stratification validation
   tar_target(corrCheck, corr_check(naturetypes_norm, infra_vec)),
   tar_target(validationPlot, validation_plot(corrCheck)),
+  tar_target(validationPlot_out, ggplot_tiff(plot = validationPlot, path = here::here("output", "fig", "validationPlot.tiff"), width = 8, height = 5)),
 
   ## Methods maps (tmap objects + a TIFF file to include in quarto)
   tar_target(infra_maps_list, infra_maps(muni3, infraMuni3, terrestrial, ocean, dk2, nature3)),
@@ -124,12 +125,12 @@ list(
   tar_target(combineAll, combine_all_eaa(spread_nf, spread_gr, spread_na, stats_tbl)),
   tar_target(eea_plot, eea_plot(combineAll)),
   tar_target(eea_plot_v2, eea_plot2(combineAll)),
-  tar_target(eea_plot_tiff_v2, ggplot_tiff(plot = eea_plot_v2, path = here::here("output", "fig", "results.tiff"), width = 10, height = 8), format = "file")
-  #tar_target(EEA_tbl_out, eea_table_kable(combineAll)),
-#
+  tar_target(eea_plot_tiff_v2, ggplot_tiff(plot = eea_plot_v2, path = here::here("output", "fig", "results.tiff"), width = 10, height = 8), format = "file"),
+  tar_target(EEA_tbl_out, eea_table_kable(combineAll)),
+
   ## Indicator magnify example figure
-  #tar_target(indicator_magnify, indicator_magnify_plot(nature3, na, myCRS)),
-  #tar_target(indicator_magnify_tiff, save_plot_tiff(indicator_magnify, here::here("outputs", "fig", "indicator-magnify.tiff"), dpi = 300), format = "file"),
+  tar_target(indicator_magnify, indicator_magnify_plot(nature3, na, myCRS)),
+  tar_target(indicator_magnify_tiff, ggplot_tiff(plot = indicator_magnify, path = here::here("output", "fig", "indicator-magnify.tiff")), format = "file")
 
 
 
