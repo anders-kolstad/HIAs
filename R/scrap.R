@@ -132,3 +132,4 @@ wgt_mean <- function (x, weights, sigma.x = NULL, mu = NULL, mu.prior = NULL, n.
   class(results) = "Bolstad"
   invisible(results)
 }
+

@@ -387,8 +387,7 @@ posMap <- function(x,y,z,z2) {
   myB[1:2] <- myB[1:2]-inc 
   myB[3:4] <- myB[3:4]+inc 
 
-  out <- 
-    tm_shape(x,
+  tm_shape(x,
              bbox = myB) +
       tm_polygons() +
     tm_shape(y) +
@@ -407,10 +406,6 @@ posMap <- function(x,y,z,z2) {
       outer.margins = c(0.01, .02, .02, .02))+
     tm_compass()+
     tm_scale_bar()
-
- tmap_save(tm = out,
-        here::here("images/positionMap.jpg"))
-
 }
 
 
@@ -1103,7 +1098,7 @@ indicator_magnify_plot <- function(nature3, na, myCRS) {
 
 
 # Utility: save tmap to file target
-save_tmap_tiff <- function(tm, path, width = 18, height = 10, units = "cm", dpi = 300) {
+save_tmap <- function(tm, path, width = 18, height = 10, units = "cm", dpi = 300) {
   dir.create(dirname(path), recursive = TRUE, showWarnings = FALSE)
   tmap::tmap_save(tm = tm, filename = path, width = width, height = height, units = units, dpi = dpi)
   path

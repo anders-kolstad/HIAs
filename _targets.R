@@ -62,12 +62,9 @@ list(
   tar_target(world, get_world_map(myCRS)),
   tar_target(centroids, muni3 |> sf::st_centroid()),
   tar_target(myBbox, sf::st_bbox(centroids)),
-  tar_target(positionMap, posMap(world, muni3, centroids, myBbox), format = "file"),
-
-
-   # ---- Second part targets ----
+  tar_target(positionMap, posMap(world, muni3, centroids, myBbox)),
+  tar_target(positionMap_png, save_tmap(positionMap, here::here("output", "fig", "positionMap.png"), dpi = 300), format = "file"),
   tar_target(km_distance, distance_between_centroids_km(centroids)),
-
   tar_terra_vect(nf_vect, convert_to_vect(nf)),
   tar_terra_vect(gr_vect, convert_to_vect(gr)),
   tar_terra_vect(na_vect, convert_to_vect(na)),
@@ -97,11 +94,15 @@ list(
   ## Methods maps (tmap objects + a TIFF file to include in quarto)
   tar_target(infra_maps_list, infra_maps(muni3, infraMuni3, terrestrial, ocean, dk2, nature3)),
   tar_target(methodsMap, infra_maps_list$methodsMap),
-  tar_target(methodsMap_tiff, save_tmap_tiff(methodsMap, here::here("output", "fig", "studyLocations.tiff"), dpi = 600), format = "file"),
+  tar_target(methodsMap_tiff, save_tmap(methodsMap, here::here("output", "fig", "studyLocations.tiff"), dpi = 600), format = "file"),
+  tar_target(methodsMap_png, save_tmap(methodsMap, here::here("output", "fig", "studyLocations.png"), dpi = 300), format = "file"),
   tar_target(overview_NA, map_overview_na(muni3, terrestrial, dk2, nature3)),
-  tar_target(overview_NA_out, save_tmap_tiff(overview_NA, here::here("output", "fig", "overview_NA.tiff"), dpi = 600), format = "file"),
+  tar_target(overview_NA_tiff, save_tmap(overview_NA, here::here("output", "fig", "overview_NA.tiff"), dpi = 600), format = "file"),
+  tar_target(overview_NA_png, save_tmap(overview_NA, here::here("output", "fig", "overview_NA.png"), dpi = 300), format = "file"),
+
   tar_target(infraMuniMap_NA2, infra_map_na2(muni3, infraMuni3)),
-  tar_target(infraMuniMap_NA_out, save_tmap_tiff(infraMuniMap_NA2, here::here("output", "fig", "HIA-NA.tiff"), dpi = 600), format = "file"),
+  tar_target(infraMuniMap_NA_tiff, save_tmap(infraMuniMap_NA2, here::here("output", "fig", "HIA-NA.tiff"), dpi = 600), format = "file"),
+  tar_target(infraMuniMap_NA_png, save_tmap(infraMuniMap_NA2, here::here("output", "fig", "HIA-NA.png"), dpi = 300), format = "file"),
 
   ## Municipality summary table (data frame)
   tar_target(muni_tbl, muni_table(muni3, terrestrial, dk2, nature3, mireArea, mire_in_dk, infraMuni3_summary)),
@@ -130,9 +131,8 @@ list(
 
   ## Indicator magnify example figure
   tar_target(indicator_magnify, indicator_magnify_plot(nature3, na, myCRS)),
-  tar_target(indicator_magnify_tiff, ggplot_tiff(plot = indicator_magnify, path = here::here("output", "fig", "indicator-magnify.tiff")), format = "file")
+  tar_target(indicator_magnify_tiff, ggplot_tiff(plot = indicator_magnify, path = here::here("output", "fig", "indicator-magnify.tiff")), format = "file"),
+  tar_target(indicator_magnify_png, ggplot_tiff(plot = indicator_magnify, path = here::here("output", "fig", "indicator-magnify.png")), format = "file"),
 
-
-
-  #tar_quarto(all_outputs, "all_outputs.qmd")
+  tar_quarto(all_outputs, "all_outputs.qmd")
 )
