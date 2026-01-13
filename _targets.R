@@ -132,6 +132,9 @@ list(
   ## Indicator magnify example figure
   tar_target(indicator_magnify, indicator_magnify_plot(nature3, na, myCRS)),
   tar_target(indicator_magnify_png, ggplot_out(plot = indicator_magnify, path = here::here("output", "fig", "indicator-magnify.png")), format = "file"),
+  
+  # render documents
+  tar_quarto(appendix, "appendix.qmd"),
+  tar_quarto(manuscript, "Manuscript.qmd")
 
-  tar_quarto(all_outputs, "all_outputs.qmd")
 )

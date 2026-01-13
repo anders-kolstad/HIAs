@@ -89,6 +89,10 @@ conflict_prefer_all("dplyr", quiet =T)
 library(knitr)
 library(here)
 library(tidyverse)
+library(targets)
+tar_config_set(store = here::here("_targets"))
+library(sf)
+library(tarchetypes)
 ```
 
 
@@ -160,8 +164,6 @@ This could potentially undermine the credibility and finally the uptake of knowl
 Local ECAs face a unique side of this problem because sample sizes are frequently so small that traditional arithmetic estimates of variance are unreliable.
 In addition, calculating variances is even more data demanding when metrics are truncated, such as for indicators bound between zero and one.
 In such cases, a small sample size can by chance contain only or predominantly ones (or zeros), resulting in an artificially small variance which will then paradoxically increase as sample sizes increase due to the inclusion of more data points from the tail of the distribution.
-
-<!--# Central to ecosystem condition accounts are variables and indicators. These are metrics chosen to reflect the central condition characteristics of the ecosystems. These metrics are quantified and ideally monitored over time to reflect the status and trends in condition. Indicators are variables that are normalised (rescaled) against upper and lower reference values to become bound between the values 0 and 1. This normalisation ensures that indicators are more comparable because an indicator value of 1 will mean the same for all indicators, i.e. that the variable equals the upper reference value which again reflect the value of the variables under the reference (e.g. pristine) condition. Similarly, a value of 0 means that the variable is in the worst possible state, for example that the species or ecosystem function in question is completely lost from the ecosystem. The reference condition needs to be defined for each ecosystem condition assessment separately, but SEEA EA gives some suggestions, such as an an ecosystem with no or minimal anthropogenic disturbance.   -->
 
 In this study we present two techniques for direct estimation of local ecosystem condition indicators using scarce and spatially biased data.
 Firstly, we demonstrate a stratified aggregation technique, using homogeneous impact areas, to reduce the negative consequences of spatial and environmental bias in the data.
@@ -249,7 +251,7 @@ For details about the normalisation process, see Appendix A.
 #| is an ordinal gradient from 0–3 with increasing presence of human 
 #| infrastructure."
 
-knitr::include_graphics("../images/studyLocations.jpg")
+knitr::include_graphics("output/fig/studyLocations.png")
 ```
 
 \pagebreak
@@ -308,8 +310,9 @@ All the data preparation and analyses were done in RStudio [@positteam2024] and 
 
 {{< pagebreak >}}
 
-```{r}
+```{r get_muni_tbl}
 #| echo: false
+#| eval: true
 tar_load(muni_tbl)
 ```
 
@@ -327,7 +330,13 @@ tar_load(muni_tbl)
 
 ## Indicator validity and trends in Norway
 
-The three indicators generally showed a worsening of condition with increasing presence of human infrastructure when we looked at data from all of Norway with `r nrow(naturetypes)` individual mires (@fig-validation).
+```{r get_naturetypes}
+#| eval: true
+#| echo: false
+tar_load(naturetypes_norm)
+```
+
+The three indicators generally showed a worsening of condition with increasing presence of human infrastructure when we looked at data from all of Norway with `r nrow(naturetypes_norm)` individual mires (@fig-validation).
 This relationship was much stronger for the indicator *Trenching*, and weakest for the indicator *Alien species*.
 *Alien species* also had the highest indicator values overall, with most mires having no alien species recorded.
 For *Trenching*, 57% of mires in HIA-3 had some trenches, whereas in HIA-0 this number was 10%.
@@ -352,7 +361,7 @@ Nordre Follo also had the highest (the best) indicator values for one of the ind
 #| fig.cap:
 #| - "Simplified schematic showing the workflow (Panes A-E) for spatial generalisation of a spatially biased ecosystem condition indicator. Pane A shows in red the data coverage of a patchy and spatially biased indicator. Surveyed areas are grey and unsurveyed areas are green. Together they make up the ecosystem accounting area (EEA). Pane B shows the location of four homogeneous impact areas (HIAs) inside the EEA, where the prevalence of human infrastructure increases from 0 to 3. The indicator values in Pane A are used, in combination with the HIA map in Pane B, to calculate the area-weighted point estimates shown as grey circles in Pane C.  The errors surrounding the point estimate are calculated independently from the point estimate via an emipircal Bayes approach as predicted distributions (show in Pane C as 95% credible intervals (CI)) informed with prior knowledge about the shape of the distribution of indicator values (a zero- and one-inflated beta distribution in this case) for a larger area, i.e. outside the EAA. Note that because in this example there were no indicator data for HIA-3, indicator values are only aggregated for HIAs 0-2. In Pane D the point estimates and sampled distributions are transferred to individual polygons in an ecosystem delineation map, for each HIA separately. The colours indicate different point estimates (highlighted in the inset). Pane E shows area-weighted indicator values aggregated to the EAA level.  Blue vertical bars show the area distribution of indicator values after they have been extrapolated to an ecosystem delineation map (Pane D). The orange density curve show the predicted indicator values informed both by local samples from inside the EAA and from a larger national dataset (indicator weight was 20, meaning the national data had the same influence on the predicted distribution as 20 local samples). The area-weighted mean and 95% CI are shown at the bottom as a thick vertical bar and thin horsontal line, respectively. The mean is informed by the local data only (blue bars) and the 95% CI is a summary of orange distribution."
 
-knitr::include_graphics("../images/aggregation-workflow.png")
+knitr::include_graphics("images/aggregation-workflow.png")
 
 ```
 
@@ -366,7 +375,7 @@ knitr::include_graphics("../images/aggregation-workflow.png")
 #| infrastructure densities (Homogeneous Impact Areas 0–3). 
 #| The data is from a national nature type survey in Norway. ADSV = Anthropogenic disturbance to soil and vegetation." 
 
-knitr::include_graphics("../output/fig/validation-plot.tiff")
+knitr::include_graphics("output/fig/validationPlot.png")
 ```
 
 ```{r fig-forest}
@@ -382,7 +391,7 @@ knitr::include_graphics("../output/fig/validation-plot.tiff")
 #| municipality. The numbers to the left of each bar is the sample size, i.e. 
 #| the number of surveyed mires. ADSV = Anthropogenic disturbance to soil and vegetation."  
 
-knitr::include_graphics("../output/fig/forest-plot.tiff")
+knitr::include_graphics("output/fig/forest_plot.png")
 ```
 
 ```{r fig-spread-example}
@@ -397,7 +406,7 @@ knitr::include_graphics("../output/fig/forest-plot.tiff")
 #| areas. The inset is 5 km across and shows the typical size and shape of mire polygons, and how indicator values can vary between them. Coordinate reference system is 
 #| EPSG 25832."
 
-knitr::include_graphics("../output/fig/spread-na.tiff")
+knitr::include_graphics("output/fig/spread-na.png")
 ```
 
 ```{r fig-EEA-ridgePlot}
@@ -411,7 +420,7 @@ knitr::include_graphics("../output/fig/spread-na.tiff")
 
 # Histogram smoothing makes it look like there are more data points beyond the lower and upper percentiles than there really is. The 2.5% percentile sometimes looks like the 25% percentile. 
 
-knitr::include_graphics("../images/results.jpg")
+knitr::include_graphics("output/fig/results.png")
 ```
 
 # Discussion
@@ -529,10 +538,7 @@ We acknowledge partial funding from the Research Council of Norway project EcoGa
 
 # Data availability {.unnumbered}
 
-This manuscript is written in Quarto, and the source file (Appendix B) also contains code for all the analyses underlying this study, including data exploration and cleaning.
-For a rendered version of the source file, with all code and calculation visible, see Appendix C. 
-
-The source files and some of the data are located on GitHub (https://github.com/anders-kolstad/HIAs) with an archived stable version on Zenodo (doi:10.5281/zenodo.11504703).
+The source files and some of the data are located on GitHub (https://github.com/anders-kolstad/HIAs) with an archived stable version on Zenodo (doi:).
 The exceptions are the large nature type survey data, which was downloaded locally, but which is freely available (see @norwegian_environmental_agency_naturtyper_2024), 
 and the infrastructure index data, which is available upon request.
 This manuscript is written in Quarto [@Allaire_Quarto_2025],

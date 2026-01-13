@@ -45,3 +45,8 @@ _targets/meta/meta
 _targets/meta/meta
 manuscript/elsarticle-harv.bst
 .gitignore
+Manuscript.spl
+Manuscript.tex
+_targets/meta/
+style-guide/*.pdf
+_targets/meta/meta
