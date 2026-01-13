@@ -84,12 +84,12 @@ list(
   tar_target(infraMuni3_tbl, infra_muni3_tbl(infraMuni3)),
   tar_target(infraMuni3_summary, infra_muni3_summary(infraMuni3_tbl)),
   tar_target(infra_dist_plot, infra_dist_plot(infraMuni3_tbl)),
-  tar_target(infra_dist_plot_out, ggplot_tiff(plot = infra_dist_plot, path = here::here("output", "fig", "infra-dist-plot.tiff"))),
+  tar_target(infra_dist_plot_out, ggplot_out(plot = infra_dist_plot, path = here::here("output", "fig", "infra-dist-plot.png"))),
   
   ## Stratification validation
   tar_target(corrCheck, corr_check(naturetypes_norm, infra_vec)),
   tar_target(validationPlot, validation_plot(corrCheck)),
-  tar_target(validationPlot_out, ggplot_tiff(plot = validationPlot, path = here::here("output", "fig", "validationPlot.tiff"), width = 8, height = 5)),
+  tar_target(validationPlot_out, ggplot_out(plot = validationPlot, path = here::here("output", "fig", "validationPlot.png"), width = 8, height = 5)),
 
   ## Methods maps (tmap objects + a TIFF file to include in quarto)
   tar_target(infra_maps_list, infra_maps(muni3, infraMuni3, terrestrial, ocean, dk2, nature3)),
@@ -111,28 +111,27 @@ list(
   tar_target(fit_df, fit_df_from_corrcheck(corrCheck)),
   tar_target(stats_tbl, mean_per_hia_tbl(nature3, infraMuni3, fit_df, prior_weight = 20, n_sim = 1000)),
   tar_target(forest_plot, forest_plot_from_stats(stats_tbl)),
-  tar_target(forest_plot_out, ggplot_tiff(plot = forest_plot, path = here::here("output", "fig", "forest_plot.tiff"))),
+  tar_target(forest_plot_out, ggplot_out(plot = forest_plot, path = here::here("output", "fig", "forest_plot.png"))),
   tar_target(forest_plot_ex, forest_plot_example(stats_tbl)),
-  tar_target(forest_plot_ex_out, ggplot_tiff(plot = forest_plot_ex, path = here::here("output", "fig", "forest_plot_ex.tiff"), width = 3, height = 3)),
+  tar_target(forest_plot_ex_out, ggplot_out(plot = forest_plot_ex, path = here::here("output", "fig", "forest_plot_ex.png"), width = 3, height = 3)),
 
   ## Spread HIA summaries to EDM mires + example map
   tar_target(spread_nf, spread_mires_to_edm(mire_stars_nf, infraMuni3, stats_tbl, "Nordre Follo")),
   tar_target(spread_gr, spread_mires_to_edm(mire_stars_gr, infraMuni3, stats_tbl, "Gran")),
   tar_target(spread_na, spread_mires_to_edm(mire_stars_na, infraMuni3, stats_tbl, "Nord-Aurdal")),
   tar_target(spread_na_map, spread_na_example_map(spread_na, na, myCRS)),
-  tar_target(spread_na_tiff, ggplot_tiff(plot = spread_na_map, path = here::here("output", "fig", "spread-na.tiff")), format = "file"),
+  tar_target(spread_na_tiff, ggplot_out(plot = spread_na_map, path = here::here("output", "fig", "spread-na.png")), format = "file"),
 
   ## EAA (municipality) aggregation + table/figures
   tar_target(combineAll, combine_all_eaa(spread_nf, spread_gr, spread_na, stats_tbl)),
   tar_target(eea_plot, eea_plot(combineAll)),
   tar_target(eea_plot_v2, eea_plot2(combineAll)),
-  tar_target(eea_plot_tiff_v2, ggplot_tiff(plot = eea_plot_v2, path = here::here("output", "fig", "results.tiff"), width = 10, height = 8), format = "file"),
+  tar_target(eea_plot_tiff_v2, ggplot_out(plot = eea_plot_v2, path = here::here("output", "fig", "results.png"), width = 10, height = 8), format = "file"),
   tar_target(EEA_tbl_out, eea_table_kable(combineAll)),
 
   ## Indicator magnify example figure
   tar_target(indicator_magnify, indicator_magnify_plot(nature3, na, myCRS)),
-  tar_target(indicator_magnify_tiff, ggplot_tiff(plot = indicator_magnify, path = here::here("output", "fig", "indicator-magnify.tiff")), format = "file"),
-  tar_target(indicator_magnify_png, ggplot_tiff(plot = indicator_magnify, path = here::here("output", "fig", "indicator-magnify.png")), format = "file"),
+  tar_target(indicator_magnify_png, ggplot_out(plot = indicator_magnify, path = here::here("output", "fig", "indicator-magnify.png")), format = "file"),
 
   tar_quarto(all_outputs, "all_outputs.qmd")
 )

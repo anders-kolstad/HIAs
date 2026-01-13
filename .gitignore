@@ -40,3 +40,8 @@ manuscript/manual_cache
 Kolstad et al. Manuscript _DNB (003).pdf
 Manuscript_files/
 scrap/
+_targets.yaml
+_targets/meta/meta
+_targets/meta/meta
+manuscript/elsarticle-harv.bst
+.gitignore

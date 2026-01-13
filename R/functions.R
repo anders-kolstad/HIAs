@@ -1105,7 +1105,7 @@ save_tmap <- function(tm, path, width = 18, height = 10, units = "cm", dpi = 300
 }
 
 
-ggplot_tiff <- function(plot, path, width = 8, height = 6, dpi = 300){
+ggplot_out <- function(plot, path, width = 8, height = 6, dpi = 500){
   ggsave(filename = path, plot = plot, width = width, height = height, dpi = dpi)
   path
 }
