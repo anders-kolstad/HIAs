@@ -51,7 +51,7 @@ author:
     affiliations:
         - ref: nina
 date: last-modified
-bibliography: manuscript/bibliography.bib
+bibliography: bibliography.bib
 ---
 
 

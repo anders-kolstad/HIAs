@@ -259,7 +259,7 @@ knitr::include_graphics("output/fig/studyLocations.png")
 ## Homogenous Impact Areas
 
 To correct for spatial bias we used spatial information about human pressures, as an expected structuring variable, to post-stratify the data.
-The Norwegian infrastructure index for the year 2022 is a continuous variable representing the frequency of different infrastructure types inside 500 m radius circles around each 100 × 100 m pixel [@erikstad2023].
+The Norwegian infrastructure index for the year 2022 is a continuous variable representing the frequency of different infrastructure types inside 500 m radius circles around each 100 × 100 m pixel [@erikstad_index_2023].
 We categorised the infrastructure index map into four non-overlapping Homogeneous Impact Areas (HIAs; @tbl-variables), with boundaries chosen to balance gradient resolution, data stratum area, and computational limitations (Table S1).
 We did a visual exploration to check if the HIAs had any explanatory power over the indicator values in te national dataset, 
 For this purpose we used an aggregated 1 × 1 km version of the infrastructure index map, to ease computations.
@@ -504,7 +504,7 @@ Nordre Follo’s limited mire area underscores the value of our small-area metho
 Mire condition in Norway has not been assessed at a national scale.
 Still, we know that they are subject to multiple threats, especially land conversion into agriculture, forestry, or development, and we see this reflected in the Norwegian Red List for Nature types where many ombrotrophic bog types, and rich southern minerotrophic fens are listed [@artsdatabanken2018].
 Land conversion of mires is often initiated with trenching to lower the water table but note that our *Trenching* indicator does not document the effect of trenching on old mires that have transitioned into another ecosystem.
-This is in line with the UN standard for ecosystem accounting, where these effects should be captured by the extent accounts [@unitednations2021].
+This is in line with the UN standard for ecosystem accounting, where these effects should be captured by the extent accounts [@unitednations2024].
 Therefore, the negative consequences of trenching on all Norwegian mires, old and current, must be higher than what our indicator is made to show, most likely considerably higher.
 
 Alien species risk is not considered a threat to any of the Norwegian mire types, and our results confirm this, at least for the present (@fig-EEA-ridgePlot).
