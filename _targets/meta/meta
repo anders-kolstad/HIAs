@@ -1,0 +1,167 @@
+name|type|data|command|depend|seed|path|time|size|bytes|format|repository|iteration|parent|children|seconds|warnings|error
+naturetypes_summary_file|stem|1faf9b9a33960ee9|f0b0001b1acb0cfe|2c530c1562a7fbd1|-323242983|C:/Users/anders.kolstad/github/HIAs/data/natureType_summary.rds|t20200.3316456598s|s2415b|2415|file|local|vector|||9.641|package 'knitr' was built under R version 4.5.1. package 'terra' was built under R version 4.5.2. package 'ggplot2' was built under R version 4.5.1. package 'tidyverse' was built under R version 4.5.1. package 'tibble' was built under R version 4.5.1. package 'tidyr' was built under R version 4.5.1. package 'readr' was built under R version 4.5.1. package 'purrr' was built under R version 4.5.1. package 'dplyr' was built under R version 4.5.1. package 'stringr' was built under R version 4.5.1. package 'forcats' was built under R version 4.5.1. package 'lubridate' was built under R version 4.5.1|
+server_folder|stem|3962e0997488a99e|704557056d263100|b1b0d59f7b290573|-1195957713||t20437.4528617761s|s98b|98|rds|local|vector|||0||
+myCRS|stem|0d8468cb7275cbaf|b6125b80e3008ee0|2c530c1562a7fbd1|-592465290||t20437.4528622748s|s51b|51|rds|local|vector|||0||
+naturetypes_summary|stem|049de5f9bd063ec2|0b4ca380510cf6ba|3d77fe4e734a102c|-641884785||t20437.4528626211s|s2413b|2413|rds|local|vector|||0||
+coverage_file|stem|ff9b5f95dd36d627|831fe34cb1dc17c6|ee7ad2651a4bbcc6|-1542914170|P:/41001581_egenutvikling_anders_kolstad/data/Naturtyper_nin_0000_norge_25833_FILEGDB.gdb|t19886.3223051201s|s204589326b|204589326|file|local|vector|||0||
+outline_file|stem|7de8cee9f97584ce|8e61958451c27598|2c530c1562a7fbd1|-928946542|C:/Users/anders.kolstad/github/HIAs/data/outlineOfNorway_EPSG25833.shp|t20200.3316462596s|s8450508b|8450508|file|local|vector|||3.813|package 'knitr' was built under R version 4.5.1. package 'terra' was built under R version 4.5.2. package 'ggplot2' was built under R version 4.5.1. package 'tidyverse' was built under R version 4.5.1. package 'tibble' was built under R version 4.5.1. package 'tidyr' was built under R version 4.5.1. package 'readr' was built under R version 4.5.1. package 'purrr' was built under R version 4.5.1. package 'dplyr' was built under R version 4.5.1. package 'stringr' was built under R version 4.5.1. package 'forcats' was built under R version 4.5.1. package 'lubridate' was built under R version 4.5.1|
+muni_file|stem|c4e91a9bbbdd37a6|57a01a7da9da5f9b|2c530c1562a7fbd1|-703914032|C:/Users/anders.kolstad/github/HIAs/data/Basisdata_0000_Norge_25833_Kommuner_FGDB.gdb|t20235.3673927689s|s15293928b|15293928|file|local|vector|||5|package 'knitr' was built under R version 4.5.1. package 'terra' was built under R version 4.5.2. package 'ggplot2' was built under R version 4.5.1. package 'tidyverse' was built under R version 4.5.1. package 'tibble' was built under R version 4.5.1. package 'tidyr' was built under R version 4.5.1. package 'readr' was built under R version 4.5.1. package 'purrr' was built under R version 4.5.1. package 'dplyr' was built under R version 4.5.1. package 'stringr' was built under R version 4.5.1. package 'forcats' was built under R version 4.5.1. package 'lubridate' was built under R version 4.5.1|
+muni|stem|3f0854036880e25b|7f43d43ab8570169|effd4aa39a18fdff|151849520||t20438.4023348593s|s13039665b|13039665|rds|local|vector|||1.75||
+outline|stem|621d0daa25a3c8fd|6d1bd905dce007ec|c0e634d7e7bf857e|192287415||t20438.4023575315s|s7093699b|7093699|rds|local|vector|||1.094||
+coverage|stem|dfc20d336c899a32|c2aae73bf4119be2|48407f62d8165494|937308870||t20438.4023704944s|s5876957b|5876957|rds|local|vector|||0.766||
+myVars|stem|4800f735cd8034f6|3b64c0ac6c93469d|2c530c1562a7fbd1|528771608||t20438.4053639757s|s81b|81|rds|local|vector|||3.812|package 'knitr' was built under R version 4.5.1. package 'terra' was built under R version 4.5.2. package 'ggplot2' was built under R version 4.5.1. package 'tidyverse' was built under R version 4.5.1. package 'tibble' was built under R version 4.5.1. package 'tidyr' was built under R version 4.5.1. package 'readr' was built under R version 4.5.1. package 'purrr' was built under R version 4.5.1. package 'dplyr' was built under R version 4.5.1. package 'stringr' was built under R version 4.5.1. package 'forcats' was built under R version 4.5.1. package 'lubridate' was built under R version 4.5.1|
+infra_file|stem|c982df39ac98a12b|f10d56ae35a301e8|ee7ad2651a4bbcc6|1591402665|P:/41001581_egenutvikling_anders_kolstad/data/infra_tiff.tif|t19359.5379209875s|s1185393765b|1185393765|file|local|vector|||0||
+infra|stem|0f907587bc505d74|306f578f41cef9de|c1cf4dfb1b5c5191|1136137942||t20438.4055157292s|s935b|935|rds|local|vector|||0.125||
+naturetypes|stem|566a676c0ab62dae|3de7640fde383abf|57245ebf43d9bca5|1831118677||t20438.4153046969s|s138587367b|138587367|rds|local|vector|||16.093|GDAL Message 1: organizePolygons() received a polygon with more than 100 parts. The processing may be really slow.  You can skip the processing by setting METHOD=SKIP, or only make it analyze counter-clock wise parts by setting METHOD=ONLY_CCW if you can assume that the outline of holes is counter-clock wise defined|
+nts|stem|caa923186c578815|af50b515af2b0d7d|09dfaa089066d5a8|-1652470759||t20438.4654662203s|s317b|317|rds|local|vector|||0.031||
+naturetypes_cs|stem|f6b49f8b610ee181|9ab35b303c05039b|c8a23428f9e8a9bd|179108901||t20438.4690920178s|s6526845b|6526845|rds|local|vector|||1.703|There was 1 warning in `stopifnot()`. ℹ In argument: `NiN_variable_value = as.numeric(NiN_variable_value)`. Caused by warning: ! NAs introduced by coercion|
+test_naturetypes_p|stem|3d891e6e76fe3d03|b1cd5db6cb73ec88|83e9c41064442c50|-804756032||t20438.4856117999s|s19318411b|19318411|rds|local|vector|||0.062||
+naturetypes_p|stem|e14bc44566bc49cd|3146118c1fa240bb|435f60b19a3206e2|-406437291||t20438.4948591541s|s6528754b|6528754|rds|local|vector|||0.016||
+naturetypes_wide|stem|d0559f55c35698da|4aa039dcea819ff2|cdee5a5eec8427d3|-687688874||t20438.494865074s|s46114b|46114|rds|local|vector|||0.031||
+test_most_common|stem|75be682dffcd61ca|0a640bd55f928d30|12b647677177a902|-1517561419||t20438.495242665s|s6643021b|6643021|rds|local|vector|||0.016||
+naturetypes_comb|stem|b55bd35cfe0e2509|f011e22cbc77ad1c|413478adfa2a8687|-299781442||t20438.5071339401s|s77175b|77175|rds|local|vector|||0.047||
+plot_naturetypes_comb2|stem|d15484e6c59d4c25|752bdd074ada6d79|fedcfa41761cbcc6|-332938421||t20438.5071441788s|s392660b|392660|rds|local|vector|||0.015||
+plot_naturetypes_comb|stem|8bbb869ea8515075|f31e0928e8e408d4|1b548c5c54e41592|-2110016109||t20440.4557466327s|s903713b|903713|rds|local|vector|||0.343||
+plot_normalised|stem|c099284be41b961b|47e1ad10b570b300|b2b1f13ccf4c8d2c|635462665||t20440.4559318744s|s305691728b|305691728|rds|local|vector|||0.375|Removed 1398 rows containing missing values or values outside the scale range (`geom_point()`).. Removed 5088 rows containing missing values or values outside the scale range (`geom_point()`).. Removed 1414 rows containing missing values or values outside the scale range (`geom_point()`).|
+naturetypes_wide2|stem|39e7bc3fd3281107|05ed995199a0a32c|a0fc38fabc9f84ec|-1567449973||t20440.4888938957s|s5966149b|5966149|rds|local|vector|||0.157||
+naturetypes_norm|stem|ed14566ad771b71b|54cf5d88ae86d142|6f1d5e35cae1544f|1365635796||t20440.5149758915s|s5979063b|5979063|rds|local|vector|||0.015||
+muni_mp|stem|bcdb93644c2c54e8|973903f2124de8fd|55bca84ee08fdd52|2021961697||t20440.5206809631s|s13039668b|13039668|rds|local|vector|||0.047||
+muni3|stem|3f0cf545f98c7534|0ffdf4c56f357574|c59deb160019ecfb|945425100||t20440.5206827054s|s175010b|175010|rds|local|vector|||0||
+gr|stem|9fce63d6af02d6c5|e4d06e7cc3a3d79c|9214702d4faeaedc|1222953380||t20440.5206833374s|s44803b|44803|rds|local|vector|||0||
+na|stem|e5ec7017aa999870|51545472d8e11b1c|9214702d4faeaedc|-1173264442||t20440.5206837258s|s43522b|43522|rds|local|vector|||0||
+nf|stem|b2a4b6f75075b9fa|ed8408c57d727349|9214702d4faeaedc|-1744828508||t20440.5206841632s|s89632b|89632|rds|local|vector|||0||
+coverage3|stem|5efe1940e6d82682|4e85c3d761ae8da3|9f1b16afed2febce|637364429||t20440.5267867726s|s169487b|169487|rds|local|vector|||0.094|attribute variables are assumed to be spatially constant throughout all geometries|
+nature3|stem|eba982b305d321ed|2c8a5d922fef0cd9|406f7e5c64729aa7|-208117710||t20440.5267900839s|s264723b|264723|rds|local|vector|||0.11|attribute variables are assumed to be spatially constant throughout all geometries|
+nature3_test|stem|299529795d90a5c1|1bf7e75e1b010049|5d3f7b4aa90556f3|-1110819400||t20440.5267908348s|s524b|524|rds|local|vector|||0.016||
+terrestrial_poly|stem|fd555579ac3ff11b|adafe80675edb3e3|8cbe9b426ac983a4|729839735||t20440.5303325719s|s177133b|177133|rds|local|vector|||0.204|attribute variables are assumed to be spatially constant throughout all geometries|
+ocean|stem|4370ea2f8d92a18a|666d86bd975d1713|8cbe9b426ac983a4|1728089266||t20440.5303354465s|s3772b|3772|rds|local|vector|||0.141|attribute variables are assumed to be spatially constant throughout all geometries|
+terrestrial|stem|4047f0817b985309|5f1c0711cc44776f|8cca67013ccad744|-1115706958||t20440.5303365172s|s177258b|177258|rds|local|vector|||0.016||
+world|stem|60b6144078571e3f|506ac69262c05e47|ffb5f55f4c5871f6|-228932488||t20440.5373802962s|s40409b|40409|rds|local|vector|||0.141||
+centroids|stem|4b73fda707e261c9|49bec6063aeb2815|9214702d4faeaedc|-497498174||t20440.5373812037s|s1686b|1686|rds|local|vector|||0.015|st_centroid assumes attributes are constant over geometries|
+myBbox|stem|4d2540f07278d411|47ea95687332fbfa|7dd83f9c46ea5dd8|1627739501||t20440.5373817666s|s888b|888|rds|local|vector|||0||
+km_distance|stem|1b57100a0e832e9d|1ce77110cb473e36|a530bf1047f89724|-135118092||t20441.4237556299s|s51b|51|rds|local|vector|||0.015||
+nf_vect|stem|1baeffe6199f17b0|2a8594dc6556c9ca|ad1a988ac3abfa77|593214498||t20441.500221955s|s204800b|204800|format_custom&read=ewogICAgaWYgKCJHUEtHIiA9PSAiRVNSSSBTaGFwZWZpbGUiKSB7CiAgICAgICAgdGVycmE6OnZlY3QocGFzdGUwKCIvdnNpemlwL3siLCBwYXRoLCAifSIpKQogICAgfQogICAgZWxzZSB7CiAgICAgICAgdGVycmE6OnZlY3QocGF0aCkKICAgIH0KfQ&write=ewogICAgZG8uY2FsbCh0ZXJyYTo6d3JpdGVWZWN0b3IsIGMobGlzdCh4ID0gb2JqZWN0LCBmaWxlbmFtZSA9IGlmZWxzZSgiR1BLRyIgPT0gCiAgICAgICAgIkVTUkkgU2hhcGVmaWxlIiwgeWVzID0gcGFzdGUwKHBhdGgsICIuc2h6IiksIG5vID0gcGF0aCksIAogICAgICAgIGZpbGV0eXBlID0gIkdQS0ciLCBvdmVyd3JpdGUgPSBUUlVFLCBvcHRpb25zID0gIkVOQ09ESU5HPVVURi04IiksIAogICAgICAgIGxpc3QoKSkpCiAgICBpZiAoIkdQS0ciID09ICJFU1JJIFNoYXBlZmlsZSIpIHsKICAgICAgICBmaWxlLnJlbmFtZShwYXN0ZTAocGF0aCwgIi5zaHoiKSwgcGF0aCkKICAgIH0KfQ&marshal=dGVycmE6OndyYXAob2JqZWN0KQ&unmarshal=dGVycmE6OnVud3JhcChvYmplY3Qp&convert=&copy=&repository=|local|list|||0.031||
+na_vect|stem|2763a81136d0916b|ebe20e2e802bf725|c18d724796211c77|940821356||t20441.5017920166s|s147456b|147456|format_custom&read=ewogICAgaWYgKCJHUEtHIiA9PSAiRVNSSSBTaGFwZWZpbGUiKSB7CiAgICAgICAgdGVycmE6OnZlY3QocGFzdGUwKCIvdnNpemlwL3siLCBwYXRoLCAifSIpKQogICAgfQogICAgZWxzZSB7CiAgICAgICAgdGVycmE6OnZlY3QocGF0aCkKICAgIH0KfQ&write=ewogICAgZG8uY2FsbCh0ZXJyYTo6d3JpdGVWZWN0b3IsIGMobGlzdCh4ID0gb2JqZWN0LCBmaWxlbmFtZSA9IGlmZWxzZSgiR1BLRyIgPT0gCiAgICAgICAgIkVTUkkgU2hhcGVmaWxlIiwgeWVzID0gcGFzdGUwKHBhdGgsICIuc2h6IiksIG5vID0gcGF0aCksIAogICAgICAgIGZpbGV0eXBlID0gIkdQS0ciLCBvdmVyd3JpdGUgPSBUUlVFLCBvcHRpb25zID0gIkVOQ09ESU5HPVVURi04IiksIAogICAgICAgIGxpc3QoKSkpCiAgICBpZiAoIkdQS0ciID09ICJFU1JJIFNoYXBlZmlsZSIpIHsKICAgICAgICBmaWxlLnJlbmFtZShwYXN0ZTAocGF0aCwgIi5zaHoiKSwgcGF0aCkKICAgIH0KfQ&marshal=dGVycmE6OndyYXAob2JqZWN0KQ&unmarshal=dGVycmE6OnVud3JhcChvYmplY3Qp&convert=&copy=&repository=|local|list|||0.047||
+gr_vect|stem|e268b6c201fcd9ba|865ebe837454d576|2a4362a07e3cbeeb|-590693438||t20441.5017933137s|s147456b|147456|format_custom&read=ewogICAgaWYgKCJHUEtHIiA9PSAiRVNSSSBTaGFwZWZpbGUiKSB7CiAgICAgICAgdGVycmE6OnZlY3QocGFzdGUwKCIvdnNpemlwL3siLCBwYXRoLCAifSIpKQogICAgfQogICAgZWxzZSB7CiAgICAgICAgdGVycmE6OnZlY3QocGF0aCkKICAgIH0KfQ&write=ewogICAgZG8uY2FsbCh0ZXJyYTo6d3JpdGVWZWN0b3IsIGMobGlzdCh4ID0gb2JqZWN0LCBmaWxlbmFtZSA9IGlmZWxzZSgiR1BLRyIgPT0gCiAgICAgICAgIkVTUkkgU2hhcGVmaWxlIiwgeWVzID0gcGFzdGUwKHBhdGgsICIuc2h6IiksIG5vID0gcGF0aCksIAogICAgICAgIGZpbGV0eXBlID0gIkdQS0ciLCBvdmVyd3JpdGUgPSBUUlVFLCBvcHRpb25zID0gIkVOQ09ESU5HPVVURi04IiksIAogICAgICAgIGxpc3QoKSkpCiAgICBpZiAoIkdQS0ciID09ICJFU1JJIFNoYXBlZmlsZSIpIHsKICAgICAgICBmaWxlLnJlbmFtZShwYXN0ZTAocGF0aCwgIi5zaHoiKSwgcGF0aCkKICAgIH0KfQ&marshal=dGVycmE6OndyYXAob2JqZWN0KQ&unmarshal=dGVycmE6OnVud3JhcChvYmplY3Qp&convert=&copy=&repository=|local|list|||0.031||
+mire_terra|stem|476cf8946ffe4b6c|6655324821805bf8|ee7ad2651a4bbcc6|-1772593037||t20441.503243664s|s52536108b|52536108|format_custom&read=dGVycmE6OnJhc3QocGF0aCk&write=ewogICAgZG8uY2FsbCh0ZXJyYTo6d3JpdGVSYXN0ZXIsIGMobGlzdChvYmplY3QsIGZpbGVuYW1lID0gcGF0aCwgCiAgICAgICAgZmlsZXR5cGUgPSAiR1RpZmYiLCBvdmVyd3JpdGUgPSBUUlVFLCBnZGFsID0gTlVMTCksIGxpc3QoKSkpCn0&marshal=dGVycmE6OndyYXAob2JqZWN0KQ&unmarshal=dGVycmE6OnVud3JhcChvYmplY3Qp&convert=&copy=&repository=|local|list|||0.094||
+mire_stars_nf|stem|01e9d79d627dec77|6d9b5252ce2415a5|8137974385a7d55e|-517114265||t20441.5047873946s|s15150930b|15150930|format_custom&read=ewogICAgaWYgKEZBTFNFKSB7CiAgICAgICAgc3RhcnM6OnJlYWRfbmNkZihwYXRoLCBwcm94eSA9IEZBTFNFKQogICAgfQogICAgZWxzZSBpZiAoaXNUUlVFKEZBTFNFKSkgewogICAgICAgIHN0YXJzOjpyZWFkX21kaW0ocGF0aCwgcHJveHkgPSBGQUxTRSkKICAgIH0KICAgIGVsc2UgewogICAgICAgIHN0YXJzOjpyZWFkX3N0YXJzKHBhdGgsIHByb3h5ID0gRkFMU0UpCiAgICB9Cn0&write=ewogICAgRlVOIDwtIGlmZWxzZShGQUxTRSwgc3RhcnM6OndyaXRlX21kaW0sIHN0YXJzOjp3cml0ZV9zdGFycykKICAgIGRvLmNhbGwoRlVOLCBjKGxpc3Qob2JqZWN0LCBwYXRoLCBvdmVyd3JpdGUgPSBUUlVFLCBkcml2ZXIgPSAiR1RpZmYiLCAKICAgICAgICBvcHRpb25zID0gY2hhcmFjdGVyKDApKSwgbGlzdCgpKSkKfQ&marshal=&unmarshal=&convert=&copy=&repository=|local|list|||0.532||
+mire_stars_gr|stem|aeca19ba86fec3f4|d462552cdccd478a|288cf869a537c0d3|-1263368879||t20441.509523027s|s50759274b|50759274|format_custom&read=ewogICAgaWYgKEZBTFNFKSB7CiAgICAgICAgc3RhcnM6OnJlYWRfbmNkZihwYXRoLCBwcm94eSA9IEZBTFNFKQogICAgfQogICAgZWxzZSBpZiAoaXNUUlVFKEZBTFNFKSkgewogICAgICAgIHN0YXJzOjpyZWFkX21kaW0ocGF0aCwgcHJveHkgPSBGQUxTRSkKICAgIH0KICAgIGVsc2UgewogICAgICAgIHN0YXJzOjpyZWFkX3N0YXJzKHBhdGgsIHByb3h5ID0gRkFMU0UpCiAgICB9Cn0&write=ewogICAgRlVOIDwtIGlmZWxzZShGQUxTRSwgc3RhcnM6OndyaXRlX21kaW0sIHN0YXJzOjp3cml0ZV9zdGFycykKICAgIGRvLmNhbGwoRlVOLCBjKGxpc3Qob2JqZWN0LCBwYXRoLCBvdmVyd3JpdGUgPSBUUlVFLCBkcml2ZXIgPSAiR1RpZmYiLCAKICAgICAgICBvcHRpb25zID0gY2hhcmFjdGVyKDApKSwgbGlzdCgpKSkKfQ&marshal=&unmarshal=&convert=&copy=&repository=|local|list|||1.125||
+mire_stars_na|stem|ec12a33f026be859|4464550e40b3f6c9|721e32d99156c507|288931311||t20441.5095501609s|s91210922b|91210922|format_custom&read=ewogICAgaWYgKEZBTFNFKSB7CiAgICAgICAgc3RhcnM6OnJlYWRfbmNkZihwYXRoLCBwcm94eSA9IEZBTFNFKQogICAgfQogICAgZWxzZSBpZiAoaXNUUlVFKEZBTFNFKSkgewogICAgICAgIHN0YXJzOjpyZWFkX21kaW0ocGF0aCwgcHJveHkgPSBGQUxTRSkKICAgIH0KICAgIGVsc2UgewogICAgICAgIHN0YXJzOjpyZWFkX3N0YXJzKHBhdGgsIHByb3h5ID0gRkFMU0UpCiAgICB9Cn0&write=ewogICAgRlVOIDwtIGlmZWxzZShGQUxTRSwgc3RhcnM6OndyaXRlX21kaW0sIHN0YXJzOjp3cml0ZV9zdGFycykKICAgIGRvLmNhbGwoRlVOLCBjKGxpc3Qob2JqZWN0LCBwYXRoLCBvdmVyd3JpdGUgPSBUUlVFLCBkcml2ZXIgPSAiR1RpZmYiLCAKICAgICAgICBvcHRpb25zID0gY2hhcmFjdGVyKDApKSwgbGlzdCgpKSkKfQ&marshal=&unmarshal=&convert=&copy=&repository=|local|list|||1.813||
+mire_terra_gr|stem|74da7e7796788f3c|894b16d227affb75|a42165c032a2a188|1659908206||t20441.509555971s|s1468662b|1468662|format_custom&read=dGVycmE6OnJhc3QocGF0aCk&write=ewogICAgZG8uY2FsbCh0ZXJyYTo6d3JpdGVSYXN0ZXIsIGMobGlzdChvYmplY3QsIGZpbGVuYW1lID0gcGF0aCwgCiAgICAgICAgZmlsZXR5cGUgPSAiR1RpZmYiLCBvdmVyd3JpdGUgPSBUUlVFLCBnZGFsID0gTlVMTCksIGxpc3QoKSkpCn0&marshal=dGVycmE6OndyYXAob2JqZWN0KQ&unmarshal=dGVycmE6OnVud3JhcChvYmplY3Qp&convert=&copy=&repository=|local|list|||0.125||
+mire_terra_nf|stem|426312319ab9b06c|030ad33820856cf0|df2cfbdf55fc900c|1853165954||t20441.5095582732s|s644626b|644626|format_custom&read=dGVycmE6OnJhc3QocGF0aCk&write=ewogICAgZG8uY2FsbCh0ZXJyYTo6d3JpdGVSYXN0ZXIsIGMobGlzdChvYmplY3QsIGZpbGVuYW1lID0gcGF0aCwgCiAgICAgICAgZmlsZXR5cGUgPSAiR1RpZmYiLCBvdmVyd3JpdGUgPSBUUlVFLCBnZGFsID0gTlVMTCksIGxpc3QoKSkpCn0&marshal=dGVycmE6OndyYXAob2JqZWN0KQ&unmarshal=dGVycmE6OnVud3JhcChvYmplY3Qp&convert=&copy=&repository=|local|list|||0.063||
+mire_terra_na|stem|007a662752c602eb|ccc951be9b21fd32|1320e439eb9c7a4e|-1962461693||t20441.5095692932s|s3069872b|3069872|format_custom&read=dGVycmE6OnJhc3QocGF0aCk&write=ewogICAgZG8uY2FsbCh0ZXJyYTo6d3JpdGVSYXN0ZXIsIGMobGlzdChvYmplY3QsIGZpbGVuYW1lID0gcGF0aCwgCiAgICAgICAgZmlsZXR5cGUgPSAiR1RpZmYiLCBvdmVyd3JpdGUgPSBUUlVFLCBnZGFsID0gTlVMTCksIGxpc3QoKSkpCn0&marshal=dGVycmE6OndyYXAob2JqZWN0KQ&unmarshal=dGVycmE6OnVud3JhcChvYmplY3Qp&convert=&copy=&repository=|local|list|||0.406||
+dk2|stem|7488c1b2071f2af2|39280fa12b7cacaa|e7e3bd041ffa92cf|-1810080369||t20441.5101689166s|s127527b|127527|rds|local|vector|||0.078||
+mireArea|stem|7526e4de1bae10f8|4a94039b38d3fcf2|4b08ffd99c8d61cc|1759402024||t20441.5104649408s|s293b|293|rds|local|vector|||0.375||
+mire_in_dk|stem|b0add474dba19709|d126fd517161db92|110825191b3af4f5|-615863989||t20460.3663636988s|s240b|240|rds|local|vector|||1.25||
+infra_vec|stem|b5d8a12ff39379b0|af6f7664b408a3eb|9445a2854c2eefbc|1010204185||t20460.3760310862s|s829351b|829351|rds|local|vector|||52.765|no_data_value not set: missing values will appear as zero values. GDAL Message 1: The definition of geographic CRS EPSG:4258 got from GeoTIFF keys is not the same as the one from the EPSG registry, which may cause issues during reprojection operations. Set GTIFF_SRS_SOURCE configuration option to EPSG to use official parameters (overriding the ones from GeoTIFF keys), or to GEOKEYS to use custom values from GeoTIFF keys and drop the EPSG code.. GDAL Message 1: The definition of geographic CRS EPSG:4258 got from GeoTIFF keys is not the same as the one from the EPSG registry, which may cause issues during reprojection operations. Set GTIFF_SRS_SOURCE configuration option to EPSG to use official parameters (overriding the ones from GeoTIFF keys), or to GEOKEYS to use custom values from GeoTIFF keys and drop the EPSG code.. crop only crops regular grids: maybe use st_warp() first?. repeating attributes for all sub-geometries for which they may not be constant|
+infra_vec2|stem|309170cca8c17248|451741a69fac649a|e00a1c46c1d97bf3|713376480||t20460.3770603908s|s881380b|881380|rds|local|vector|||0.078||
+infraMuni3|stem|af94069297f30261|e534ad3a38d0ca61|c2ff8abb520b3f4e|-641477123||t20460.3803854996s|s982382b|982382|rds|local|vector|||15.281|crop only crops regular grids: maybe use st_warp() first?. repeating attributes for all sub-geometries for which they may not be constant. attribute variables are assumed to be spatially constant throughout all geometries|
+infraMuni3_tbl|stem|a0a485f535c769c1|af5d121f533fe25f|5301436d76a021e2|-612210065||t20460.3808366072s|s284b|284|rds|local|vector|||0.015||
+infraMuni3_summary|stem|3940936fe0aee1bb|cbaab37bc3b8344c|bd41168ba7fee873|539436665||t20460.3814668258s|s208b|208|rds|local|vector|||0||
+corrCheck|stem|2437703c84229edb|3f8cabf25bd8d1ce|945e95d303b33b92|-559941326||t20460.3952067257s|s6152460b|6152460|rds|local|vector|||1.578|attribute variables are assumed to be spatially constant throughout all geometries|
+validationPlot|stem|e61841b645e70743|1398ee843ee15cf4|6f583d53c114116b|-1542947156||t20460.4021744776s|s7242119b|7242119|rds|local|vector|||0.875||
+infra_maps_list|stem|4ed6fcd5719112f7|cfc64d23d5062d87|1a779472fa054d7d|49741376||t20460.4026991565s|s4162659b|4162659|rds|local|vector|||0.031||
+methodsMap|stem|d34ed5ae0ad40730|027ade5bc4eb0147|5dbce700bf10c517|-567143107||t20460.4033720941s|s2081421b|2081421|rds|local|vector|||0||
+overview_NA|stem|f4b47e05d9400ea9|ea1561160c087e23|7f6ee0884ea18269|-1366373894||t20460.425584928s|s611454b|611454|rds|local|vector|||0.016||
+infraMuniMap_NA2|stem|991100dfc370f4ac|7a8988d829233a28|e4cebe330c22dd56|1146274095||t20460.4289744209s|s1201737b|1201737|rds|local|vector|||0.016||
+overview_NA_out|stem|3ebd7de107173f32|865d9f3cd62172e2|0044f930727669fd|572912020|C:/Users/anders.kolstad/github/HIAs/output/fig/overview_NA.tiff|t20460.4289834488s|s30122798b|30122798|file|local|vector|||0.734||
+infraMuniMap_NA_out|stem|6ea493f95f4b147c|f8a1ce87b518b274|375fe9e6bfc7c5ee|1019886513|C:/Users/anders.kolstad/github/HIAs/output/fig/HIA-NA.tiff|t20460.4294115949s|s30122798b|30122798|file|local|vector|||0.688||
+muni_tbl|stem|6d755e1efebc1816|efcc527d14e5c313|85043d291e9b5c00|-416534633||t20460.433815867s|s302523b|302523|rds|local|vector|||0.187||
+fit_df|stem|d28babb5534a566f|3338caa6c4a04308|e4985d5fbe6311d9|1488658761||t20460.4368502843s|s661b|661|rds|local|vector|||1.016|There were 43 warnings in `dplyr::summarise()`. The first warning was: ℹ In argument: `fit = list(fit_zoib(indicatorValue))`. ℹ In group 1: `indicator = 'i_ADSV'` `infrastructureIndex = 0`. Caused by warning in `densfun()`: ! NaNs produced ℹ Run `dplyr::last_dplyr_warnings()` to see the 42 remaining warnings.|
+stats_tbl|stem|ca263cfc1ddee56d|492150bab70d4cdb|36f8ccdcda8afd01|-1369686576||t20460.4853300145s|s553118b|553118|rds|local|vector|||0.407|attribute variables are assumed to be spatially constant throughout all geometries. There were 21 warnings in `dplyr::mutate()`. The first warning was: ℹ In argument: `updated_fit = list(...)`. ℹ In row 1. Caused by warning in `densfun()`: ! NaNs produced ℹ Run `dplyr::last_dplyr_warnings()` to see the 20 remaining warnings.|
+forest_plot|stem|2267a5a5e7263bf2|2d7d77e42477a81a|c494a55f27c43cdb|-600741655||t20460.4864738129s|s2151925b|2151925|rds|local|vector|||0.078||
+forest_plot_ex|stem|1057927036b66cc8|d6359e9d8356eeff|51aadbc1f1e0708b|1510003983||t20460.5033535298s|s1480419b|1480419|rds|local|vector|||0.157||
+spread_nf|stem|4915fce4c3cabdcb|b664bee0491d5604|5d6b56b056e9ed24|-1302689430||t20460.5175295524s|s66631b|66631|rds|local|vector|||0.703|GDAL Message 1: The definition of geographic CRS EPSG:4258 got from GeoTIFF keys is not the same as the one from the EPSG registry, which may cause issues during reprojection operations. Set GTIFF_SRS_SOURCE configuration option to EPSG to use official parameters (overriding the ones from GeoTIFF keys), or to GEOKEYS to use custom values from GeoTIFF keys and drop the EPSG code.. attribute variables are assumed to be spatially constant throughout all geometries|
+spread_na|stem|24e01989d7a4efc6|d0f19e40be3ea9e3|71ea326d1a66bd1e|2047714690||t20460.5178828825s|s3000574b|3000574|rds|local|vector|||5.641|GDAL Message 1: The definition of geographic CRS EPSG:4258 got from GeoTIFF keys is not the same as the one from the EPSG registry, which may cause issues during reprojection operations. Set GTIFF_SRS_SOURCE configuration option to EPSG to use official parameters (overriding the ones from GeoTIFF keys), or to GEOKEYS to use custom values from GeoTIFF keys and drop the EPSG code.. attribute variables are assumed to be spatially constant throughout all geometries|
+spread_gr|stem|e3af651a9266845c|53cdf4fd7f433c3b|ad20e4d6ad164a61|-1428887959||t20460.5179147552s|s1323586b|1323586|rds|local|vector|||2.125|GDAL Message 1: The definition of geographic CRS EPSG:4258 got from GeoTIFF keys is not the same as the one from the EPSG registry, which may cause issues during reprojection operations. Set GTIFF_SRS_SOURCE configuration option to EPSG to use official parameters (overriding the ones from GeoTIFF keys), or to GEOKEYS to use custom values from GeoTIFF keys and drop the EPSG code.. attribute variables are assumed to be spatially constant throughout all geometries|
+spread_na_map|stem|07a06ae64669dbb4|9909215158e401df|b0336dfc88ab8cc9|486351555||t20460.5184353758s|s8129107b|8129107|rds|local|vector|||0.219||
+combineAll|stem|71ff423d876ec964|05437124ed6c4d24|4144fcd525124558|-1597135511||t20460.5222496739s|s353372b|353372|rds|local|vector|||5.547||
+eea_plot_v2|stem|2205c3ac58833756|af315b0007eecdb4|194ab69a2529a1b1|1589330636||t20460.5428795078s|s6702960b|6702960|rds|local|vector|||0.218||
+EEA_tbl_out|stem|6cc50974f12c6e5b|65db345e2ba6e099|3c3e3d985165ba9d|1101829672||t20461.3686845717s|s622b|622|rds|local|vector|||0.016||
+indicator_magnify|stem|84c7bcd843da2c9c|fa206a37a3cca5d2|4a92137254aa883d|-1681887532||t20461.3718303397s|s1690462b|1690462|rds|local|vector|||0.109||
+indicator_magnify_tiff|stem|d449a7c0ff7639c4|9760f1b3d9f60536|5f94aa167e0bacad|-2110749772|C:/Users/anders.kolstad/github/HIAs/output/fig/indicator-magnify.tiff|t20461.3718784031s|s12960204b|12960204|file|local|vector|||4.047||
+save_tmap_tiff|function|7d310d6db66e5cb5
+positionMap|stem|da07d22effd05cb9|98538bc499849148|df95e258b47b583d|-1700077095||t20461.5211305633s|s218754b|218754|rds|local|vector|||0.016||
+infraMuniMap_NA_png|stem|a6cab47351fbb20a|412a7883dc9f4136|7323c8dc43625e2e|-1060394609|C:/Users/anders.kolstad/github/HIAs/output/fig/HIA-NA.png|t20461.5312565269s|s54666b|54666|file|local|vector|||0.532||
+infraMuniMap_NA_tiff|stem|6ea493f95f4b147c|0474dab68a19b400|7323c8dc43625e2e|915166436|C:/Users/anders.kolstad/github/HIAs/output/fig/HIA-NA.tiff|t20461.5312690266s|s30122798b|30122798|file|local|vector|||1.015||
+positionMap_out|stem|cfba315c48e6f259|6372f5558c7795f4|e3d47f8b75a33749|-1371779764|C:/Users/anders.kolstad/github/HIAs/output/fig/positionMap.png|t20461.5312756053s|s40381b|40381|file|local|vector|||0.469||
+overview_NA_tiff|stem|3ebd7de107173f32|7a0769d85ab8ccad|1d3ba0f4e27143b4|-2016251635|C:/Users/anders.kolstad/github/HIAs/output/fig/overview_NA.tiff|t20461.5312843563s|s30122798b|30122798|file|local|vector|||0.704||
+overview_NA_png|stem|1f9be0a37b2f40b4|4c3f4d24caef626f|1d3ba0f4e27143b4|1300379734|C:/Users/anders.kolstad/github/HIAs/output/fig/overview_NA.png|t20461.5312891172s|s31771b|31771|file|local|vector|||0.375||
+methodsMap_tiff|stem|1f453bc64f5af676|d316fbd148951f67|cb701ed1c534dcf4|-1176638474|C:/Users/anders.kolstad/github/HIAs/output/fig/studyLocations.tiff|t20461.5313142439s|s30122798b|30122798|file|local|vector|||2.11||
+methodsMap_png|stem|983ae47138f4532d|7453a1475aa5f913|cb701ed1c534dcf4|-176899884|C:/Users/anders.kolstad/github/HIAs/output/fig/studyLocations.png|t20461.5313291583s|s73979b|73979|file|local|vector|||1.219||
+positionMap_png|stem|cfba315c48e6f259|6372f5558c7795f4|e3d47f8b75a33749|601305559|C:/Users/anders.kolstad/github/HIAs/output/fig/positionMap.png|t20461.5324838734s|s40381b|40381|file|local|vector|||0.391||
+ggplot_tiff|function|a0e51b8e61283a53
+infra_dist_plot_out|stem|f9febb584bef16e2|fd4d3f1af9574c1e|a5f556c0945b3291|813035802||t20466.4001697244s|s114b|114|rds|local|vector|||4.328||
+validationPlot_out|stem|f7e7754060edc095|1c800139e6a6b4c2|6bd9e1f35a58e96b|1975728165||t20466.4001805642s|s112b|112|rds|local|vector|||0.656|Removed 12 rows containing missing values or values outside the scale range (`geom_text()`).|
+indicator_magnify_png|stem|bce6a2fab6f1a5f8|21c90e246281ebcb|682436a5b276fd64|-165451769|C:/Users/anders.kolstad/github/HIAs/output/fig/indicator-magnify.png|t20466.400191309s|s367219b|367219|file|local|vector|||0.844||
+all_outputs|stem|7498f6f48584604f|69de8abc4b4e7203|083b58fd4bde92d1|1819202915|all_outputs.pdf*all_outputs.qmd|t20466.4005481591s|s602921b|602921|file|local|vector|||23.875||
+forest_plot_out|stem|1f2e4d734add951b|d1fad7018f0b9b0f|87aaf1de6c8cbafc|1247939973||t20466.4005605885s|s110b|110|rds|local|vector|||0.828||
+forest_plot_ex_out|stem|dbc63998a83629db|83409f1c374b11c5|2be6cbc76352c09e|1399113515||t20466.4005638139s|s112b|112|rds|local|vector|||0.157||
+spread_na_tiff|stem|41a45b98f9fade44|4786c28b1a5f646e|33694a5ae0732b8a|-1235718164|C:/Users/anders.kolstad/github/HIAs/output/fig/spread-na.png|t20466.4006441787s|s1366373b|1366373|file|local|vector|||5.688||
+eea_plot_tiff_v2|stem|dd53d418284f0eb4|45e05f9de54cbefd|63e9342912f533e8|41783683|C:/Users/anders.kolstad/github/HIAs/output/fig/results.png|t20466.4006734897s|s372302b|372302|file|local|vector|||1.359||
+naturetypes_file|stem|ff9b5f95dd36d627|831fe34cb1dc17c6|ee7ad2651a4bbcc6|2082859100|P:/41001581_egenutvikling_anders_kolstad/data/Naturtyper_nin_0000_norge_25833_FILEGDB.gdb|t19886.3223051201s|s204589326b|204589326|file|local|vector|||0||
+manuscript|stem|3e52949367e609c9|072844e980869ed8|049162402b528d6c|-1793997187|Manuscript.pdf*Manuscript.qmd*_extensions/quarto-journals/elsevier/_extension.yml*_extensions/quarto-journals/elsevier/bib/elsarticle-harv.bst*_extensions/quarto-journals/elsevier/bib/elsarticle-num-names.bst*_extensions/quarto-journals/elsevier/bib/elsarticle-num.bst*_extensions/quarto-journals/elsevier/bib/elsevier-harvard.csl*_extensions/quarto-journals/elsevier/elsarticle.cls*_extensions/quarto-journals/elsevier/elsevier.lua*_extensions/quarto-journals/elsevier/partials/_two-column-longtable.tex*_extensions/quarto-journals/elsevier/partials/before-body.tex*_extensions/quarto-journals/elsevier/partials/title.tex*_extensions/quarto-journals/elsevier/styles/elsevier.scss|t20467.39867357s|s2799824b|2799824|file|local|vector|||49.266||
+appendix|stem|5f0ea740c2bccdb0|aba91eabef88e8bb|083b58fd4bde92d1|638984040|appendix.pdf*appendix.qmd*_extensions/quarto-journals/elsevier/_extension.yml*_extensions/quarto-journals/elsevier/bib/elsarticle-harv.bst*_extensions/quarto-journals/elsevier/bib/elsarticle-num-names.bst*_extensions/quarto-journals/elsevier/bib/elsarticle-num.bst*_extensions/quarto-journals/elsevier/bib/elsevier-harvard.csl*_extensions/quarto-journals/elsevier/elsarticle.cls*_extensions/quarto-journals/elsevier/elsevier.lua*_extensions/quarto-journals/elsevier/partials/_two-column-longtable.tex*_extensions/quarto-journals/elsevier/partials/before-body.tex*_extensions/quarto-journals/elsevier/partials/title.tex*_extensions/quarto-journals/elsevier/styles/elsevier.scss|t20467.4177409006s|s938980b|938980|file|local|vector|||38.21|package 'quarto' was built under R version 4.5.2|
+ggplot_out|function|115fed0d697f40b1
+f_plot_naturetypes_comb|function|221ede3f9ea963e9
+ensure_multipolygons|function|d77a35891232361d
+make_naturetypes_wide|function|6d3f89c0e280e20c
+fit_zoib|function|f10379de939f5292
+eea_table_kable|function|d19b0b5a06938359
+get_coverage|function|b377fafaf85dd39c
+validation_plot|function|f46a575918217ac8
+make_naturetypes_comb|function|3b93e76c9f804f6f
+make_national_data|function|baedeb76c667778a
+combine_all_eaa|function|301ca4b961dbb6f0
+normalise_plot|function|28cad18b543a74a0
+plot_population_dist|function|cce09b6e7f07e426
+indicator_magnify_plot|function|cd7efd6eaf7abae5
+get_folder_dir|function|21f03b3270205cc9
+crop_and_mask|function|751c29b31628da3f
+mire_area_stats|function|403526bb1cc787d4
+eea_plot2|function|130a84cd7a5bc300
+.Random.seed|object|8ff74ef15767348f
+mire_in_survey_km2|function|7e6fd01cbda2ecd7
+save_tmap|function|7d310d6db66e5cb5
+distance_between_centroids_km|function|60427feca4054b4b
+make_naturetypes_wide2|function|a25e617c2f6beeaa
+infra_area_add|function|9db066bf3ecda746
+infra_map_na2|function|a898b3270be24563
+corr_check|function|a08bcee35cf5954f
+infra_muni3_vectorize|function|10bfb699fc7f4db3
+plot_domain_dist|function|fdbece1f3c34223d
+simulate_domain|function|42815422684ddef5
+getRelevantNTs|function|044c0a07746d6668
+map_overview_na|function|c30e7b5525a7b674
+spread_na_example_map|function|d1e2870b158808a2
+posMap|function|190fce8497549dbb
+spread_mires_to_edm|function|ea29dfdf5b258a9c
+clean_subset|function|5fa9aa8a9c87d544
+update_distribution|function|7c9c620202ef5c5d
+test_prepPolygons|function|805749b842b59f64
+test_convertToPercent|function|1e572af52f1335b3
+infra_muni3_summary|function|64ecfc08882520ed
+convertToPercent|function|d684aac3ee5c4061
+forest_plot_from_stats|function|bd69623ab87e8328
+normalise|function|4d8824ba823d3ed4
+infra_area_plot|function|33590071788971b9
+infra_muni3_tbl|function|a09f0ecaf062975e
+f_test_most_common|function|0e398e5396813987
+downsize|function|e65e494a890e2490
+prepPolygons|function|ab038347e01941ea
+infra_maps|function|86de86905d9c68a8
+f_plot_naturetypes_comb2|function|d3166bf1b0a34010
+infra_dist_plot|function|326aaf02cbb6fd2d
+make_domain_data|function|97d76d1831ed757d
+forest_plot_example|function|51e012790b09ea10
+muni_table|function|bb51bda3b7f2e319
+coverage_area_km2|function|299015daacbef37f
+get_world_map|function|e0675d48ff88f877
+getMunicipalities|function|e530dad5b7dc3f14
+eea_plot|function|8d638341f325b2b9
+wgt_mean|function|02a1af9805271b21
+convert_to_vect|function|dbf29280b5667bd2
+fit_df_from_corrcheck|function|3496bd3ab4bed91e
+add_national_fits|function|a5c6a13821033d4b
+combine_domain_national|function|8905754f52391aab
+mean_per_hia_tbl|function|00241aa583d65c9c
