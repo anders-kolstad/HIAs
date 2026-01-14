@@ -55,11 +55,9 @@ mireArea|stem|7526e4de1bae10f8|4a94039b38d3fcf2|4b08ffd99c8d61cc|1759402024||t20
 mire_in_dk|stem|b0add474dba19709|d126fd517161db92|110825191b3af4f5|-615863989||t20460.3663636988s|s240b|240|rds|local|vector|||1.25||
 infra_vec|stem|b5d8a12ff39379b0|af6f7664b408a3eb|9445a2854c2eefbc|1010204185||t20460.3760310862s|s829351b|829351|rds|local|vector|||52.765|no_data_value not set: missing values will appear as zero values. GDAL Message 1: The definition of geographic CRS EPSG:4258 got from GeoTIFF keys is not the same as the one from the EPSG registry, which may cause issues during reprojection operations. Set GTIFF_SRS_SOURCE configuration option to EPSG to use official parameters (overriding the ones from GeoTIFF keys), or to GEOKEYS to use custom values from GeoTIFF keys and drop the EPSG code.. GDAL Message 1: The definition of geographic CRS EPSG:4258 got from GeoTIFF keys is not the same as the one from the EPSG registry, which may cause issues during reprojection operations. Set GTIFF_SRS_SOURCE configuration option to EPSG to use official parameters (overriding the ones from GeoTIFF keys), or to GEOKEYS to use custom values from GeoTIFF keys and drop the EPSG code.. crop only crops regular grids: maybe use st_warp() first?. repeating attributes for all sub-geometries for which they may not be constant|
 infra_vec2|stem|309170cca8c17248|451741a69fac649a|e00a1c46c1d97bf3|713376480||t20460.3770603908s|s881380b|881380|rds|local|vector|||0.078||
-infra_area_plot|stem|476ca860a36d6185|430a7175c0a8b039|757d0ae03657cc9e|-1216478945||t20460.3773614269s|s992301b|992301|rds|local|vector|||0.031||
 infraMuni3|stem|af94069297f30261|e534ad3a38d0ca61|c2ff8abb520b3f4e|-641477123||t20460.3803854996s|s982382b|982382|rds|local|vector|||15.281|crop only crops regular grids: maybe use st_warp() first?. repeating attributes for all sub-geometries for which they may not be constant. attribute variables are assumed to be spatially constant throughout all geometries|
 infraMuni3_tbl|stem|a0a485f535c769c1|af5d121f533fe25f|5301436d76a021e2|-612210065||t20460.3808366072s|s284b|284|rds|local|vector|||0.015||
 infraMuni3_summary|stem|3940936fe0aee1bb|cbaab37bc3b8344c|bd41168ba7fee873|539436665||t20460.3814668258s|s208b|208|rds|local|vector|||0||
-infra_dist_plot|stem|4422242055609eb1|34863821c657f6ce|6839fc8311528950|-90427014||t20460.3902189971s|s1065368b|1065368|rds|local|vector|||0.203|The `size` argument of `element_line()` is deprecated as of ggplot2 3.4.0. ℹ Please use the `linewidth` argument instead. ℹ The deprecated feature was likely used in the cowplot package.   Please report the issue at <https://github.com/wilkelab/cowplot/issues>.. The `size` argument of `element_rect()` is deprecated as of ggplot2 3.4.0. ℹ Please use the `linewidth` argument instead. ℹ The deprecated feature was likely used in the cowplot package.   Please report the issue at <https://github.com/wilkelab/cowplot/issues>.|
 corrCheck|stem|2437703c84229edb|3f8cabf25bd8d1ce|945e95d303b33b92|-559941326||t20460.3952067257s|s6152460b|6152460|rds|local|vector|||1.578|attribute variables are assumed to be spatially constant throughout all geometries|
 validationPlot|stem|e61841b645e70743|1398ee843ee15cf4|6f583d53c114116b|-1542947156||t20460.4021744776s|s7242119b|7242119|rds|local|vector|||0.875||
 infra_maps_list|stem|4ed6fcd5719112f7|cfc64d23d5062d87|1a779472fa054d7d|49741376||t20460.4026991565s|s4162659b|4162659|rds|local|vector|||0.031||
@@ -78,7 +76,6 @@ spread_na|stem|24e01989d7a4efc6|d0f19e40be3ea9e3|71ea326d1a66bd1e|2047714690||t2
 spread_gr|stem|e3af651a9266845c|53cdf4fd7f433c3b|ad20e4d6ad164a61|-1428887959||t20460.5179147552s|s1323586b|1323586|rds|local|vector|||2.125|GDAL Message 1: The definition of geographic CRS EPSG:4258 got from GeoTIFF keys is not the same as the one from the EPSG registry, which may cause issues during reprojection operations. Set GTIFF_SRS_SOURCE configuration option to EPSG to use official parameters (overriding the ones from GeoTIFF keys), or to GEOKEYS to use custom values from GeoTIFF keys and drop the EPSG code.. attribute variables are assumed to be spatially constant throughout all geometries|
 spread_na_map|stem|07a06ae64669dbb4|9909215158e401df|b0336dfc88ab8cc9|486351555||t20460.5184353758s|s8129107b|8129107|rds|local|vector|||0.219||
 combineAll|stem|71ff423d876ec964|05437124ed6c4d24|4144fcd525124558|-1597135511||t20460.5222496739s|s353372b|353372|rds|local|vector|||5.547||
-eea_plot|stem|9aaa29362fc66752|a05d3839ded9efb1|5d7d592a38adc9b1|279981232||t20460.5331888658s|s138894941b|138894941|rds|local|vector|||0.078||
 eea_plot_v2|stem|2205c3ac58833756|af315b0007eecdb4|194ab69a2529a1b1|1589330636||t20460.5428795078s|s6702960b|6702960|rds|local|vector|||0.218||
 EEA_tbl_out|stem|6cc50974f12c6e5b|65db345e2ba6e099|3c3e3d985165ba9d|1101829672||t20461.3686845717s|s622b|622|rds|local|vector|||0.016||
 indicator_magnify|stem|84c7bcd843da2c9c|fa206a37a3cca5d2|4a92137254aa883d|-1681887532||t20461.3718303397s|s1690462b|1690462|rds|local|vector|||0.109||
@@ -94,6 +91,17 @@ methodsMap_tiff|stem|1f453bc64f5af676|d316fbd148951f67|cb701ed1c534dcf4|-1176638
 methodsMap_png|stem|983ae47138f4532d|7453a1475aa5f913|cb701ed1c534dcf4|-176899884|C:/Users/anders.kolstad/github/HIAs/output/fig/studyLocations.png|t20461.5313291583s|s73979b|73979|file|local|vector|||1.219||
 positionMap_png|stem|cfba315c48e6f259|6372f5558c7795f4|e3d47f8b75a33749|601305559|C:/Users/anders.kolstad/github/HIAs/output/fig/positionMap.png|t20461.5324838734s|s40381b|40381|file|local|vector|||0.391||
 ggplot_tiff|function|a0e51b8e61283a53
+infra_dist_plot_out|stem|f9febb584bef16e2|fd4d3f1af9574c1e|a5f556c0945b3291|813035802||t20466.4001697244s|s114b|114|rds|local|vector|||4.328||
+validationPlot_out|stem|f7e7754060edc095|1c800139e6a6b4c2|6bd9e1f35a58e96b|1975728165||t20466.4001805642s|s112b|112|rds|local|vector|||0.656|Removed 12 rows containing missing values or values outside the scale range (`geom_text()`).|
+indicator_magnify_png|stem|bce6a2fab6f1a5f8|21c90e246281ebcb|682436a5b276fd64|-165451769|C:/Users/anders.kolstad/github/HIAs/output/fig/indicator-magnify.png|t20466.400191309s|s367219b|367219|file|local|vector|||0.844||
+all_outputs|stem|7498f6f48584604f|69de8abc4b4e7203|083b58fd4bde92d1|1819202915|all_outputs.pdf*all_outputs.qmd|t20466.4005481591s|s602921b|602921|file|local|vector|||23.875||
+forest_plot_out|stem|1f2e4d734add951b|d1fad7018f0b9b0f|87aaf1de6c8cbafc|1247939973||t20466.4005605885s|s110b|110|rds|local|vector|||0.828||
+forest_plot_ex_out|stem|dbc63998a83629db|83409f1c374b11c5|2be6cbc76352c09e|1399113515||t20466.4005638139s|s112b|112|rds|local|vector|||0.157||
+spread_na_tiff|stem|41a45b98f9fade44|4786c28b1a5f646e|33694a5ae0732b8a|-1235718164|C:/Users/anders.kolstad/github/HIAs/output/fig/spread-na.png|t20466.4006441787s|s1366373b|1366373|file|local|vector|||5.688||
+eea_plot_tiff_v2|stem|dd53d418284f0eb4|45e05f9de54cbefd|63e9342912f533e8|41783683|C:/Users/anders.kolstad/github/HIAs/output/fig/results.png|t20466.4006734897s|s372302b|372302|file|local|vector|||1.359||
+naturetypes_file|stem|ff9b5f95dd36d627|831fe34cb1dc17c6|ee7ad2651a4bbcc6|2082859100|P:/41001581_egenutvikling_anders_kolstad/data/Naturtyper_nin_0000_norge_25833_FILEGDB.gdb|t19886.3223051201s|s204589326b|204589326|file|local|vector|||0||
+manuscript|stem|3e52949367e609c9|072844e980869ed8|049162402b528d6c|-1793997187|Manuscript.pdf*Manuscript.qmd*_extensions/quarto-journals/elsevier/_extension.yml*_extensions/quarto-journals/elsevier/bib/elsarticle-harv.bst*_extensions/quarto-journals/elsevier/bib/elsarticle-num-names.bst*_extensions/quarto-journals/elsevier/bib/elsarticle-num.bst*_extensions/quarto-journals/elsevier/bib/elsevier-harvard.csl*_extensions/quarto-journals/elsevier/elsarticle.cls*_extensions/quarto-journals/elsevier/elsevier.lua*_extensions/quarto-journals/elsevier/partials/_two-column-longtable.tex*_extensions/quarto-journals/elsevier/partials/before-body.tex*_extensions/quarto-journals/elsevier/partials/title.tex*_extensions/quarto-journals/elsevier/styles/elsevier.scss|t20467.39867357s|s2799824b|2799824|file|local|vector|||49.266||
+appendix|stem|5f0ea740c2bccdb0|aba91eabef88e8bb|083b58fd4bde92d1|638984040|appendix.pdf*appendix.qmd*_extensions/quarto-journals/elsevier/_extension.yml*_extensions/quarto-journals/elsevier/bib/elsarticle-harv.bst*_extensions/quarto-journals/elsevier/bib/elsarticle-num-names.bst*_extensions/quarto-journals/elsevier/bib/elsarticle-num.bst*_extensions/quarto-journals/elsevier/bib/elsevier-harvard.csl*_extensions/quarto-journals/elsevier/elsarticle.cls*_extensions/quarto-journals/elsevier/elsevier.lua*_extensions/quarto-journals/elsevier/partials/_two-column-longtable.tex*_extensions/quarto-journals/elsevier/partials/before-body.tex*_extensions/quarto-journals/elsevier/partials/title.tex*_extensions/quarto-journals/elsevier/styles/elsevier.scss|t20467.4177409006s|s938980b|938980|file|local|vector|||38.21|package 'quarto' was built under R version 4.5.2|
 ggplot_out|function|115fed0d697f40b1
 f_plot_naturetypes_comb|function|221ede3f9ea963e9
 ensure_multipolygons|function|d77a35891232361d
@@ -112,7 +120,7 @@ get_folder_dir|function|21f03b3270205cc9
 crop_and_mask|function|751c29b31628da3f
 mire_area_stats|function|403526bb1cc787d4
 eea_plot2|function|130a84cd7a5bc300
-.Random.seed|object|2db6f71df86cf08e
+.Random.seed|object|8ff74ef15767348f
 mire_in_survey_km2|function|7e6fd01cbda2ecd7
 save_tmap|function|7d310d6db66e5cb5
 distance_between_centroids_km|function|60427feca4054b4b
@@ -136,30 +144,24 @@ infra_muni3_summary|function|64ecfc08882520ed
 convertToPercent|function|d684aac3ee5c4061
 forest_plot_from_stats|function|bd69623ab87e8328
 normalise|function|4d8824ba823d3ed4
+infra_area_plot|function|33590071788971b9
 infra_muni3_tbl|function|a09f0ecaf062975e
 f_test_most_common|function|0e398e5396813987
 downsize|function|e65e494a890e2490
 prepPolygons|function|ab038347e01941ea
 infra_maps|function|86de86905d9c68a8
 f_plot_naturetypes_comb2|function|d3166bf1b0a34010
+infra_dist_plot|function|326aaf02cbb6fd2d
 make_domain_data|function|97d76d1831ed757d
 forest_plot_example|function|51e012790b09ea10
 muni_table|function|bb51bda3b7f2e319
 coverage_area_km2|function|299015daacbef37f
 get_world_map|function|e0675d48ff88f877
 getMunicipalities|function|e530dad5b7dc3f14
+eea_plot|function|8d638341f325b2b9
 wgt_mean|function|02a1af9805271b21
 convert_to_vect|function|dbf29280b5667bd2
 fit_df_from_corrcheck|function|3496bd3ab4bed91e
 add_national_fits|function|a5c6a13821033d4b
 combine_domain_national|function|8905754f52391aab
 mean_per_hia_tbl|function|00241aa583d65c9c
-naturetypes_file|stem|ff9b5f95dd36d627|831fe34cb1dc17c6|ee7ad2651a4bbcc6|2082859100|P:/41001581_egenutvikling_anders_kolstad/data/Naturtyper_nin_0000_norge_25833_FILEGDB.gdb|t19886.3223051201s|s204589326b|204589326|file|local|vector|||0||
-infra_dist_plot_out|stem|f9febb584bef16e2|fd4d3f1af9574c1e|a5f556c0945b3291|813035802||t20466.4001697244s|s114b|114|rds|local|vector|||4.328||
-validationPlot_out|stem|f7e7754060edc095|1c800139e6a6b4c2|6bd9e1f35a58e96b|1975728165||t20466.4001805642s|s112b|112|rds|local|vector|||0.656|Removed 12 rows containing missing values or values outside the scale range (`geom_text()`).|
-indicator_magnify_png|stem|bce6a2fab6f1a5f8|21c90e246281ebcb|682436a5b276fd64|-165451769|C:/Users/anders.kolstad/github/HIAs/output/fig/indicator-magnify.png|t20466.400191309s|s367219b|367219|file|local|vector|||0.844||
-all_outputs|stem|7498f6f48584604f|69de8abc4b4e7203|083b58fd4bde92d1|1819202915|all_outputs.pdf*all_outputs.qmd|t20466.4005481591s|s602921b|602921|file|local|vector|||23.875||
-forest_plot_out|stem|1f2e4d734add951b|d1fad7018f0b9b0f|87aaf1de6c8cbafc|1247939973||t20466.4005605885s|s110b|110|rds|local|vector|||0.828||
-forest_plot_ex_out|stem|dbc63998a83629db|83409f1c374b11c5|2be6cbc76352c09e|1399113515||t20466.4005638139s|s112b|112|rds|local|vector|||0.157||
-spread_na_tiff|stem|41a45b98f9fade44|4786c28b1a5f646e|33694a5ae0732b8a|-1235718164|C:/Users/anders.kolstad/github/HIAs/output/fig/spread-na.png|t20466.4006441787s|s1366373b|1366373|file|local|vector|||5.688||
-eea_plot_tiff_v2|stem|dd53d418284f0eb4|45e05f9de54cbefd|63e9342912f533e8|41783683|C:/Users/anders.kolstad/github/HIAs/output/fig/results.png|t20466.4006734897s|s372302b|372302|file|local|vector|||1.359||
