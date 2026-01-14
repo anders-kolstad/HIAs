@@ -289,7 +289,7 @@ The prior weight was chosen after some trial and error to find a suitable weight
 Still, the prior weight was low enough that all point estimates (calculated independently from the predicted distributions) fell inside the 95% credible intervals.
 The predicted distributions were transferred over to the ecosystem assets of the corresponding strata, and from there, values where sampled proportional to asset area to obtain a probability distribution for the EAA (@fig-workflowExample - C).
 
-All the data preparation and analyses were done in RStudio [@positteam2024] and R version 4.3.0 [@rcoreteam2023], relying heavily on the packages tidyverse [@wickham2019], sf [@pebesma2018], terra [@Hijmans23] and stars [@pebesma2023].
+All the data preparation and analyses were done in Positron [@positron] and R version 4.5.0 [@rcoreteam2023], relying heavily on the packages tidyverse [@wickham2019], sf [@pebesma2018], terra [@Hijmans23] and stars [@pebesma2023].
 
 \pagebreak
 
