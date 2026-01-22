@@ -100,55 +100,75 @@ library(tarchetypes)
 
 <!-- Ecosystem accounting, ecosystem condition, metrics, purpose, point estimates -->
 
-<!-- Local ECAs, challenges there -->
+Ecosystem condition accounting (ECA) is the structured compiling and communication of data on the status of ecosystems [@comte2022; @edens2022].
+Its purpose is support policies, landuse planning and management decisions, 
+and making it easier to account for nature by making the environmental costs of certain policies and practices visible to decision-makers.
+The System of Environmental-Economic Accounting - Ecosystem Accounting (SEEA EA) is the most widely used framework for ecosystem accounting. 
+It was developed by the UN and adopted by the UN Statistical Commission as a statistical standard for ecosystem accounting in 2021 [@unitednations2024].
+This framework provides a set of rules, principles and best practices for compiling ecosystem accounts, including ecosystem condition accounts (ECAs) [@unitednations2022].
+At its core is the idea that data on ecosystem condition can be summarised in the form of summary statistics for selected metrics presented in generalised tables that describe the condition of a specific area referred to as the ecosystem accounting area (EAA).
+Metrics are either classed as condition variables or as indicators.
+Condition variables describe certain ecosystem characteristics deemed important for ecosystems in good condition, 
+and they are typically in their original units of measurement, or as ratios. 
+Condition indicators on the other hand, are on a dimensionless scale between 0 and 1, representing a gradient of deviation from 
+a reference condition (indicator value of 1) towards a completely deterriorated ecosystem (indicator value 0).
+The reference condition is what the current condition is compared against, 
+and its definition can vay according to the ecosystem type or the aim of the account.
+Typical reference conditions are defined as something like an "intact ecosystem".
 
-<!-- Explain spatial bias -->
+<!-- Local ECAs, challenges  -->
+
+SEEA EA have intentional similarities to national accounts, which deal with the economic activity at the scale of nations.
+Unsurprisingly then, SEEA EA accounts have mainly been used at national scales [@czucz_no_2025].
+However, there is a surge of new examples of regional, municipal and project level accounts, 
+motivated at least partly by the need to match the scale of the information to the scale of decision-making processes [@simensen_naturregnskap_2024; @gorman_decision_2024].
+Although data shortages are universal for ECAs at all scales, they may be even more prominent at local scales (ref).
+As we shall see, there are important differences between a typical national scale ECA and a more local ECA in what type of data they have available 
+to them and in how the available data can and should be used to design condition variables or indicators that are relevant 
+(e.g. have relevant resolutions, accuracy and precision) and mathematically defensible (e.g. provide unbiased estimates).
+
+
+One such difference is the use of point observations or sample data from field campaigns. 
+Ecosystem condition and environmental quality monitoring programmes are often designed to be representative at national scales,
+and there will typically not be enough data points for robust local inference from such data using design-based estimation methods, 
+and one would need to explore different types of predictive modelling and approaches from within the field of small area statistics.
+In small area statistics, the local estimates are informed by data from outside the local area, something referred to as _borrowing strength_. 
+This may raise concerns in some cases about the relevancy of the condition metric when its estimated value is _out of sample_ (REF and def).
+As a consequence, local ECAs may not be able to leverage data from large nature monitoring programs, or is they wanted to, 
+they would find scarce relevant guidelines for how to tackle this _out of sample_ problem.      
+
+<!-- spatial bias -->
+
+Another difference between national and more small-scale ECAs related to the use of spatially biased, or preferrentially sampled data,
+meaning data that are sampled without a known or reproducible sampling design, and in contrast to spatially representative data, which do have such a design.
+
+
+
+Ecosystem condition accounts are expected to provide a single estimate (a point estimate) for any condition metric over the entire EAA, 
+representing the the whole reporting period, 
+and give an unbiased spatial representation of the condition for a given area [table 1 in @czucz_selection_2021; see also @unitednations2024 §2.87].
+The SEEA EA framework is spatially explicit, meaning these metrics should ideally be recorded (or modeled) for all contiguous spaces (patches) 
+of a specific ecosystem type (a common definition of an *ecosystem asset*).
+Wall-to-wall raw data, such as satellite imagery or remote sening data in general, is spatially representative through the property of being spatially exhaustive [@williams_overcoming_2024], 
+and automatically gives data for all ecosystem assets.  
+For local applications of remote sensing data it is worth noting that grain size also plays a role 
+in the sense that important ecological information may be averaged out within a pixel (cf. the ecological fallacy [@robinson2009]). 
+However, many critical ecosystem characteristics - such as species composition, soil properties, or fine-scale habitat features - cannot be directly measured using remote sensors 
+and still require field surveys.
+These data are spatially incomplete, and to comply fully with the SEEA EA, they need to get projected on to ecosystem assets where they are not recorded (ref).
+A subsequent area-weighted mean for the EAA will then produce the point estimate [@unitednations2024 §5.54].
+The point estimate will be biased if the underlying data is biased (e.g. due to preferential sampling) and if it is not statistically controlled for.
+Spatial bias in field data are especially problematic if sampling intensity correlates with anthropogenic pressures (and thus ecosystem condition) [@aubry2024].
+
+National ECAs may simply choose to ignore data with known spatial biases on the grounds that they are unrepresentative for the total area of the target ecosystem,
+or they may leverage statistical tools that aims to overcome the original sampling bias, such as geostatistics (ref).
+However, as we just saw, small-scale ECAs may be more eager to use such inherently biased datasets 
+due to the above issue with using data from national monitoring programs, which could otherwise provide overlapping information.
+Being able to make use of spatially biased data would greatly alleviate data shortage problems in local ECAs.
+There is, however, a lack of guidelines in the SEEA EA for how to create condition metrics specifically for local ECAs which tackle the issues of spatial bias and which address the _out of sample_ issue.   
 
 <!-- Spatial projection -->
 
-<!-- Small area statistics and out of sample problems -->
-
-<!-- Direct estimation and post-stratification -->
-
-<!-- Design-based vs model based -->
-
-<!-- What about the errors -->
-
-<!-- Objective: Here we try to find a solution to the problem where municipalities want ECAs that are independent of the ecosystem condition outside its borders, but where small samples and preferential (biased) sampling makes it difficult -->
-
-Ecosystem condition accounting (ECA) is the structured compiling and communication of data on the status of ecosystems [@comte2022; @edens2022].
-Its purpose is support policies, landuse planning and management decisions, and making it easier to account for nature by making the environmental costs of certain policies and practices visible to decision-makers.
-The System of Environmental-Economic Accounting - Ecosystem Accounting (SEEA EA) is a statistical standard for ecosystem accounting, including ecosystem condition accounting, that was developed by the UN and adopted by the UN Statistical Commission in 2021 [@unitednations2024].
-This framework provides a set of rules, principles and best practices for compiling ecosystem accounts, primarily at a national level [@unitednations2022].
-At its core is the idea that data on ecosystem condition can be summarised in the form of summary statistics for selected metrics (condition indicators and variables) presented in generalised tables that describe the condition of a larger ecosystem accounting area (EAA).
-
-With intentional similarities to national accounts, which deal with the economic activity at the scale of nations, SEEA EA accounts have mainly been developed for and used at national scales [@czucz_no_2025].
-However, there is a surge of new examples of regional, municipal and project level accounts, motivated at least partly by the need to match the scale of the information to the scale of decision-making processes [@simensen_naturregnskap_2024; @gorman_decision_2024].
-Compared to accounts with large EAAs, local accounts face even greater challenges with resolution and availability of data.
-
-Ecosystem condition accounts are expected to provide a single estimate (a point estimate) for any condition metric over the entire EAA, representing the the whole reporting period. 
-Accordingly, condition metrics must give an unbiased spatial representation of the condition for a given area [table 1 in @czucz_selection_2021; see also @unitednations2024 §2.87].
-These metrics should ideally be recorded (or modeled) uniquely for all contiguous spaces (patches) of a specific ecosystem type (a common definition of an *ecosystem asset*), enabling the calculation of area-weighted means for the EAA [@unitednations2024 §5.54].
-While spatially and temporally representative estimation is essential, this requirement severely limits the types of usable data.
-Local ECAs are particularly constrained by data availability, 
-because ecosystem condition and environmental quality monitoring programmes are often designed to be representative at national scale. 
-This can lead to _ad hoc_ and potentially unrepresentative selections of variables and indicators.
-<!-- There is a lot of environmental or bidiversity data which are collected oppurtunistically, with no real sampling design. This includes citizen science data, but also ...
-Such data can and often will suffer from spatial (geographical and/or environmental biases), with sampling effors varying systamtically with some important variables, like distance to roads,  population density or general human activity -->
-Being able to make use of spatially biased data would greatly alleviate data shortage problems in local ECAs.
-
-<!-- The issue of representativeness extends beyond spatial biases to include thematic biases—such as the under-representation of key ecosystem components like insects or soil biota.
-Also, having data from only one or a subset of nature types inside what is defined as the ecosystem in the assessment, is a typical thematic bias in ecosystem accounting.
-However, this paper focuses on spatial (geographic and environmental) bias. -->
-
-
-
-Wall-to-wall raw data, such as satellite imagery, is spatially representative through the property of being spatially exhaustive [@williams_overcoming_2024], although grain size also plays a role (cf. the ecological fallacy [@robinson2009]).
-However, many critical ecosystem characteristics - such as species composition, soil properties, or fine-scale habitat features - cannot be directly measured using remote sensors 
-and still require field surveys.
-The sampling intensity of national monitoring programs is typically inadequate for fine-scale applications,
-and depending on the purpose of the survey, may also suffer from spatially biased sampling, thus leaving gaps in ecosystem asset coverage from a local management perspective.
-Field data are especially problematic if sampling intensity correlates with anthropogenic pressures (and thus ecosystem condition) [@aubry2024].
 A poor solution, which doesn't attempt to control for sampling biases, is to ignore unsampled areas by directly estimating values for the entire EAA via central tendencies (e.g. means).
 This solution is the simplest type of spatial generalisation and 
 relies on the assumption that the value of the variable of interest at unmeasured locations 
@@ -179,6 +199,28 @@ Values may derive from expert opinion or aggregated data (e.g. stratum means).
 If strata align with relevant gradients in pressures or environmental conditions, this method can mitigate sampling bias via post-stratification.
 The level of spatial or environmental extrapolation is subject to the size of the strata, with fine-grained typologies leading to less extrapolation.
 Extrapolating non-continuous spatial data (e.g. points) over a surface is also a type of spatial generalisation.
+
+
+<!-- Small area statistics and out of sample problems -->
+
+<!-- Direct estimation and post-stratification -->
+
+<!-- Design-based vs model based -->
+
+<!-- What about the errors -->
+
+<!-- Objective: Here we try to find a solution to the problem where municipalities want ECAs that are independent of the ecosystem condition outside its borders, but where small samples and preferential (biased) sampling makes it difficult -->
+
+
+
+
+
+<!-- The issue of representativeness extends beyond spatial biases to include thematic biases—such as the under-representation of key ecosystem components like insects or soil biota.
+Also, having data from only one or a subset of nature types inside what is defined as the ecosystem in the assessment, is a typical thematic bias in ecosystem accounting.
+However, this paper focuses on spatial (geographic and environmental) bias. -->
+
+
+
 
 After extrapolating data, the spatial grain of the data (and thus also the information) is essentially still the same.
 However, a critical step in ecosystem accounting is upscaling — synthesising fine-grained data to characterise larger areas, effectively reducing grain size or increasing support [@bierkens2002; @kolstad_spatial_2025].
