@@ -101,35 +101,27 @@ library(tarchetypes)
 <!-- Ecosystem accounting, ecosystem condition, metrics, purpose, point estimates -->
 
 Ecosystem condition accounting (ECA) is the structured compiling and communication of data on the status of ecosystems [@comte2022; @edens2022].
-Its purpose is support policies, landuse planning and management decisions, 
-and making it easier to account for nature by making the environmental costs of certain policies and practices visible to decision-makers.
-The System of Environmental-Economic Accounting - Ecosystem Accounting (SEEA EA) is the most widely used framework for ecosystem accounting. 
+Its purpose is support policies, landuse planning and management decisions, and making it easier to account for nature by making the environmental costs of certain policies and practices visible to decision-makers.
+The System of Environmental-Economic Accounting - Ecosystem Accounting (SEEA EA) is the most widely used framework for ecosystem accounting [@comte2022]. 
 It was developed by the UN and adopted by the UN Statistical Commission as a statistical standard for ecosystem accounting in 2021 [@unitednations2024].
 This framework provides a set of rules, principles and best practices for compiling ecosystem accounts, including ecosystem condition accounts (ECAs) [@unitednations2022].
-At its core is the idea that data on ecosystem condition can be summarised in the form of summary statistics for selected metrics presented in generalised tables 
-that describe the condition of a specific area referred to as the ecosystem accounting area (EAA).
+At its core is the idea that data on ecosystem condition can be summarised in the form of summary statistics for selected metrics presented in generalised tables that describe the condition of a specific area referred to as the ecosystem accounting area (EAA).
 Metrics are either classed as condition variables or as indicators.
-Condition variables describe certain ecosystem characteristics deemed important for ecosystems in good condition, 
-and they are typically in their original units of measurement, or as ratios. 
-Condition indicators on the other hand, are on a dimensionless scale between 0 and 1, representing a gradient of deviation from 
-a reference condition (indicator value of 1) towards a completely deterriorated ecosystem (indicator value 0).
-The reference condition is what the current condition is compared against, 
-and its definition can vay according to the ecosystem type or the aim of the account.
+Condition variables describe certain ecosystem characteristics deemed important for ecosystems in good condition, and they are typically in their original units of measurement, or as ratios. 
+Condition indicators on the other hand, are always on a dimensionless scale between 0 and 1, representing a gradient of deviation from a reference condition (indicator value of 1) towards a completely deterriorated ecosystem (indicator value 0).
+The reference condition is what the current condition is compared against, and its definition can vay according to the ecosystem type or the aim of the account.
 Typical reference conditions are defined as something like an "intact ecosystem".
 
 <!-- Local ECAs, data availability issues  -->
 
 SEEA EA have intentional similarities to national accounts, which deal with the economic activity at the scale of nations.
 Unsurprisingly then, SEEA EA accounts have mainly been used at national scales [@czucz_no_2025].
-However, there is a surge of new examples of regional, municipal and project level accounts, 
-motivated at least partly by the need to match the scale of the information to the scale of decision-making processes [@simensen_naturregnskap_2024; @gorman_decision_2024].
-Although data shortages ubiquitous for ECAs [@maes_review_2020], they may be especially prominent at local scales.
-As we shall see, there are important differences between a typical national scale ECA and a more local ECA in what type of data they have available 
-to them and in how the available data can and should be used to design condition variables or indicators that are relevant 
-(e.g. have relevant resolutions, accuracy and precision) and mathematically defensible (e.g. provide unbiased estimates).
+However, there is a surge of new examples of regional, municipal and project level accounts, motivated at least partly by the need to match the scale of the information to the scale of decision-making processes [@simensen_naturregnskap_2024; @gorman_decision_2024].
+Although data shortages are ubiquitous for ECAs [@maes_review_2020], they may be especially prominent at local scales.
+As we shall see, there are important differences between a typical national scale ECA and a more local ECA in what type of data they have available to them and in how the available data can and should be used to design condition variables or indicators that are relevant (e.g. have relevant resolutions, accuracy and precision) and mathematically defensible (e.g. provide unbiased estimates).
 
 One such difference is the use of point observations or sample data from field campaigns. 
-Ecosystem condition and environmental quality monitoring programmes are often designed to be representative at national scales.
+Many environmental monitoring programmes are designed to give robust design-based estimates of their target variables only at regional or national scales [@shannon_toward_2024].
 Therefore there will typically not be enough data points for robust local inference from such data using design-based estimation methods, 
 and one would need to explore different types of predictive modelling and approaches from within the field of small area statistics.
 In small area statistics, the local estimates are informed by data from outside the local area, something referred to as _borrowing strength_ [@ghosh1994; @guldin2021]. 
