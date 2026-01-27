@@ -106,38 +106,38 @@ The System of Environmental-Economic Accounting - Ecosystem Accounting (SEEA EA)
 It was developed by the UN and adopted by the UN Statistical Commission as a statistical standard for ecosystem accounting in 2021 [@unitednations2024].
 This framework provides a set of rules, principles and best practices for compiling ecosystem accounts, including ecosystem condition accounts (ECAs) [@unitednations2022].
 At its core is the idea that data on ecosystem condition can be summarised in the form of summary statistics for selected metrics presented in generalised tables that describe the condition of a specific area referred to as the ecosystem accounting area (EAA).
-Metrics are either classed as condition variables or as indicators.
-Condition variables describe certain ecosystem characteristics deemed important for ecosystems in good condition, and they are typically in their original units of measurement, or as ratios. 
-Condition indicators on the other hand, are always on a dimensionless scale between 0 and 1, representing a gradient of deviation from a reference condition (indicator value of 1) towards a completely deterriorated ecosystem (indicator value 0).
-The reference condition is what the current condition is compared against, and its definition can vay according to the ecosystem type or the aim of the account.
-Typical reference conditions are defined as something like an "intact ecosystem".
-
-<!-- Local ECAs, data availability issues  -->
-
 SEEA EA have intentional similarities to national accounts, which deal with the economic activity at the scale of nations.
 Unsurprisingly then, SEEA EA accounts have mainly been used at national scales [@czucz_no_2025].
 However, there is a surge of new examples of regional, municipal and project level accounts, motivated at least partly by the need to match the scale of the information to the scale of decision-making processes [@simensen_naturregnskap_2024; @gorman_decision_2024].
+
+Condition metrics under the SEEA EA are either classed as condition variables or as indicators [@unitednations2024].
+Condition variables describe certain ecosystem characteristics deemed important for ecosystems in good condition, and they are typically in their original units of measurement, or as ratios. 
+Condition indicators on the other hand, are always on a dimensionless scale between 0 and 1, representing a gradient of deviation from a reference condition (indicator value of 1) towards a completely deterriorated ecosystem (indicator value 0) [@jakobsson2020].
+The reference condition is what the current condition is compared against, for example an "intact ecosystem", but its definition can vay according to the ecosystem type or the aim of the account.
+Reference levels are numerical representations of the reference condition, and these are most often derived via expert-based approaches, followed by data-driven aapproaches and reference sites [@nicholson_thomas_towards_2025]. 
+
+<!-- Local ECAs, data availability issues  -->
+
 Although data shortages are ubiquitous for ECAs [@maes_review_2020], they may be especially prominent at local scales.
 As we shall see, there are important differences between a typical national scale ECA and a more local ECA in what type of data they have available to them and in how the available data can and should be used to design condition variables or indicators that are relevant (e.g. have relevant resolutions, accuracy and precision) and mathematically defensible (e.g. provide unbiased estimates).
-
 One such difference is the use of point observations or sample data from field campaigns. 
 Many environmental monitoring programmes are designed to give robust design-based estimates of their target variables only at regional or national scales [@shannon_toward_2024].
-Therefore there will typically not be enough data points for robust local inference from such data using design-based estimation methods, 
-and one would need to explore different types of predictive modelling and approaches from within the field of small area statistics.
-In small area statistics, the local estimates are informed by data from outside the local area, something referred to as _borrowing strength_ [@ghosh1994; @guldin2021]. 
-This may raise concerns in some cases about the relevancy of the condition metric when its estimated value is purely synthetic and _out of sample_ [@vogt_spatial_2023].
-As a consequence, local ECAs may not be able to leverage data from large nature monitoring programs, or if they wanted to, 
-they would find scarce relevant guidelines for how to tackle this _out of sample_ problem.
+These datasets will therefore typically not have enough data points for robust local inference from such data using design-based estimation methods, and one would need to explore different types of predictive modelling and approaches from within the field of small area statistics [@ghosh1994; @guldin2021; @fay_iii_estimates_1979; @breidenbach_small_2012].
+In small area statistics, the local estimates are informed by data from outside the local area, something referred to as _borrowing strength_. 
+This may raise concerns in some cases about the relevancy of the condition metric when its estimated value is purely synthetic and _out of sample_, meaning its value is not informed by any direct information for the given area [@vogt_spatial_2023].
+As a consequence, local ECAs may not be able to leverage data from large nature monitoring programs, or if they wanted to, they would find scarce relevant guidelines for how to tackle this _out of sample_ problem.
 
 <!-- spatial bias and data projection issues -->
 
-The SEEA EA is designed as a spatial accounting framework, meaning condition metrics should ideally be recorded (or modeled) for all contiguous spaces (patches) 
-of a specific ecosystem type (a common definition of an *ecosystem asset*) [@nicholson_thomas_towards_2025].
-Furthermore, ECAs are expected to provide a single estimate (a point estimate) for its condition metrics that represents the entire EAA and the the whole reporting period, 
-and give an unbiased spatial representation of the condition for a given area [table 1 in @czucz_selection_2021; see also @unitednations2024 §2.87].
-For sampled (i.e. non-exhaustive) data, this requires some projection of data to cover ecosystem assets where they are not recorded.
+The SEEA EA is designed as a spatial accounting framework, meaning condition metrics should ideally be recorded (or modeled) for all contiguous spaces (patches) of a specific ecosystem type (a common definition of an *ecosystem asset*) [@nicholson_thomas_towards_2025].
+Furthermore, ECAs are expected to provide a single estimate (a point estimate) for its condition metrics that represents the entire EAA and the the whole reporting period, and give an unbiased spatial representation of the condition for a given area [table 1 in @czucz_selection_2021; see also @unitednations2024 §2.87].
+For sampled (i.e. non-exhaustive) data, this requires some spatial projection of data to cover ecosystem assets where they are not recorded [@shannon_toward_2024].
+
 In the ecosystem service accounting community of practice, this is often referred to as *value transfer* [@grammatikopoulou2023; @barton2023].
+
 A subsequent area-weighted mean for the EAA will produce the point estimate [@unitednations2024 §5.54].
+<!-- SEA gives domain level or unit level estimates and errors. This is not completely agreeable with SEEA EA -->
+
 We refer to this process as upscaling — synthesising fine-grained data to characterise larger areas [@bierkens2002; @kolstad_spatial_2025].
 Methods for upscaling include aggregation (e.g. arithmetic means), sampling [@brus1997] or resampling techniques [@jakobsson2021].
 For simplicity we refer to all of these as aggregation, as the end result is the same — a synthesis of information.
@@ -574,6 +574,20 @@ Therefore, the negative consequences of trenching on all Norwegian mires, old an
 Alien species risk is not considered a threat to any of the Norwegian mire types, and our results confirm this, at least for the present (@fig-EEA-ridgePlot).
 Motorised vehicle traffic and other forms of human transportation are also threats listed for some mire types in the red list assessment, and we see some reduction in the ADSV indicator, more so in Gran and in areas closer to infrastructure (@fig-forest).
 Still, the indicator values are consistently above the threshold value for good ecological condition (@fig-EEA-ridgePlot).
+
+
+<!-- vogt2023 : we could've used a spatial model to borrwo strength from neighbouring areas, and not all of Norway -->
+
+<!-- We could have used existing models and tool (spatial EBLUP) to get estimates and errors, and then just ignored the estimates, or compared to our estimates. Could HIAs have been a random effect? -->
+
+<!-- FH shrinkage depends on with-area sampingvariance, but the sample variance is unreligable when n is very small.
+BFH (Battese–Harter–Fuller) is a unit level approach, and there the shrinkage depends on within-area n (and noise) -->
+
+<!-- EBLUP empirical Best Linear Unbiased Predictor, assumes the variance componenys are unknown, and estimates themusing real data -->
+
+<!-- SME is typically used to try and reduce the error around local estimates, but we often want to increase it, becuse very low n and truncated data give too low SDs -->
+
+<!--  In area-level models, the auxiliary information is only available for the small area level. In unit-level models, the auxiliary information is available for all elements of the population in the small area. National statistics oftern use unit level approaches like FH, so why not ecosystem accounting. -->
 
 # Conclusion
 

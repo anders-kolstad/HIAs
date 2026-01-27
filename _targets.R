@@ -87,7 +87,9 @@ list(
   tar_target(infra_dist_plot_out, ggplot_out(plot = infra_dist_plot, path = here::here("output", "fig", "infra-dist-plot.png"))),
   
   ## Stratification validation
+  ## Intersect naturetype data (indicators) with HIAs
   tar_target(corrCheck, corr_check(naturetypes_norm, infra_vec)),
+  ## Make figure (stacked bar plot)
   tar_target(validationPlot, validation_plot(corrCheck)),
   tar_target(validationPlot_out, ggplot_out(plot = validationPlot, path = here::here("output", "fig", "validationPlot.png"), width = 8, height = 5)),
 
@@ -104,12 +106,15 @@ list(
   tar_target(infraMuniMap_NA_tiff, save_tmap(infraMuniMap_NA2, here::here("output", "fig", "HIA-NA.tiff"), dpi = 600), format = "file"),
   tar_target(infraMuniMap_NA_png, save_tmap(infraMuniMap_NA2, here::here("output", "fig", "HIA-NA.png"), dpi = 300), format = "file"),
 
-  ## Municipality summary table (data frame)
+      ## Municipality summary table (data frame)
   tar_target(muni_tbl, muni_table(muni3, terrestrial, dk2, nature3, mireArea, mire_in_dk, infraMuni3_summary)),
 
-  ## National shapes from full data + domain summaries (core results)
+      ## From national dataset, get beta shape parameters (MASS::fitdistr) using ML,  and the proportion of zeros and ones. 
   tar_target(fit_df, fit_df_from_corrcheck(corrCheck)),
+      
+      ## For each HIA and municipality combination, we get the proportion of 0 and 1, and the beta shape parameters. National data have weight of 20, i.e. they count as 20 data points. We then simulate data (1000 draws) from this distribution. We also get the weighted arithmetic mean for each strata.
   tar_target(stats_tbl, mean_per_hia_tbl(nature3, infraMuni3, fit_df, prior_weight = 20, n_sim = 1000)),
+
   tar_target(forest_plot, forest_plot_from_stats(stats_tbl)),
   tar_target(forest_plot_out, ggplot_out(plot = forest_plot, path = here::here("output", "fig", "forest_plot.png"))),
   tar_target(forest_plot_ex, forest_plot_example(stats_tbl)),
