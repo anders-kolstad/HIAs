@@ -207,11 +207,7 @@ bayesplot::mcmc_neff(bayesplot::neff_ratio(fit_beta$stanfit, pars = pars), size 
     ggplot2::theme_classic(base_size = 15)
 ```
 
-```{r}
-temp <- fit_beta$stanfit
-n_draws <- temp@sim$chains * (temp@sim$iter - temp@sim$warmup)
-mcmc_neff(stan_diag$n_eff/n_draws)
-```
+
 
 The summary object contains important diagnostics, such as 
 
@@ -227,14 +223,26 @@ summ_beta <- summary(fit_beta)
 summ_beta
 ```
 
+There are also some useful visual check included in `plot()`
+```{r}
+plot(summ_beta)
+```
 
+With `density()` I can check the marginal posterior distributions of parameters: Did the sampler explore a stable, unimodal posterior?
+
+```{r}
+density(summ_beta)
+```
+
+Then I can turn to the response variable and validate the data generating process: “If this model were true, would we see data that look like the data we actually observed?”
+I plot the predicted samples (y_rep) against the observed data (y) and expect a good match. 
 ```{r}
 # Posterior predictive checks
 ppc_dens_overlay(y = summ_beta$direct_est, yrep = summ_beta$y_rep[1:50,]) +
   ggtitle("Beta likelihood")
 ```
 
-
+A caterpillar plot can explore the random variables, i.e. the noise between domains. 
 ```{r}
 ggplot(summ_beta$raneff$unstructured, aes(x = reorder(Domains, mean))) +
   geom_point(aes(y = mean)) +
@@ -245,16 +253,35 @@ ggplot(summ_beta$raneff$unstructured, aes(x = reorder(Domains, mean))) +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
 ```
 
-
-```{r}
-plot(summ_beta)
-density(summ_beta)
-```
-
 ## Extract model-based estimates
 Here we extract posterior summaries for our target parameter(s).
+```{r}
+(out <- extract(summ_beta))
+```
 
 
 ```{r}
-(out <- extract(summ_beta))
+out2 <- out$in_sample |>
+     as_tibble() |>
+     separate(col = Domains, into = c("Region", "Covariate"), sep = "_", remove = F) |>
+     ggplot() +
+     geom_col(aes())
+```
+
+
+```{r}
+out <- out$in_sample
+pos_quant <- c(6, 8)
+out3 <- data.frame(
+     Domain = out$Domains,
+     means = out[, "HB est."],
+     q_L = out[, pos_quant[1]],
+     q_U = out[, pos_quant[2]])
+
+ggplot2::ggplot(out3 |> as_tibble(), ggplot2::aes(x = reorder(Domain, means))) +
+    ggplot2::geom_point(ggplot2::aes(y = means)) +
+    ggplot2::geom_linerange(ggplot2::aes(ymin = q_L, ymax = q_U)) +
+    ggplot2::ylab("H.B. Estimates") + ggplot2::xlab("") + ggplot2::theme_bw(base_size = 12) +
+    ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 90, vjust = 0.5, hjust = 1))
+
 ```
