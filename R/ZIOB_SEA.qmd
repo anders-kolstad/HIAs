@@ -1,0 +1,260 @@
+---
+title: "ZOIB SEA"
+format: html
+---
+
+Test to see if I can produce sensible domain estimates for area level using the `tipsae` package. This package provides R implementation of a (zero and/or one-inflated) beta regression for small area estimation. There are other R packages that do SEA in R, but not any that go outside the Gaussian framework (including transformations; e.g. `emdi`). Ideally I think a unit-level SEA is more appropriate for our case, but I know of no R implementations for this, although there are statistical papers on it, like [this one](https://www.census.gov/content/dam/Census/library/working-papers/2012/demo/wieczoreknugenthawalajsm2012.pdf?utm_source=chatgpt.com). A 1-inflated beta distribution is appropriate for our case, since we have indicator values bound between 0 and 1, and there are a lot of 1's. At the area (domain) level, however, there will be less 1's, but I think there could be some exact 1's. This is important, because exact 1's are not allowed in a beta distribution, but they are in a 1-inflated beta distribution. As the domain I will use the HIAs, i.e. the intersection between municipalities and the four infrastructure index classes (the HIAs). This will reduce (but not eliminate) some of the issues around spatial represenetativity (spatial bias).
+
+`tipsae` uses STAN under the hood. STAN again uses two MCMC algorithms: Hamiltonian Monte Carlo and NUTS.\
+There is also a shiny app if we want to make it easier, although I think I will prefer a code-based and reproducible workflow.
+
+The `fit_sae()` function does most of the work. You feed it direct estimates for the domain, which in our case will be area weighted and post-stratified indicator means. These are not priors, but they define the likelihood for the domain-level observation. Then we need covariates that have an association with the target variable (the direct estimates) and can be used as a fixed variable in the regression. The regression will predict the target value, also in out-of-sample areas, but even within-sample-areas it will borrow strength from the full dataset to hopefully make better local predictions as well. The direct estimates get shrunk towards the regression surface (the prediction) when the domain level uncertainty is high. Meaning if there are lots of local information (high effective n) for one domain, and/or its variance is low, the direct estimate equal the SEA estimate. But local variance estimates are unreliable for small sample sizes, and I think especially so for very skewed distribution. Our distribution is very skewed, maybe towards something like a power law, where the variance actually increase as sample sizes go up, because you then invariable include more of the long tail of the distribution. Variance smoothing can get better domain estimates of the variance. Alternatively one can calculate the effective sampling size (`neff`). I think I will use `neff`, partly because I think I must use `neff`in order to use the 1-inflated beta distribution for the likelihood function.
+
+This process of SEA estimation should be done for all domain within the population. I started out focusing on three example domains (municipalities), but now I think I might as well run this on all municipalities with the geographical scope.
+
+Another thing I might consider it the benchmarking feature. The way I understand it is that it anchors the domain estimates to some stable or constant aggregated value which one can assume is more unbiased.\
+Doing this might add some benefits in terms of scale-cohersion - that small scale estimates produce nice aggregates to larger areas, but besides that I don't see much need foradding this complexity right now.
+
+Since we are now working at the area level, i.e. strata, we need an area-level covariate. The infrastructure index (ABI) is a continuous variable. I have previously used a discretised version of this data for making post-stratified direct estimates. This is a four-step ordinal scale. I will use it as a (pseudo-) continuous covvariate.
+
+Before I use `fit_sae()` I still need to create the direct estimates for each domain. For that I think I will still use the post-stratification approach and the discretise ABI map.
+
+But first I want to make a dry run, using the example dataset from ´eaTools´.
+
+```{r setup}
+#packages = c(
+#     "knitr", "sf",  "tmap", "tmaptools", "stars", "terra",
+#     "tidyterra", "ggtext", "cowplot",  "units",  "rnaturalearth",
+#     "rnaturalearthdata", "ggmagnify", "ggridges", "eaTools", "ggpubr",
+#     "kableExtra", "here", "MASS", "ggh4x", "tidyverse", "RColorBrewer",
+#     "forcats", "targets", "tarchetypes")
+#lapply(packages, library, character.only = TRUE)
+
+library(tidyverse)
+library(eaTools)
+library(tmap)
+library(tipsae)
+library(sf)
+library("bayesplot")
+library("loo")
+```
+
+```{r getData}
+data("ex_polygons")
+data("accounting_area")
+data("ex_raster")
+```
+
+```{r plotData}
+tm_shape(ex_raster)+
+  tm_raster(alpha = 1,
+            style = "cat")+
+  tm_shape(accounting_area)+
+  tm_polygons(alpha = .6)+
+  tm_shape(ex_polygons)+
+  tm_polygons(border.col = "black")+
+  tm_layout(legend.outside = T)+
+  tm_scale_bar(position = c("right", "bottom"), width = 0.3)
+```
+
+I will treat the intersection between `accounting_area` ad `ex_raster` as domains, and `ex_raster` as the covariate. 
+The domains will not be cohersive.
+The covariate doesn't correlate with any of the condition variables in `ex_polygons`. I can fix this with an intersect where I create a new indicator conditional on the covariate.
+
+
+```{r prep}
+
+# possible indicator values
+ind <- c(0, 0.5, 0.8, 0.9, 1)
+# probabilities
+prob1 <- c(0.05, 0.1, 0.2, 0.3, 1)
+prob2 <- c(0.05, 0.1, 0.2, 0.5, 2)
+prob3 <- c(0.05, 0.1, 0.2, 0.7, 3)
+
+s1 <- sample(ind, 1000, prob = prob1, replace = T)
+s2 <- sample(ind, 1000, prob = prob2, replace = T)
+s3 <- sample(ind, 1000, prob = prob3, replace = T)
+
+mean(s1)
+mean(s2)
+mean(s3)
+
+par(mfrow=c(1,3))
+hist(s1, ylim = c(0,900))
+hist(s2, ylim = c(0,900))
+hist(s3, ylim = c(0,900))
+
+
+
+# vectorize
+population <- ex_raster |>
+     sf::st_as_sf() |>
+     sf::st_intersection(ex_polygons) |>
+     rename(covariate = values) |>
+     rowwise() |>
+     mutate(indicator = case_when(
+          #covariate == 1 ~ rbeta(1, 1, 0.2), 
+          #covariate == 2 ~ rbeta(1, 3, 0.2), 
+          #covariate == 3 ~ rbeta(1, 6, 0.2)
+          covariate == 1 ~ sample(ind, 1, prob = prob1), 
+          covariate == 2 ~ sample(ind, 1, prob = prob2), 
+          covariate == 3 ~ sample(ind, 1, prob = prob3)
+     )) |>
+     ungroup() |>
+     mutate(covariate_c = covariate - 2) |>
+     sf::st_intersection(accounting_area) |>
+     unite("domain", c(name, covariate), remove = FALSE) |>
+     mutate(area = units::drop_units(st_area(geometry)))
+
+population |>
+     ggplot(aes(indicator))+
+     geom_histogram() +
+     facet_wrap(.~domain)
+```
+
+```{r}
+population |>
+     ggplot() +
+     geom_histogram(aes(covariate_c))
+```
+
+In this data I have no out-of-sample domains, but I have many discrete patches of the domains with no data.
+So I must assume spatial/environmental representativity. 
+However, I will actually try to sub-sample the raw data, so that I have one set of direct estimates from the full dataset (assumed full popuylation) and one based on a sparse sample which I will subject to SAE. Then I can see if the SAE estimates give answers similar to the direct estimation from the entire population.
+
+```{r}
+sample <- population |>
+     slice_sample(prop = 0.1) 
+```
+
+The data at the unit level look to fit with a 1-inflated beta-distribution.
+But we will model the response at the area level (i.e. domain level).
+We have 15 domains, which is a bit low, but it might work for testing.
+
+
+```{r}
+population_agg <- population |>
+     group_by(domain) |>
+     summarise(
+          indicator_agg = weighted.mean(indicator, area),
+          n = n(),
+          vars = var(indicator),
+          covariate = min(covariate_c))
+
+sample_agg <- sample |>
+     group_by(domain) |>
+     summarise(indicator_agg = weighted.mean(indicator, area),
+     n = n(),
+     vars = var(indicator),
+    covariate = min(covariate_c))
+
+population_agg |> 
+     as_tibble() |>
+     dplyr::select(-geometry) |>
+     left_join(
+          sample_agg |>
+               as_tibble() |>
+               dplyr::select(-geometry), by = join_by(domain), suffix = c(".pop", ".sample")) 
+
+```
+
+Depending on the randomness of the draw, there might be or might not be exact zeros in the response variable. 
+I might be able to use a beta distribution, or a flexible beta distribution, if there are no 1's, else I use a 1-inflated model.
+
+```{r}
+sample_agg |> 
+     as_tibble() |>
+     ggplot() +
+     geom_point(aes(indicator_agg, domain),
+     size = 3)
+```
+
+
+The inflated models require dispersion to be qunatified as effective sample size `neff`. 
+I use a centered (possibly also scaled) covariate. Perhaps more important if I have several covariates.
+The prior for the random effects (`prior:reff`) is "normal" by default, but if the preditors are weak and we expect some domains to deviate a lot from the synthetic predictor, we can use "t" (a t-distribution).
+I wont add a spatial component to this model.  
+
+```{r}
+# Fit beta SAE model
+fit_beta <- fit_sae(formula_fixed = indicator_agg ~ covariate, data = sample_agg, domains = "domain",
+  type_disp = "neff", disp_direct = "n", seed=0, likelihood = "Infbeta01", init = "1")
+
+```
+
+
+## Model validation
+I need to check chain mixing with trace plots and ensure R-hat is below 1.05.
+I can also check that the effective sample size (neff ratio) is close to 1. Very low ratios often mean high autocorrelation / poor mixing
+```{r}
+# Traceplots
+post_beta <- as.array(fit_beta$stanfit, pars = c("beta0", "beta"))
+mcmc_trace(x = post_beta)
+```
+
+```{r}
+
+# Plot of R hat
+pars <- names(fit_beta$stanfit)
+pars <- pars[grepl("^beta", pars) | grepl("^sigma", pars)]
+bayesplot::mcmc_rhat(bayesplot::rhat(fit_beta$stanfit, pars = pars), size = 2) +
+     bayesplot::yaxis_text(hjust = 1) + 
+     ggplot2::theme_classic(base_size = 15)
+
+# Plot of the effective sample size
+bayesplot::mcmc_neff(bayesplot::neff_ratio(fit_beta$stanfit, pars = pars), size = 2) +
+    bayesplot::yaxis_text(hjust = 1) + 
+    ggplot2::theme_classic(base_size = 15)
+```
+
+```{r}
+temp <- fit_beta$stanfit
+n_draws <- temp@sim$chains * (temp@sim$iter - temp@sim$warmup)
+mcmc_neff(stan_diag$n_eff/n_draws)
+```
+
+The summary object contains important diagnostics, such as 
+
+- the residual distribution (should be normal) 
+- the SD reduction (~0 implies little added value (direct estimates dominate) and ~1 means the synthetic estimated dominate). Very high value could omply too much smoothing.
+- LOO information (useful for comparing alternative models)
+- shrinkage bound rate (proportion of domains for which the HB estimate is bounded between the direct and the synthetic estimate) - should be around 100%
+- bayesian p-value - how likely are the direct estimate given the model is true? Should be around 0.5 (0.2-0.8 is fine)
+
+```{r}
+# Beta model summaries
+summ_beta <- summary(fit_beta)
+summ_beta
+```
+
+
+```{r}
+# Posterior predictive checks
+ppc_dens_overlay(y = summ_beta$direct_est, yrep = summ_beta$y_rep[1:50,]) +
+  ggtitle("Beta likelihood")
+```
+
+
+```{r}
+ggplot(summ_beta$raneff$unstructured, aes(x = reorder(Domains, mean))) +
+  geom_point(aes(y = mean)) +
+  geom_linerange(aes(ymin = `2.5%`, ymax = `97.5%`)) +
+  geom_hline(yintercept = 0, lty = 2) +
+  ylab("Random effect") + xlab("") +
+  theme_bw(base_size = 12) +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+```
+
+
+```{r}
+plot(summ_beta)
+density(summ_beta)
+```
+
+## Extract model-based estimates
+Here we extract posterior summaries for our target parameter(s).
+
+
+```{r}
+(out <- extract(summ_beta))
+```
