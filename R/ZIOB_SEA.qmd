@@ -131,7 +131,77 @@ The data at the unit level look to fit with a 1-inflated beta-distribution.
 But we will model the response at the area level (i.e. domain level).
 We have 15 domains, which is a bit low, but it might work for testing.
 
+Next I also want to calculate the effective sample size `neff`.
+I could calculate a spatial correlation (variogram etc.), but I think I want to keep it simple.
+I also think the mean spatial variance within a domain might be unreligable due to 1-inflation and low _n_.
+So I define my own linear decay function.
 
+```{r}
+R <- 2000 # distance where data points are considered independent
+rho_fun <- function(h) pmax(0, 1 - h / R)
+```
+
+```{r neffFunction}
+neff_by_domain <- function(
+  df,
+  dom_col = "dom",
+  rho_fun,
+  clamp_min = 1
+) {
+  stopifnot(all(c(dom_col) %in% names(df)))
+
+  doms <- unique(df[[dom_col]])
+  out <- data.frame(
+    dom = doms,
+    n = NA_integer_,
+    rho_bar = NA_real_,
+    neff = NA_real_
+  )
+
+  for (k in seq_along(doms)) {
+    d <- doms[k]
+    sub <- df[df[[dom_col]] == d, , drop = FALSE]
+    n <- nrow(sub)
+    out$n[k] <- n
+
+    if (n == 0) {
+      out$rho_bar[k] <- NA
+      out$neff[k] <- NA
+      next
+    }
+    if (n == 1) {
+      out$rho_bar[k] <- NA
+      out$neff[k] <- 1
+      next
+    }
+
+    dists <- sf::st_distance(sub, sub)
+    ix <- upper.tri(dists, diag = F)
+    dists <- units::drop_units(dists[ix])
+    plot(dists)
+    # hist(dists)
+    r <- rho_fun(dists)
+    # hist(r)
+    rho_bar <- mean(r) 
+
+    out$rho_bar[k] <- rho_bar
+
+    neff <- n / (1 + (n - 1) * rho_bar)
+
+    # Clamp: neff in [clamp_min, n]
+    neff <- max(clamp_min, min(neff, n))
+
+    out$neff[k] <- neff
+  }
+
+  out
+}
+```
+
+```{r}
+neffs <- neff_by_domain(sample, dom_col = "domain", rho_fun = rho_fun)
+
+```
 ```{r}
 population_agg <- population |>
      group_by(domain) |>
@@ -146,7 +216,9 @@ sample_agg <- sample |>
      summarise(indicator_agg = weighted.mean(indicator, area),
      n = n(),
      vars = var(indicator),
-    covariate = min(covariate_c))
+     covariate = min(covariate_c)) |>
+     left_join(neffs |> select(domain = dom, neff))
+
 
 population_agg |> 
      as_tibble() |>
@@ -160,6 +232,7 @@ population_agg |>
 
 Depending on the randomness of the draw, there might be or might not be exact zeros in the response variable. 
 I might be able to use a beta distribution, or a flexible beta distribution, if there are no 1's, else I use a 1-inflated model.
+
 
 ```{r}
 sample_agg |> 
@@ -178,7 +251,7 @@ I wont add a spatial component to this model.
 ```{r}
 # Fit beta SAE model
 fit_beta <- fit_sae(formula_fixed = indicator_agg ~ covariate, data = sample_agg, domains = "domain",
-  type_disp = "neff", disp_direct = "n", seed=0, likelihood = "Infbeta01", init = "1")
+  type_disp = "neff", disp_direct = "neff", seed=0, likelihood = "Infbeta1", init = "1", domain_size = "n", prior_reff = "t")
 
 ```
 
@@ -193,7 +266,6 @@ mcmc_trace(x = post_beta)
 ```
 
 ```{r}
-
 # Plot of R hat
 pars <- names(fit_beta$stanfit)
 pars <- pars[grepl("^beta", pars) | grepl("^sigma", pars)]
@@ -223,16 +295,24 @@ summ_beta <- summary(fit_beta)
 summ_beta
 ```
 
+The covariate is not very informative in this case.
+
 There are also some useful visual check included in `plot()`
 ```{r}
 plot(summ_beta)
 ```
 
-With `density()` I can check the marginal posterior distributions of parameters: Did the sampler explore a stable, unimodal posterior?
+Whoops, the HB estimates are more or less constant 0.9 and the shrinkage is enormous. 
+This is because neff if so low. They way I define it using a monotonic linear decay function, 
+it's quite arbitrary. 
+I could perhaps try a variogram approach (or Morans I?),
 
+With `density()` I can check the marginal posterior distributions of parameters: Did the sampler explore a stable, unimodal posterior?
 ```{r}
 density(summ_beta)
 ```
+
+The HB estimates are too narrow.
 
 Then I can turn to the response variable and validate the data generating process: “If this model were true, would we see data that look like the data we actually observed?”
 I plot the predicted samples (y_rep) against the observed data (y) and expect a good match. 
@@ -263,25 +343,44 @@ Here we extract posterior summaries for our target parameter(s).
 ```{r}
 out2 <- out$in_sample |>
      as_tibble() |>
-     separate(col = Domains, into = c("Region", "Covariate"), sep = "_", remove = F) |>
-     ggplot() +
-     geom_col(aes())
+     separate(col = Domains, into = c("Region", "Covariate"), sep = "_", remove = F) 
 ```
 
 
 ```{r}
-out <- out$in_sample
-pos_quant <- c(6, 8)
-out3 <- data.frame(
-     Domain = out$Domains,
-     means = out[, "HB est."],
-     q_L = out[, pos_quant[1]],
-     q_U = out[, pos_quant[2]])
+out3 <- out$in_sample 
 
-ggplot2::ggplot(out3 |> as_tibble(), ggplot2::aes(x = reorder(Domain, means))) +
-    ggplot2::geom_point(ggplot2::aes(y = means)) +
-    ggplot2::geom_linerange(ggplot2::aes(ymin = q_L, ymax = q_U)) +
-    ggplot2::ylab("H.B. Estimates") + ggplot2::xlab("") + ggplot2::theme_bw(base_size = 12) +
-    ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 90, vjust = 0.5, hjust = 1))
+pos_quant <- c(5, 9) # 95%CI
+
+out4 <- data.frame(
+     Domain = out3$Domains,
+     means = out3[, "HB est."],
+     d_means = out3[, "Direct est."],
+     q_L = out3[, pos_quant[1]],
+     q_U = out3[, pos_quant[2]],
+     n = sample_agg$n)
+
+ggplot(out4 |> as_tibble(), 
+     aes(x = reorder(Domain, means))) +
+     geom_point(aes(y = means)) +
+     geom_point(aes(y = d_means, size = n), shape = 2) +
+     geom_linerange(aes(ymin = q_L, ymax = q_U)) +
+     ylab("H.B. Estimates") + xlab("") + theme_bw(base_size = 12) +
+     theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
 
 ```
+
+Some direct estimates are outside the 95% credible interval for the model-based estimate.
+There's a little bit of a bias downwards perhaps, which could be due to model misspesification.
+It could be that the covariate-response relationship is non-linear for example. 
+Or that we are missing a key parameter, or spatial structure.
+
+Next:
+
+- create domain dataset
+     - intersect HIAs and municipalities
+     - intersect with NiN polygons
+     - aggregate area weighted mean per domain (and _n_)
+     - estimate neff from linear decay function
+- model, validate and extract
+- test different neff approaches
